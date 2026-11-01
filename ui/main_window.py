@@ -1,4 +1,3 @@
-from pathlib import Path
 import sqlite3
 
 from PyQt6.QtGui import QAction
@@ -31,7 +30,6 @@ class DomainWindow(QMainWindow):
 
         self.menu_bar = self.menuBar()
 
-        # Меню программы
         self.file_menu = self.menu_bar.addMenu("Файл")
         self.edit_menu = self.menu_bar.addMenu("Правка")
         self.view_menu = self.menu_bar.addMenu("Вид")
@@ -57,15 +55,14 @@ class DomainWindow(QMainWindow):
         self.tool_bar.move(0, self.HEADERS_HEIGHT)
         self.tool_bar.resize(self.width(), ToolBar.HEIGHT)
         self.tool_bar.color_selected.connect(self.set_canvas_color)
+        self.tool_bar.tool_selected.connect(self.set_canvas_tool)
 
-        # Оставлено для совместимости с вызовами DomainWindow(project, database).
         if project is not None:
             self.set_project(project)
 
         self.setWindowTitle("SQPaint")
 
     def open_project(self) -> None:
-        """Открывает диалог выбора SQLite-файла и загружает выбранный проект."""
         path, _ = QFileDialog.getOpenFileName(
             self,
             "Открыть проект",
@@ -89,7 +86,6 @@ class DomainWindow(QMainWindow):
         self.set_project(project)
 
     def set_project(self, project: Project) -> None:
-        """Устанавливает проект и перестраивает холст под его размеры."""
         if self.canvas is not None:
             self.canvas.hide()
             self.canvas.deleteLater()
@@ -101,6 +97,7 @@ class DomainWindow(QMainWindow):
             project.get_width(),
             project.get_height(),
         )
+        self.canvas.set_tool("brush")
         self.canvas.move(0, ToolBar.HEIGHT + self.HEADERS_HEIGHT)
         self.canvas.show()
 
@@ -123,6 +120,10 @@ class DomainWindow(QMainWindow):
     def set_canvas_color(self, color) -> None:
         if self.canvas is not None:
             self.canvas.color = color
+
+    def set_canvas_tool(self, tool_name: str) -> None:
+        if self.canvas is not None:
+            self.canvas.set_tool(tool_name)
 
     def closeEvent(self, event) -> None:
         self.database.close()
