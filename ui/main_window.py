@@ -27,7 +27,13 @@ class DomainWindow(QMainWindow):
             project.get_height(),
         )
 
+        # Передаём выбранный цвет с панели инструментов на холст.
+        self.tool_bar.color_selected.connect(self.set_canvas_color)
+
         central_layout.addWidget(self.tool_bar)
         central_layout.addWidget(self.canvas)
 
         self.setCentralWidget(central_widget)
+
+    def set_canvas_color(self, color):
+        self.canvas.color = color
