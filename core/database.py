@@ -36,30 +36,35 @@ class ProjectDatabase:
     """
 
     def __init__(self):
-        self.conn = None
+        self.path: str | None = None
+        self.conn: sqlite3.Connection | None = None
 
-    def create(self, path: str, name: str, width: int, height: int) -> None:
-        """Создаёт новый файл проекта: таблицы, строку project и все слои."""
+    def create(self, path: str, name: str, width: int, height: int) -> Project:
+        """Создаёт новый файл проекта и возвращает Project."""
         if os.path.exists(path):
             raise FileExistsError(f"Файл уже существует: {path}")
-
+ 
         project = Project(name, width, height, datetime.now(), path, [])
-
+ 
         self.close()
         self.path = path
         self.conn = sqlite3.connect(path)
-    
-        # "with conn" = одна транзакция: либо всё записалось, либо ничего
+ 
+        # executescript сам делает commit, поэтому таблицы создаются вне транзакции,
+        # а вставки ниже - уже одной транзакцией
+        self.conn.executescript(self.SCHEMA)
         with self.conn:
-            self.conn.executescript(self.SCHEMA)
             self.conn.execute(
                 "INSERT INTO project (id, name, width, height, created_at) "
                 "VALUES (1, ?, ?, ?, ?)",
-                (project.name, project.width, project.height, d(project.created_at)),
+                (project.name, project.width, project.height,
+                 datetime_to_str(project.created_at)),
             )
             self._write_layers(project)
             print("Проект создан")
-
+ 
+        return project
+    
     def load(self, path: str) -> Project:
         """Загрузит проект по пути и вернёт Project. Файл остаётся открытым."""
         if not os.path.exists(path):
@@ -83,6 +88,7 @@ class ProjectDatabase:
             ]
         except Exception:
             conn.close()
+            raise
  
         self.path = path
         self.conn = conn
@@ -99,7 +105,7 @@ class ProjectDatabase:
             )
             self.conn.execute("DELETE FROM layers")
             self._write_layers(project)
-            print("Проект сохранён")
+            self._insert_log("Проект сохранён")
 
     def close(self) -> None:
         """Закрывает соединение с файлом проекта."""
