@@ -1,6 +1,6 @@
 from PyQt6.QtCore import pyqtSignal
 from PyQt6.QtGui import QColor
-from PyQt6.QtWidgets import QWidget, QPushButton, QHBoxLayout, QColorDialog
+from PyQt6.QtWidgets import QApplication, QWidget, QPushButton, QLabel, QHBoxLayout, QColorDialog
 
 
 class ToolBar(QWidget):
@@ -32,6 +32,14 @@ class ToolBar(QWidget):
         self.Hlayout.addWidget(self.brush_tool)
         self.Hlayout.addWidget(self.eraser_tool)
         self.Hlayout.addWidget(self.fill_tool)
+
+        # Просто добавлю воздуха, чтобы кнопки не тянулись на всю ширину экрана
+        size = QApplication.primaryScreen().size()
+
+        self.airlabel = QLabel()
+        self.airlabel.setFixedWidth(int(size.width() * 0.8)) # 80 процентов от ширины экрана занимает воздух
+        self.Hlayout.addWidget(self.airlabel)
+
 
     def choose_color(self):
         color = QColorDialog.getColor(
