@@ -25,4 +25,5 @@ project = database.load('D:/Python/sqpaint/test_base.sqlite')
 
 app = QApplication([])
 window = DomainWindow(project)
+window.show()
 sys.exit(app.exec())
