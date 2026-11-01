@@ -153,15 +153,6 @@ class DomainWindow(QMainWindow):
         )
         image.fill(0)
         initial_layer = Layer("Слой 1", 0, True, image)
-        project = Project(
-            name=name,
-            width=width,
-            height=height,
-            created_at=__import__("datetime").datetime.now(),
-            path=path,
-            layers=[initial_layer],
-        )
-
         try:
             project = self.database.create(
                 path,
@@ -169,10 +160,8 @@ class DomainWindow(QMainWindow):
                 width,
                 height,
             )
-            # В БД и в модели должен быть один и тот же начальный слой.
             project.layers.append(initial_layer)
-            with self.database.conn:
-                self.database._write_layers(project, self.database.conn)
+            self.database.save(project)
         except (OSError, sqlite3.Error, ValueError, RuntimeError) as error:
             QMessageBox.critical(
                 self,
