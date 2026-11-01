@@ -1,6 +1,5 @@
 from qtools.brush import Brush
-from PyQt6.QtCore import Qt
-from PyQt6.QtGui import QPainter, QPen, QColor
+from PyQt6.QtGui import QPainter, QColor
 from PyQt6.QtWidgets import QWidget
 
 
@@ -15,7 +14,13 @@ class Canvas(QWidget):
         self.width_px = 4
 
         self.brush = Brush()
-        self.qtools = (self.brush)
+        self.qtools = self.brush
+        self.active_tool = "brush"
+
+    def set_tool(self, tool_name: str) -> None:
+        """Меняет активный инструмент и сбрасывает текущий штрих."""
+        self.active_tool = tool_name
+        self.last = None
 
     def paintEvent(self, event):
         p = QPainter(self)
@@ -24,18 +29,30 @@ class Canvas(QWidget):
                 p.drawImage(0, 0, layer.image)
 
     def mousePressEvent(self, e):
-        self.last = e.position().toPoint()
+        if self.active_tool == "brush":
+            self.last = e.position().toPoint()
 
     def mouseMoveEvent(self, e):
-        if self.last is None:
+        if self.active_tool != "brush" or self.last is None:
             return
+
+        if not self.layers or not (0 <= self.active < len(self.layers)):
+            return
+
+        layer = self.layers[self.active]
+        if not layer.visible:
+            return
+
         pos = e.position().toPoint()
 
-        self.brush.move(self.layers[self.active].image,
-                        pos,
-                        self.last,
-                        self.color,
-                        self.width_px)
+        # Существующая реализация кисти сохранена.
+        self.brush.move(
+            layer.image,
+            pos,
+            self.last,
+            self.color,
+            self.width_px,
+        )
 
         self.last = pos
         self.update()
