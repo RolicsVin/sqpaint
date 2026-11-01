@@ -41,9 +41,9 @@ class DomainWindow(QMainWindow):
         self.file_menu.addAction(self.save_action)
         self.file_menu.addAction(self.exit_action)
 
-        self.new_action.triggered.connect(self.save)
+        #self.new_action.triggered.connect(self.save)
         #self.open_action.triggered.connect(self.new_file)
-        #self.save_action.triggered.connect(self.save_file)
+        self.save_action.triggered.connect(self.save)
         self.exit_action.triggered.connect(self.close)
 
         self.tool_bar = ToolBar()
