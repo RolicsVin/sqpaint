@@ -1,17 +1,65 @@
+import os
 import sqlite3
 
-from PyQt6.QtGui import QAction
+from PyQt6.QtGui import QAction, QImage
 from PyQt6.QtWidgets import (
     QApplication,
+    QDialog,
+    QDialogButtonBox,
     QFileDialog,
+    QFormLayout,
+    QLineEdit,
     QMainWindow,
     QMessageBox,
+    QSpinBox,
 )
 
 from core.database import ProjectDatabase
-from core.models import Project
+from core.models import Layer, Project
 from ui.canvas import Canvas
 from ui.tool_bar import ToolBar
+
+
+class NewProjectDialog(QDialog):
+    """Диалог параметров нового проекта."""
+
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        self.setWindowTitle("Новый проект")
+        self.setModal(True)
+
+        self.name_edit = QLineEdit("Новый проект", self)
+
+        self.width_spin = QSpinBox(self)
+        self.width_spin.setRange(1, 8192)
+        self.width_spin.setValue(1920)
+        self.width_spin.setSuffix(" px")
+
+        self.height_spin = QSpinBox(self)
+        self.height_spin.setRange(1, 8192)
+        self.height_spin.setValue(1080)
+        self.height_spin.setSuffix(" px")
+
+        form = QFormLayout(self)
+        form.addRow("Название:", self.name_edit)
+        form.addRow("Ширина:", self.width_spin)
+        form.addRow("Высота:", self.height_spin)
+
+        buttons = QDialogButtonBox(
+            QDialogButtonBox.StandardButton.Ok
+            | QDialogButtonBox.StandardButton.Cancel,
+            parent=self,
+        )
+        buttons.accepted.connect(self.accept)
+        buttons.rejected.connect(self.reject)
+        form.addRow(buttons)
+
+    def get_values(self) -> tuple[str, int, int]:
+        return (
+            self.name_edit.text().strip(),
+            self.width_spin.value(),
+            self.height_spin.value(),
+        )
 
 
 class DomainWindow(QMainWindow):
@@ -46,6 +94,7 @@ class DomainWindow(QMainWindow):
         self.file_menu.addSeparator()
         self.file_menu.addAction(self.exit_action)
 
+        self.new_action.triggered.connect(self.create_project)
         self.open_action.triggered.connect(self.open_project)
         self.save_action.triggered.connect(self.save)
         self.exit_action.triggered.connect(self.close)
@@ -61,6 +110,78 @@ class DomainWindow(QMainWindow):
             self.set_project(project)
 
         self.setWindowTitle("SQPaint")
+
+    def create_project(self) -> None:
+        dialog = NewProjectDialog(self)
+        if dialog.exec() != QDialog.DialogCode.Accepted:
+            return
+
+        name, width, height = dialog.get_values()
+        if not name:
+            QMessageBox.warning(
+                self,
+                "Некорректное название",
+                "Введите название проекта.",
+            )
+            return
+
+        path, _ = QFileDialog.getSaveFileName(
+            self,
+            "Создать проект",
+            f"{name}.sqlite",
+            "Проекты SQPaint (*.sqlite)",
+        )
+        if not path:
+            return
+
+        if not path.lower().endswith(".sqlite"):
+            path += ".sqlite"
+
+        if os.path.exists(path):
+            QMessageBox.warning(
+                self,
+                "Файл уже существует",
+                "Выберите другое имя или другое расположение файла. "
+                "Существующие файлы не перезаписываются.",
+            )
+            return
+
+        image = QImage(
+            width,
+            height,
+            QImage.Format.Format_ARGB32,
+        )
+        image.fill(0)
+        initial_layer = Layer("Слой 1", 0, True, image)
+        project = Project(
+            name=name,
+            width=width,
+            height=height,
+            created_at=__import__("datetime").datetime.now(),
+            path=path,
+            layers=[initial_layer],
+        )
+
+        try:
+            project = self.database.create(
+                path,
+                name,
+                width,
+                height,
+            )
+            # В БД и в модели должен быть один и тот же начальный слой.
+            project.layers.append(initial_layer)
+            with self.database.conn:
+                self.database._write_layers(project, self.database.conn)
+        except (OSError, sqlite3.Error, ValueError, RuntimeError) as error:
+            QMessageBox.critical(
+                self,
+                "Не удалось создать проект",
+                f"Проект не удалось создать.\n\n{error}",
+            )
+            return
+
+        self.set_project(project)
 
     def open_project(self) -> None:
         path, _ = QFileDialog.getOpenFileName(
