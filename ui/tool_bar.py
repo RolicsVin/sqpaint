@@ -43,9 +43,6 @@ class ToolBar(QWidget):
         if color.isValid():
             self.current_color = color
             self.color_selected.emit(color)
-            self.color_btn.setStyleSheet(
-                f"background-color: {color.name()};"
-            )
 
     def get_height(self) -> int:
         return self.HEIGHT

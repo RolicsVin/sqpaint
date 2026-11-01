@@ -15,6 +15,7 @@ class Canvas(QWidget):
         self.width_px = 4
 
         self.brush = Brush()
+        self.qtools = (self.brush)
 
     def paintEvent(self, event):
         p = QPainter(self)
@@ -30,7 +31,7 @@ class Canvas(QWidget):
             return
         pos = e.position().toPoint()
 
-        self.brush.press(self.layers[self.active].image,
+        self.brush.move(self.layers[self.active].image,
                         pos,
                         self.last,
                         self.color,
