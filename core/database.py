@@ -2,7 +2,7 @@
 from dataclasses import dataclass
 from datetime import datetime
 from core.models import *
-from image_utils import *
+from core.image_utils import *
 import sqlite3
 import os
 
@@ -34,14 +34,13 @@ class ProjectDatabase:
     );
     """
 
-    def create(self, path: str, name: str, width: int, height: int) -> Project:
+    def create(self, path: str, name: str, width: int, height: int) -> None:
         """Создаёт новый файл проекта: таблицы, строку project и все слои."""
         if os.path.exists(path):
             raise FileExistsError(f"Файл уже существует: {path}")
 
         project = Project(name, width, height, datetime.now(), path, [])
     
-        self.close()
         self.path = path
         self.conn = sqlite3.connect(path)
     
@@ -51,12 +50,10 @@ class ProjectDatabase:
             self.conn.execute(
                 "INSERT INTO project (id, name, width, height, created_at) "
                 "VALUES (1, ?, ?, ?, ?)",
-                (project.name, project.width, project.height, project.created_at),
+                (project.name, project.width, project.height, str(project.created_at)),
             )
             self._write_layers(project)
             print("Проект создан")
-            
-            return Project
 
     def load(self, path: str) -> Project:
         """Загрузит проект по пути и вернёт Project."""
@@ -75,7 +72,30 @@ class ProjectDatabase:
             return Project(data[1], data[2], data[3], data[4], path, layers)
 
     def save(self, project: Project) -> None:
-        """Сохранит проект."""
-        with sqlite3.connect(project.get_path()) as con:
-            pass
-            con.commit()
+            """Перезаписывает данные проекта в уже открытом файле."""
+            if self.conn is None:
+                raise RuntimeError("Файл проекта не открыт: сначала create() или load()")
+    
+            with self.conn:
+                self.conn.execute(
+                    "UPDATE project SET name = ?, width = ?, height = ? WHERE id = 1",
+                    (project.name, project.width, project.height),
+                )
+                self.conn.execute("DELETE FROM layers")
+                self._write_layers(project)
+                print("Проект сохранён")
+
+    def _write_layers(self, project: Project) -> None:
+        """Запишет слои в существующий проект."""
+        for layer in project.layers:
+            cur = self.conn.execute(
+                "INSERT INTO layers (name, z_order, visible, pixels) "
+                "VALUES (?, ?, ?, ?)",
+                (
+                    layer.name,
+                    layer.z_order,
+                    int(layer.visible),
+                    image_to_bytes(layer.image), # PNG-байты
+                ),
+            )
+            layer.id = cur.lastrowid  # запоминаем id, который выдала БД
