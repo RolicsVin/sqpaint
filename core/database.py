@@ -1,6 +1,7 @@
 """В этом модуле хранятся классы для работы с SQLite."""
 from dataclasses import dataclass
 from core.models import *
+from image_utils import *
 import sqlite3
 
 
@@ -25,7 +26,7 @@ class ProjectDatabase:
                 layers.append(Layer(layer_data[1],
                                     layer_data[2],
                                     bool(layer_data[3]),
-                                    QImage()))
+                                    bytes_to_image(layer_data[4])))
 
             return Project(data[1], data[2], data[3], data[4], path, layers)
 
