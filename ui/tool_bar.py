@@ -2,7 +2,7 @@ from PyQt6.QtWidgets import QWidget, QPushButton, QHBoxLayout
 
 
 class ToolBar(QWidget):
-    HEIGHT = 100
+    HEIGHT = 50
 
     def __init__(self):
         super().__init__()
@@ -10,6 +10,9 @@ class ToolBar(QWidget):
         self.setFixedHeight(self.HEIGHT)
 
         self.Hlayout = QHBoxLayout(self)
+
+        self.color_btn = QPushButton(self)
+        self.color_btn.setText('Цвет')
 
         self.color_btn = QPushButton(self)
         self.color_btn.setText('Цвет')

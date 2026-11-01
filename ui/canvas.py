@@ -1,3 +1,4 @@
+from qtools.brush import Brush
 from PyQt6.QtCore import Qt
 from PyQt6.QtGui import QPainter, QPen, QColor
 from PyQt6.QtWidgets import QWidget
@@ -13,9 +14,10 @@ class Canvas(QWidget):
         self.color = QColor("black")
         self.width_px = 4
 
+        self.brush = Brush()
+
     def paintEvent(self, event):
         p = QPainter(self)
-        p.fillRect(self.rect(), Qt.GlobalColor.white)  # подложка
         for layer in self.layers:
             if layer.visible:
                 p.drawImage(0, 0, layer.image)
@@ -27,11 +29,13 @@ class Canvas(QWidget):
         if self.last is None:
             return
         pos = e.position().toPoint()
-        p = QPainter(self.layers[self.active].image)  # рисуем в активный слой
-        p.setPen(QPen(self.color, self.width_px, Qt.PenStyle.SolidLine,
-                      Qt.PenCapStyle.RoundCap))
-        p.drawLine(self.last, pos)
-        p.end()
+
+        self.brush.draw(self.layers[self.active].image,
+                        pos,
+                        self.last,
+                        self.color,
+                        self.width_px)
+
         self.last = pos
         self.update()
 

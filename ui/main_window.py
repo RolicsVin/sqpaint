@@ -17,7 +17,6 @@ class DomainWindow(QMainWindow):
             project.get_height() + ToolBar.HEIGHT,
         )
 
-        # QMainWindow отображает содержимое через центральный виджет.
         central_widget = QWidget(self)
         central_layout = QVBoxLayout(central_widget)
 
