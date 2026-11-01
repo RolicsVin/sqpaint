@@ -1,25 +1,37 @@
-from core.models import Project
-from core.database import ProjectDatabase
-from ui.tool_bar import ToolBar
-from ui.canvas import Canvas
+from pathlib import Path
+import sqlite3
+
 from PyQt6.QtGui import QAction
-from PyQt6.QtWidgets import QApplication, QMainWindow, QVBoxLayout, QWidget
+from PyQt6.QtWidgets import (
+    QApplication,
+    QFileDialog,
+    QMainWindow,
+    QMessageBox,
+)
+
+from core.database import ProjectDatabase
+from core.models import Project
+from ui.canvas import Canvas
+from ui.tool_bar import ToolBar
 
 
 class DomainWindow(QMainWindow):
     HEADERS_HEIGHT = 25
 
-    def __init__(self, project: Project, database: ProjectDatabase):
+    def __init__(self, project: Project | None, database: ProjectDatabase):
         super().__init__()
-        self.project = project
+        self.project = None
         self.database = database
+        self.canvas: Canvas | None = None
 
-        size = QApplication.primaryScreen().size()
-        self.setGeometry(0, 0, size.width(), size.height())
+        screen = QApplication.primaryScreen()
+        if screen is not None:
+            size = screen.availableGeometry()
+            self.setGeometry(size)
 
         self.menu_bar = self.menuBar()
 
-        # Файловое меню
+        # Меню программы
         self.file_menu = self.menu_bar.addMenu("Файл")
         self.edit_menu = self.menu_bar.addMenu("Правка")
         self.view_menu = self.menu_bar.addMenu("Вид")
@@ -33,29 +45,85 @@ class DomainWindow(QMainWindow):
         self.file_menu.addAction(self.new_action)
         self.file_menu.addAction(self.open_action)
         self.file_menu.addAction(self.save_action)
+        self.file_menu.addSeparator()
         self.file_menu.addAction(self.exit_action)
 
-        #self.new_action.triggered.connect(self.save)
-        #self.open_action.triggered.connect(self.new_file)
+        self.open_action.triggered.connect(self.open_project)
         self.save_action.triggered.connect(self.save)
         self.exit_action.triggered.connect(self.close)
+        self.save_action.setEnabled(False)
 
         self.tool_bar = ToolBar(self)
+        self.tool_bar.move(0, self.HEADERS_HEIGHT)
+        self.tool_bar.resize(self.width(), ToolBar.HEIGHT)
+        self.tool_bar.color_selected.connect(self.set_canvas_color)
+
+        # Оставлено для совместимости с вызовами DomainWindow(project, database).
+        if project is not None:
+            self.set_project(project)
+
+        self.setWindowTitle("SQPaint")
+
+    def open_project(self) -> None:
+        """Открывает диалог выбора SQLite-файла и загружает выбранный проект."""
+        path, _ = QFileDialog.getOpenFileName(
+            self,
+            "Открыть проект",
+            "",
+            "Проекты SQPaint (*.sqlite);;Все файлы (*)",
+        )
+        if not path:
+            return
+
+        try:
+            project = self.database.load(path)
+        except (OSError, sqlite3.Error, ValueError, TypeError) as error:
+            QMessageBox.critical(
+                self,
+                "Не удалось открыть проект",
+                f"Файл не удалось загрузить. Возможно, он повреждён "
+                f"или не является проектом SQPaint.\n\n{error}",
+            )
+            return
+
+        self.set_project(project)
+
+    def set_project(self, project: Project) -> None:
+        """Устанавливает проект и перестраивает холст под его размеры."""
+        if self.canvas is not None:
+            self.canvas.hide()
+            self.canvas.deleteLater()
+
+        self.project = project
         self.canvas = Canvas(
             self,
             project.get_layers(),
             project.get_width(),
             project.get_height(),
         )
-        self.tool_bar.move(0, self.HEADERS_HEIGHT)
-        self.tool_bar.resize(size.width(), ToolBar.HEIGHT)
         self.canvas.move(0, ToolBar.HEIGHT + self.HEADERS_HEIGHT)
+        self.canvas.show()
 
-        # Передаём выбранный цвет с панели инструментов на холст.
-        self.tool_bar.color_selected.connect(self.set_canvas_color)
+        self.save_action.setEnabled(True)
+        self.setWindowTitle(f"SQPaint — {project.get_name()}")
 
-    def save(self):
-        self.database.save(self.project)
+    def save(self) -> None:
+        if self.project is None:
+            return
 
-    def set_canvas_color(self, color):
-        self.canvas.color = color
+        try:
+            self.database.save(self.project)
+        except (OSError, sqlite3.Error, RuntimeError) as error:
+            QMessageBox.critical(
+                self,
+                "Ошибка сохранения",
+                f"Не удалось сохранить проект.\n\n{error}",
+            )
+
+    def set_canvas_color(self, color) -> None:
+        if self.canvas is not None:
+            self.canvas.color = color
+
+    def closeEvent(self, event) -> None:
+        self.database.close()
+        super().closeEvent(event)
