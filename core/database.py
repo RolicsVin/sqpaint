@@ -2,7 +2,7 @@
 import sqlite3
 from core.models import *
 from core.image_utils import *
-from core.datetime import *
+from core.time_utils import *
 from dataclasses import dataclass
 from datetime import datetime
 import os
@@ -105,7 +105,7 @@ class ProjectDatabase:
             )
             self.conn.execute("DELETE FROM layers")
             self._write_layers(project)
-            self._insert_log("Проект сохранён")
+            print("Проект сохранён")
 
     def close(self) -> None:
         """Закрывает соединение с файлом проекта."""
