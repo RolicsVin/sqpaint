@@ -12,23 +12,23 @@ Paint с графическим интерфейсом на PyQt6. Рабочи�
 Главная идея: один файл .sqlite = один проект paint. Внутри файла лежат таблицы — project, layers и logs.
 
 **Устройство таблицы Project внутри(Столбцы):**
-id - INTEGER PRIMARY KEY CHECK (id = 1)
-name - TEXT
-width - INTEGER
-height - INTEGER
-created_at - TEXT
+id - INTEGER PRIMARY KEY CHECK (id = 1).
+name - TEXT.
+width - INTEGER.
+height - INTEGER.
+created_at - TEXT.
 
 **Устройство таблицы Layers внутри(Столбцы):**
-id - INTEGER PRIMARY KEY
-name - TEXT
-z_order - INTEGER
-visible - INTEGER
-pixels - BLOB (изображение слоя в формате PNG в виде байтов )
+id - INTEGER PRIMARY KEY.
+name - TEXT.
+z_order - INTEGER.
+visible - INTEGER.
+pixels - BLOB (изображение слоя в формате PNG в виде байтов).
 
 **Устройство таблицы Logs внутри(Столбцы):**
-id - INTEGER PRIMARY KEY
-log - TEXT
-created_at - TEXT
+id - INTEGER PRIMARY KEY.
+log - TEXT.
+created_at - TEXT.
 
 То есть, слои будут хранится в Layers и для каждого слоя свой z_order и visible.
 Дублирования данных тоже нет, то есть, например, нет необходимости хранить width и height для каждого слоя — всё это вынесено в отдельную таблицу Project. Таблица Logs будет хранить историю для отладки.
