@@ -12,22 +12,34 @@ Paint с графическим интерфейсом на PyQt6. Рабочи�
 Главная идея: один файл .sqlite = один проект paint. Внутри файла лежат таблицы — project, layers и logs.
 
 **Устройство таблицы Project внутри(Столбцы):**
+
 id - INTEGER PRIMARY KEY CHECK (id = 1).
 name - TEXT.
+
 width - INTEGER.
+
 height - INTEGER.
+
 created_at - TEXT.
 
 **Устройство таблицы Layers внутри(Столбцы):**
+
 id - INTEGER PRIMARY KEY.
+
 name - TEXT.
+
 z_order - INTEGER.
+
 visible - INTEGER.
+
 pixels - BLOB (изображение слоя в формате PNG в виде байтов).
 
 **Устройство таблицы Logs внутри(Столбцы):**
+
 id - INTEGER PRIMARY KEY.
+
 log - TEXT.
+
 created_at - TEXT.
 
 То есть, слои будут хранится в Layers и для каждого слоя свой z_order и visible.
@@ -61,28 +73,51 @@ SQPaint предлагает другой подход: проект храни�
 
 
 ## Планируемая структура проекта
+
 sqpaint/
+
 ├── main.py                  # точка входа: создаёт QApplication и стартовое окно
+
 ├── core/                    # логика, без интерфейса
+
 │   ├── models.py            # классы Layer и Project
+
 │   ├── database.py          # вся работа с sqlite3
+
 │   ├── image_utils.py       # QImage <-> bytes (PNG), склейка слоёв
+
 │   └── exporter.py          # экспорт в PNG/JPG и др.
+
 ├── services/                # вспомогательные вещи вокруг приложения
+
 │   ├── settings.py          # json-настройки
+
 │   ├── recent_projects.py   # csv со списком проектов
+
 │   └── autosave.py          # автосохранение (backup)
+
 ├── tools/                   # инструменты рисования
+
 │   ├── base.py              # базовый класс Tool
+
 │   ├── brush.py
+
 │   ├── eraser.py
+
 │   ├── fill.py
+
 │   └── shapes.py
+
 └── ui/                      # всё, что видит пользователь
+
     ├── start_window.py      # лист недавних проектов
+
     ├── main_window.py       # главное окно редактора
+
     ├── canvas.py            # холст
+
     ├── layers_panel.py      # список слоёв
+
     └── dialogs.py           # диалоги (цвет, «сохранить?», новый проект)
 
 

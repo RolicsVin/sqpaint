@@ -1,9 +1,10 @@
 """В этом модуле хранятся классы для работы с SQLite."""
-from dataclasses import dataclass
-from datetime import datetime
+import sqlite3
 from core.models import *
 from core.image_utils import *
-import sqlite3
+from core.datetime import *
+from dataclasses import dataclass
+from datetime import datetime
 import os
 
 
@@ -50,7 +51,7 @@ class ProjectDatabase:
             self.conn.execute(
                 "INSERT INTO project (id, name, width, height, created_at) "
                 "VALUES (1, ?, ?, ?, ?)",
-                (project.name, project.width, project.height, str(project.created_at)),
+                (project.name, project.width, project.height, datetime_to_str(project.created_at)),
             )
             self._write_layers(project)
             print("Проект создан")
@@ -69,7 +70,7 @@ class ProjectDatabase:
                                     bool(layer_data[3]),
                                     bytes_to_image(layer_data[4])))
 
-            return Project(data[1], data[2], data[3], data[4], path, layers)
+            return Project(data[1], data[2], data[3], str_to_datetime(data[4]), path, layers)
 
     def save(self, project: Project) -> None:
             """Перезаписывает данные проекта в уже открытом файле."""
