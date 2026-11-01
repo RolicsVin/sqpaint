@@ -30,7 +30,7 @@ class Canvas(QWidget):
             return
         pos = e.position().toPoint()
 
-        self.brush.draw(self.layers[self.active].image,
+        self.brush.press(self.layers[self.active].image,
                         pos,
                         self.last,
                         self.color,
