@@ -1,11 +1,11 @@
 from PyQt6.QtCore import Qt
 from PyQt6.QtGui import QPainter, QPen, QColor
-from PyQt6.QtWidgets import QWidget, QSizePolicy
+from PyQt6.QtWidgets import QWidget
 
 
 class Canvas(QWidget):
-    def __init__(self, parent, layers, w, h):
-        super().__init__(parent=parent)
+    def __init__(self, layers, w, h):
+        super().__init__()
         self.setFixedSize(w, h)
         self.layers = layers
         self.active = 0
