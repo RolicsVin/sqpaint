@@ -44,7 +44,12 @@ class ProjectDatabase:
         if os.path.exists(path):
             raise FileExistsError(f"Файл уже существует: {path}")
  
-        project = Project(name, width, height, datetime.now(), path, [])
+        project = Project(name,
+                          width,
+                          height,
+                          datetime.now(),
+                          path,
+                          [])
  
         self.close()
         self.path = path
@@ -92,7 +97,13 @@ class ProjectDatabase:
  
         self.path = path
         self.conn = conn
-        return Project(row[0], row[1], row[2], str_to_datetime(row[3]), path, layers)
+
+        return Project(row[0],
+                       row[1],
+                       row[2],
+                       str_to_datetime(row[3]),
+                       path,
+                       layers)
 
     def save(self, project: Project) -> None:
         """Перезаписывает данные проекта в уже открытом файле."""

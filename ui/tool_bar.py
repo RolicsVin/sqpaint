@@ -7,8 +7,8 @@ class ToolBar(QWidget):
     HEIGHT = 50
     color_selected = pyqtSignal(QColor)
 
-    def __init__(self):
-        super().__init__()
+    def __init__(self, parent):
+        super().__init__(parent=parent)
 
         self.setFixedHeight(self.HEIGHT)
         self.current_color = QColor("black")

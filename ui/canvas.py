@@ -5,8 +5,8 @@ from PyQt6.QtWidgets import QWidget
 
 
 class Canvas(QWidget):
-    def __init__(self, layers, w, h):
-        super().__init__()
+    def __init__(self, parent, layers, w, h):
+        super().__init__(parent=parent)
         self.setFixedSize(w, h)
         self.layers = layers
         self.active = 0

@@ -3,25 +3,19 @@ from core.database import ProjectDatabase
 from ui.tool_bar import ToolBar
 from ui.canvas import Canvas
 from PyQt6.QtGui import QAction
-from PyQt6.QtWidgets import QMainWindow, QVBoxLayout, QWidget
+from PyQt6.QtWidgets import QApplication, QMainWindow, QVBoxLayout, QWidget
 
 
 class DomainWindow(QMainWindow):
+    HEADERS_HEIGHT = 25
+
     def __init__(self, project: Project, database: ProjectDatabase):
         super().__init__()
         self.project = project
         self.database = database
 
-        self.setWindowTitle(project.get_name())
-        self.setGeometry(
-            300,
-            300,
-            project.get_width(),
-            project.get_height() + ToolBar.HEIGHT,
-        )
-
-        central_widget = QWidget(self)
-        central_layout = QVBoxLayout(central_widget)
+        size = QApplication.primaryScreen().size()
+        self.setGeometry(0, 0, size.width(), size.height())
 
         self.menu_bar = self.menuBar()
 
@@ -46,20 +40,19 @@ class DomainWindow(QMainWindow):
         self.save_action.triggered.connect(self.save)
         self.exit_action.triggered.connect(self.close)
 
-        self.tool_bar = ToolBar()
+        self.tool_bar = ToolBar(self)
         self.canvas = Canvas(
+            self,
             project.get_layers(),
             project.get_width(),
             project.get_height(),
         )
+        self.tool_bar.move(0, self.HEADERS_HEIGHT)
+        self.tool_bar.resize(size.width(), ToolBar.HEIGHT)
+        self.canvas.move(0, ToolBar.HEIGHT + self.HEADERS_HEIGHT)
 
         # Передаём выбранный цвет с панели инструментов на холст.
         self.tool_bar.color_selected.connect(self.set_canvas_color)
-
-        central_layout.addWidget(self.tool_bar)
-        central_layout.addWidget(self.canvas)
-
-        self.setCentralWidget(central_widget)
 
     def save(self):
         self.database.save(self.project)
