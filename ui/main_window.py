@@ -151,7 +151,7 @@ class DomainWindow(QMainWindow):
             height,
             QImage.Format.Format_ARGB32,
         )
-        image.fill(0)
+        image.fill(0xFFFFFFFF)
         initial_layer = Layer("Слой 1", 0, True, image)
         try:
             project = self.database.create(
