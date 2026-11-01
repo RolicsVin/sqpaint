@@ -1,4 +1,4 @@
-from PyQt6.QtCore import Qt, pyqtSignal
+from PyQt6.QtCore import pyqtSignal
 from PyQt6.QtGui import QColor
 from PyQt6.QtWidgets import QWidget, QPushButton, QHBoxLayout, QColorDialog
 
@@ -11,6 +11,7 @@ class ToolBar(QWidget):
         super().__init__()
 
         self.setFixedHeight(self.HEIGHT)
+        self.current_color = QColor("black")
 
         self.Hlayout = QHBoxLayout(self)
 
@@ -34,12 +35,13 @@ class ToolBar(QWidget):
 
     def choose_color(self):
         color = QColorDialog.getColor(
-            QColor("black"),
+            self.current_color,
             self,
             "Выбор цвета",
         )
 
         if color.isValid():
+            self.current_color = color
             self.color_selected.emit(color)
             self.color_btn.setStyleSheet(
                 f"background-color: {color.name()};"
