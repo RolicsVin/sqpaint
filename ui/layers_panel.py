@@ -125,5 +125,6 @@ class LayerPanel(QWidget):
 
     def set_layers(self, layers: list[Layer]) -> None:
         self.layers = layers
-        self.selected_layer = layers[0] if layers else None
+        if self.selected_layer not in layers:
+            self.selected_layer = layers[0] if layers else None
         self.update_layers()
