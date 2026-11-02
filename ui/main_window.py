@@ -207,6 +207,7 @@ class DomainWindow(QMainWindow):
         self.layer_panel.set_layers(self.project.get_layers())
         self.canvas.layers = self.project.get_layers()
         self.canvas.active = len(self.project.layers) - 1
+        self.layer_panel._select_layer(self.canvas.active)
         self.canvas.update()
 
     def remove_layer(self, layer: Layer) -> None:
@@ -232,7 +233,7 @@ class DomainWindow(QMainWindow):
         self.canvas.layers = self.project.get_layers()
         self.canvas.active = active_index
         self.layer_panel.set_layers(self.project.get_layers())
-        self.layer_panel.selected_layer = self.project.layers[active_index]
+        self.layer_panel._select_layer(active_index)
         self.canvas.update()
 
     def select_layer(self, index: int) -> None:
