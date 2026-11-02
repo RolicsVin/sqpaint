@@ -30,7 +30,6 @@ class LayerPanel(QWidget):
         super().__init__(parent=parent)
         self.layers = layers
         self.selected_layer: Layer | None = None
-        self._name_edits: dict[Layer, LayerNameEdit] = {}
 
         self.main_layout = QVBoxLayout(self)
         self.main_layout.setContentsMargins(6, 6, 6, 6)
@@ -65,7 +64,6 @@ class LayerPanel(QWidget):
     def update_layers(self):
         """Перестраивает список слоёв."""
         self.clear_layout(self.Vlayout)
-        self._name_edits.clear()
 
         if self.selected_layer not in self.layers:
             self.selected_layer = self.layers[0] if self.layers else None
@@ -93,7 +91,6 @@ class LayerPanel(QWidget):
 
         layout.addWidget(visible)
         layout.addWidget(name_edit, 1)
-        self._name_edits[layer] = name_edit
         self.Vlayout.addWidget(row)
 
     def _select_layer(self, index: int):
