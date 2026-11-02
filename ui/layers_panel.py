@@ -20,7 +20,8 @@ class LayerNameEdit(QLineEdit):
 
 class LayerPanel(QWidget):
     WIDTH = 200
-    COLOR = "#e3e3e3"
+    COLOR = "#d9dee5"
+    LAYER_COLOR = "#c3d1df"
 
     add_layer_requested = pyqtSignal()
     remove_layer_requested = pyqtSignal(object)
@@ -30,6 +31,9 @@ class LayerPanel(QWidget):
         super().__init__(parent=parent)
         self.layers = layers
         self.selected_layer: Layer | None = None
+
+        self.setObjectName("layerPanel")
+        self.setAttribute(Qt.WidgetAttribute.WA_StyledBackground, True)
 
         self.main_layout = QVBoxLayout(self)
         self.main_layout.setContentsMargins(6, 6, 6, 6)
@@ -55,7 +59,27 @@ class LayerPanel(QWidget):
         self.main_layout.addLayout(self.header_layout)
         self.main_layout.addLayout(self.Vlayout)
 
-        self.setStyleSheet(f"LayerPanel {{ background-color: {self.COLOR}; }}")
+        self.setStyleSheet(f"""
+            QWidget#layerPanel {{
+                background-color: {self.COLOR};
+            }}
+            QWidget#layerRow {{
+                background-color: {self.LAYER_COLOR};
+                border: 1px solid #aebdca;
+                border-radius: 5px;
+            }}
+            QWidget#layerRow QLineEdit {{
+                background-color: #f7f9fb;
+                color: #202830;
+                border: 1px solid #aebdca;
+                border-radius: 3px;
+                padding: 3px;
+            }}
+            QWidget#layerRow QLineEdit:focus {{
+                border: 1px solid #527da5;
+                background-color: #ffffff;
+            }}
+        """)
 
     def _request_remove_layer(self):
         if self.selected_layer is not None:
@@ -73,6 +97,8 @@ class LayerPanel(QWidget):
 
     def create_layer_row(self, layer: Layer, index: int):
         row = QWidget()
+        row.setObjectName("layerRow")
+        row.setAttribute(Qt.WidgetAttribute.WA_StyledBackground, True)
         row.setFixedHeight(36)
         layout = QHBoxLayout(row)
         layout.setContentsMargins(2, 2, 2, 2)
