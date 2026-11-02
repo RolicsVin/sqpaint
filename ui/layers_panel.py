@@ -1,8 +1,6 @@
 from core.models import Layer
-from PyQt6.QtCore import QRect
-from PyQt6.QtGui import QPalette, QColor
+from PyQt6.QtCore import Qt
 from PyQt6.QtWidgets import (
-    QApplication,
     QWidget,
     QPushButton,
     QLabel,
@@ -13,39 +11,42 @@ from PyQt6.QtWidgets import (
 
 
 class LayerButton(QPushButton):
-    def __init__(self, icon, text, parent = ...):
+    def __init__(self, icon, text, parent=...):
         super().__init__(icon, text, parent)
 
 
 class LayerPanel(QWidget):
     WIDTH = 200
-    COLOR = ''
+    COLOR = "#e3e3e3"
 
     def __init__(self, parent, layers: list[Layer]):
         super().__init__(parent=parent)
         self.layers = layers
+
         self.main_layout = QVBoxLayout(self)
+        self.main_layout.setContentsMargins(6, 6, 6, 6)
+        self.main_layout.setSpacing(6)
+        self.main_layout.setAlignment(Qt.AlignmentFlag.AlignTop)
 
         self.header_layout = QHBoxLayout()
-        self.header_layout.setGeometry(QRect(0, 0, self.WIDTH, 50))
 
         self.add_layer_button = QPushButton()
-        self.add_layer_button.setText('+')
+        self.add_layer_button.setText("+")
 
         self.remove_layer_button = QPushButton()
-        self.remove_layer_button.setText('-')
+        self.remove_layer_button.setText("-")
 
         self.header_layout.addWidget(self.add_layer_button)
         self.header_layout.addWidget(self.remove_layer_button)
 
         self.Vlayout = QVBoxLayout()
+        self.Vlayout.setAlignment(Qt.AlignmentFlag.AlignTop)
 
         self.main_layout.addLayout(self.header_layout)
         self.main_layout.addLayout(self.Vlayout)
 
-        palette = QPalette()
-        palette.setColor(QPalette.ColorRole.Base, QColor("#5cb85c"))  # Зелёный фон
-        self.setPalette(palette)
+        # Оттенок немного темнее стандартного светлого фона окна.
+        self.setStyleSheet(f"LayerPanel {{ background-color: {self.COLOR}; }}")
 
     def update_layers(self):
         """Обновляет панель слоёв."""
