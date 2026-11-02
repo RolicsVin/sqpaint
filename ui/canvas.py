@@ -61,4 +61,4 @@ class Canvas(QWidget):
         self.last = None
 
     def re_draw_canvas(self) -> None:
-        self.paintEvent(None)
+        self.update()
