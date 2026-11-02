@@ -173,6 +173,7 @@ class DomainWindow(QMainWindow):
         )
         self.canvas.set_tool("brush")
         self.canvas.move(0, ToolBar.HEIGHT + self.HEADERS_HEIGHT)
+        self.layer_panel.layer_change.connect(self.canvas.re_draw_canvas)
         self.canvas.show()
 
         self.layer_panel.set_layers(project.get_layers())

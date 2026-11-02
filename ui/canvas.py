@@ -59,3 +59,6 @@ class Canvas(QWidget):
 
     def mouseReleaseEvent(self, e):
         self.last = None
+
+    def re_draw_canvas(self) -> None:
+        self.paintEvent(None)

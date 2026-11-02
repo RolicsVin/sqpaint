@@ -27,6 +27,8 @@ class LayerPanel(QWidget):
     add_layer_requested = pyqtSignal()
     remove_layer_requested = pyqtSignal(object)
     layer_selected = pyqtSignal(int)
+    layer_visible_change = pyqtSignal(Layer, bool)
+    layer_change = pyqtSignal()
 
     def __init__(self, parent, layers: list[Layer]):
         super().__init__(parent=parent)
@@ -98,6 +100,12 @@ class LayerPanel(QWidget):
             }}
         """)
 
+    def change_visible_layer(self, layer: Layer, box: QCheckBox) -> None:
+        visible = box
+        self.layers[self.layers.index(layer)].set_visible(visible)
+        self.layer_visible_change.emit(layer, visible)
+        self.layer_change.emit()
+
     def _request_remove_layer(self):
         if self.selected_layer is not None:
             self.remove_layer_requested.emit(self.selected_layer)
@@ -120,10 +128,11 @@ class LayerPanel(QWidget):
         layout = QHBoxLayout(row)
         layout.setContentsMargins(2, 2, 2, 2)
 
-        visible = QCheckBox()
-        visible.setChecked(layer.is_visible())
-        visible.setToolTip("Видимость слоя")
-        visible.toggled.connect(layer.set_visible)
+        box_visible = QCheckBox()
+        box_visible.setChecked(layer.is_visible())
+        box_visible.setToolTip("Видимость слоя")
+        box_visible.toggled.connect(layer.set_visible)
+        box_visible.clicked.connect(lambda box=box_visible, item=layer: self.change_visible_layer(item, box))
 
         name_edit = LayerNameEdit(layer.get_name())
         name_edit.setPlaceholderText("Название слоя")
@@ -132,7 +141,7 @@ class LayerPanel(QWidget):
             lambda item=layer, edit=name_edit: self._commit_layer_name(item, edit)
         )
 
-        layout.addWidget(visible)
+        layout.addWidget(box_visible)
         layout.addWidget(name_edit, 1)
         self.Vlayout.addWidget(row)
 
