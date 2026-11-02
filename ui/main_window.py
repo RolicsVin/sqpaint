@@ -61,8 +61,8 @@ class DomainWindow(QMainWindow):
         self.tool_bar.resize(self.width(), ToolBar.HEIGHT)
 
         self.layer_panel = LayerPanel(self, [])
-        self.layer_panel.setFixedSize(LayerPanel.WIDTH, size.height())
-        self.layer_panel.move(size.width() - LayerPanel.WIDTH, 0)
+        self.layer_panel.resize(LayerPanel.WIDTH, self.height())
+        self.layer_panel.move(self.width() - LayerPanel.WIDTH, 0)
         self.layer_panel.add_layer_requested.connect(self.add_layer)
         self.layer_panel.remove_layer_requested.connect(self.remove_layer)
         self.layer_panel.layer_selected.connect(self.select_layer)
@@ -74,6 +74,19 @@ class DomainWindow(QMainWindow):
             self.set_project(project)
 
         self.setWindowTitle("SQPaint")
+
+
+    def resizeEvent(self, event) -> None:
+        """Подгоняет положение и высоту боковой панели под размер окна."""
+        super().resizeEvent(event)
+
+        if hasattr(self, "layer_panel"):
+            self.layer_panel.setGeometry(
+                self.width() - LayerPanel.WIDTH,
+                0,
+                LayerPanel.WIDTH,
+                self.height(),
+            )
 
     def create_project(self) -> None:
         dialog = NewProjectDialog(self)
