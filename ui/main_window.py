@@ -63,6 +63,9 @@ class DomainWindow(QMainWindow):
         self.layer_panel = LayerPanel(self, [])
         self.layer_panel.setFixedSize(LayerPanel.WIDTH, size.height())
         self.layer_panel.move(size.width() - LayerPanel.WIDTH, 0)
+        self.layer_panel.add_layer_requested.connect(self.add_layer)
+        self.layer_panel.remove_layer_requested.connect(self.remove_layer)
+        self.layer_panel.layer_selected.connect(self.select_layer)
 
         self.tool_bar.color_selected.connect(self.set_canvas_color)
         self.tool_bar.tool_selected.connect(self.set_canvas_tool)
@@ -176,6 +179,68 @@ class DomainWindow(QMainWindow):
 
         self.save_action.setEnabled(True)
         self.setWindowTitle(f"SQPaint — {project.get_name()}")
+
+    def add_layer(self) -> None:
+        """Создаёт новый прозрачный слой и делает его активным."""
+        if self.project is None or self.canvas is None:
+            return
+
+        existing_names = {layer.get_name() for layer in self.project.layers}
+        number = 1
+        while f"Слой {number}" in existing_names:
+            number += 1
+
+        image = QImage(
+            self.project.get_width(),
+            self.project.get_height(),
+            QImage.Format.Format_ARGB32,
+        )
+        image.fill(0)
+
+        z_order = max(
+            (layer.get_z_order() for layer in self.project.layers),
+            default=-1,
+        ) + 1
+        layer = Layer(f"Слой {number}", z_order, True, image)
+        self.project.layers.append(layer)
+
+        self.layer_panel.set_layers(self.project.get_layers())
+        self.canvas.layers = self.project.get_layers()
+        self.canvas.active = len(self.project.layers) - 1
+        self.canvas.update()
+
+    def remove_layer(self, layer: Layer) -> None:
+        """Удаляет выбранный слой, сохраняя в проекте хотя бы один слой."""
+        if self.project is None or self.canvas is None:
+            return
+
+        if len(self.project.layers) <= 1:
+            QMessageBox.information(
+                self,
+                "Удаление слоя",
+                "В проекте должен остаться хотя бы один слой.",
+            )
+            return
+
+        if layer not in self.project.layers:
+            return
+
+        old_index = self.project.layers.index(layer)
+        self.project.layers.remove(layer)
+
+        active_index = min(old_index, len(self.project.layers) - 1)
+        self.canvas.layers = self.project.get_layers()
+        self.canvas.active = active_index
+        self.layer_panel.set_layers(self.project.get_layers())
+        self.layer_panel.selected_layer = self.project.layers[active_index]
+        self.canvas.update()
+
+    def select_layer(self, index: int) -> None:
+        """Переключает активный слой холста."""
+        if self.canvas is None or not (0 <= index < len(self.canvas.layers)):
+            return
+
+        self.canvas.active = index
 
     def save(self) -> None:
         if self.project is None:
