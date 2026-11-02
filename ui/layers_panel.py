@@ -66,19 +66,35 @@ class LayerPanel(QWidget):
             }}
             QWidget#layerRow {{
                 background-color: {self.LAYER_COLOR};
-                border: 1px solid #aebdca;
+                border: 1px solid #454c56;
                 border-radius: 5px;
             }}
             QWidget#layerRow QLineEdit {{
-                background-color: #f7f9fb;
-                color: #202830;
+                background-color: #252a31;
+                color: #e5e7eb;
                 border: 1px solid #aebdca;
                 border-radius: 3px;
                 padding: 3px;
             }}
             QWidget#layerRow QLineEdit:focus {{
-                border: 1px solid #527da5;
-                background-color: #ffffff;
+                border: 1px solid #7898bd;
+                background-color: #20252b;
+            }}
+            QWidget#layerPanel QPushButton {{
+                background-color: #3a414b;
+                color: #f1f3f5;
+                border: 1px solid #505966;
+                border-radius: 4px;
+                padding: 4px 8px;
+            }}
+            QWidget#layerPanel QPushButton:hover {{
+                background-color: #485362;
+            }}
+            QWidget#layerPanel QPushButton:pressed {{
+                background-color: #29313b;
+            }}
+            QWidget#layerPanel QCheckBox {{
+                color: #e5e7eb;
             }}
         """)
 
