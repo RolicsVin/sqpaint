@@ -34,10 +34,7 @@ class ToolBar(QWidget):
         self.tools_combo.setCurrentIndex(0)
         self.tools_combo.currentIndexChanged.connect(self.on_tool_changed)
 
-        # Пока реализована только кисть.
-        self.tools_combo.setItemData(
-            1, "Инструмент пока не реализован", role=3
-        )
+        # Пока не реализована заливка
         self.tools_combo.setItemData(
             2, "Инструмент пока не реализован", role=3
         )
@@ -53,13 +50,7 @@ class ToolBar(QWidget):
 
     def on_tool_changed(self, index: int) -> None:
         tool_name = self.tools_combo.itemData(index)
-        if tool_name == "brush":
-            self.tool_selected.emit(tool_name)
-        else:
-            # Не переключаем Canvas на ещё не реализованный инструмент.
-            self.tools_combo.blockSignals(True)
-            self.tools_combo.setCurrentIndex(0)
-            self.tools_combo.blockSignals(False)
+        self.tool_selected.emit(tool_name)
 
     def choose_color(self):
         color = QColorDialog.getColor(

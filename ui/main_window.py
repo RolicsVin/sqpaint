@@ -1,13 +1,14 @@
 import os
 import sqlite3
 
-from PyQt6.QtGui import QAction, QImage
+from PyQt6.QtGui import QAction, QActionGroup, QImage
 from PyQt6.QtWidgets import (
     QApplication,
     QDialog,
     QFileDialog,
     QMainWindow,
     QMessageBox,
+    QMenu
 )
 
 from core.database import ProjectDatabase
@@ -39,23 +40,60 @@ class DomainWindow(QMainWindow):
         self.view_menu = self.menu_bar.addMenu("Вид")
         self.help_menu = self.menu_bar.addMenu("Справка")
 
+        # Файл
         self.new_action = QAction("Создать", self)
-        self.open_action = QAction("Открыть", self)
+        self.open_action = QAction("Открыть", self) # подразумевается только sqlite
         self.save_action = QAction("Сохранить", self)
+        self.save_as_action = QAction("Сохранить как", self)
+
+        self.export_submenu = QMenu("Экспорировать", self)
+        self.import_action = QAction("Импортировать", self) # Тут подразумевается png, jpg и другие, не sqlite!
+
         self.exit_action = QAction("Выход", self)
+        self.file_info = QAction("О Файле", self)
+
+        self.export_png = self.export_submenu.addAction("PNG")
+        self.export_jpg = self.export_submenu.addAction("JPG")
 
         self.file_menu.addAction(self.new_action)
         self.file_menu.addAction(self.open_action)
         self.file_menu.addAction(self.save_action)
+        self.file_menu.addAction(self.save_as_action)
+
+        self.file_menu.addSeparator()
+        self.file_menu.addMenu(self.export_submenu)
+        self.file_menu.addAction(self.import_action)
+
         self.file_menu.addSeparator()
         self.file_menu.addAction(self.exit_action)
+
+        self.file_menu.addSeparator()
+        self.file_menu.addAction(self.file_info)
 
         self.new_action.triggered.connect(self.create_project)
         self.open_action.triggered.connect(self.open_project)
         self.save_action.triggered.connect(self.save)
         self.exit_action.triggered.connect(self.close)
         self.save_action.setEnabled(False)
+        self.export_submenu.setEnabled(False)
 
+        # Правка
+        self.insert = QAction("Вставить как слой", self)
+        self.settings = QAction("Настройки", self)
+
+        self.edit_menu.addAction(self.insert)
+        self.edit_menu.addAction(self.settings)
+
+        # Вид
+
+        # Справка
+        self.insert = QAction("Обучение", self)
+        self.settings = QAction("О программе", self)
+
+        self.help_menu.addAction(self.insert)
+        self.help_menu.addAction(self.settings)
+
+        # Панель инструментов и слои
         self.tool_bar = ToolBar(self)
         self.tool_bar.move(0, self.HEADERS_HEIGHT)
         self.tool_bar.resize(self.width(), ToolBar.HEIGHT)
@@ -192,6 +230,7 @@ class DomainWindow(QMainWindow):
         self.layer_panel.set_layers(project.get_layers())
 
         self.save_action.setEnabled(True)
+        self.export_submenu.setEnabled(True)
         self.setWindowTitle(f"SQPaint — {project.get_name()}")
 
     def add_layer(self) -> None:

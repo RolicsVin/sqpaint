@@ -1,9 +1,13 @@
 from qtools.brush import Brush
+from qtools.eraser import Eraser
 from PyQt6.QtGui import QPainter, QColor
 from PyQt6.QtWidgets import QWidget
 
 
 class Canvas(QWidget):
+    BRUSH = "brush"
+    ERASER = "eraser" 
+
     def __init__(self, parent, layers, w, h):
         super().__init__(parent=parent)
         self.setFixedSize(w, h)
@@ -14,12 +18,13 @@ class Canvas(QWidget):
         self.width_px = 4
 
         self.brush = Brush()
-        self.qtools = self.brush
-        self.active_tool = "brush"
+        self.eraser = Eraser()
+        self.active_tool = self.BRUSH
 
     def set_tool(self, tool_name: str) -> None:
         """Меняет активный инструмент и сбрасывает текущий штрих."""
         self.active_tool = tool_name
+        print(self.active_tool)
         self.last = None
 
     def paintEvent(self, event):
@@ -33,27 +38,35 @@ class Canvas(QWidget):
             self.last = e.position().toPoint()
 
     def mouseMoveEvent(self, e):
-        if self.active_tool != "brush" or self.last is None:
+        if self.last is None:
             return
 
         if not self.layers or not (0 <= self.active < len(self.layers)):
             return
 
         layer = self.layers[self.active]
+
         if not layer.visible:
             return
 
         pos = e.position().toPoint()
 
-        # Существующая реализация кисти сохранена.
-        self.brush.move(
-            layer.image,
-            pos,
-            self.last,
-            self.color,
-            self.width_px,
-        )
-
+        if self.active_tool == self.BRUSH:
+            self.eraser.move(
+                layer.image,
+                pos,
+                self.last,
+                self.color,
+                self.width_px,
+            )
+        if self.active_tool == self.ERASER:
+            self.eraser.move(
+                layer.image,
+                pos,
+                self.last,
+                self.color,
+                self.width_px,
+            )
         self.last = pos
         self.update()
 
