@@ -20,8 +20,9 @@ class LayerNameEdit(QLineEdit):
 
 class LayerPanel(QWidget):
     WIDTH = 200
-    COLOR = "#d9dee5"
-    LAYER_COLOR = "#c3d1df"
+    COLOR = "#161616"
+    LAYER_COLOR = "#1f1f1f"
+    LAYER_COLOR2 = "#292929"
 
     add_layer_requested = pyqtSignal()
     remove_layer_requested = pyqtSignal(object)
