@@ -14,6 +14,7 @@ from core.database import ProjectDatabase
 from core.models import Layer, Project
 from ui.canvas import Canvas
 from ui.tool_bar import ToolBar
+from ui.layers_panel import LayerPanel
 from ui.dialogs import *
 
 
@@ -58,6 +59,11 @@ class DomainWindow(QMainWindow):
         self.tool_bar = ToolBar(self)
         self.tool_bar.move(0, self.HEADERS_HEIGHT)
         self.tool_bar.resize(self.width(), ToolBar.HEIGHT)
+
+        self.layer_panel = LayerPanel(self, [])
+        self.layer_panel.setFixedSize(LayerPanel.WIDTH, size.height())
+        self.layer_panel.move(size.width() - LayerPanel.WIDTH, 0)
+
         self.tool_bar.color_selected.connect(self.set_canvas_color)
         self.tool_bar.tool_selected.connect(self.set_canvas_tool)
 
@@ -165,6 +171,8 @@ class DomainWindow(QMainWindow):
         self.canvas.set_tool("brush")
         self.canvas.move(0, ToolBar.HEIGHT + self.HEADERS_HEIGHT)
         self.canvas.show()
+
+        self.layer_panel.set_layers(project.get_layers())
 
         self.save_action.setEnabled(True)
         self.setWindowTitle(f"SQPaint — {project.get_name()}")
