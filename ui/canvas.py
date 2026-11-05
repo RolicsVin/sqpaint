@@ -34,7 +34,7 @@ class Canvas(QWidget):
                 p.drawImage(0, 0, layer.image)
 
     def mousePressEvent(self, e):
-        if self.active_tool == "brush":
+        if self.active_tool in (self.BRUSH, self.ERASER):
             self.last = e.position().toPoint()
 
     def mouseMoveEvent(self, e):
@@ -52,7 +52,7 @@ class Canvas(QWidget):
         pos = e.position().toPoint()
 
         if self.active_tool == self.BRUSH:
-            self.eraser.move(
+            self.brush.move(
                 layer.image,
                 pos,
                 self.last,
