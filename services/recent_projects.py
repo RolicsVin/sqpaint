@@ -9,21 +9,21 @@ RECENT_PROJECTS = 'recent_projects.csv'
 RECENT_PROJECTS_FOLDER = 'sqpaint'
 
 
-def get_recent_projects() -> tuple[tuple]:
-    if not os.path.exists(os.path.join(os.getenv('LOCALAPPDATA'), RECENT_PROJECTS_FOLDER)):
-        os.mkdir(os.path.join(os.getenv('LOCALAPPDATA'), RECENT_PROJECTS_FOLDER))
-    if not os.path.exists(os.path.join(os.getenv('LOCALAPPDATA'), RECENT_PROJECTS_FOLDER)):
-        # Создаём csv файл
-        with open(os.path.join(os.getenv('LOCALAPPDATA'), RECENT_PROJECTS_FOLDER, RECENT_PROJECTS),
-                  mode='w',
-                  encoding='utf8',
-                  newline='') as f:
-                  pass
-    
-    with open(os.path.join(os.getenv('LOCALAPPDATA'), RECENT_PROJECTS_FOLDER, RECENT_PROJECTS)
-              , mode='r', encoding='utf8', newline='') as f:
-         arr = []
+def _get_csv_path():
+    folder = os.path.join(os.getenv('LOCALAPPDATA'), RECENT_PROJECTS_FOLDER)
+    os.makedirs(folder, exist_ok=True)           # создаст папку, если её нет
+    path = os.path.join(folder, RECENT_PROJECTS)
+    if not os.path.exists(path):                 # создаст пустой файл, если его нет
+        with open(path, 'w', encoding='utf-8', newline=''):
+            pass
+    return path
+
+
+def get_recent_projects():
+    path = _get_csv_path()
+    with open(path, 'r', encoding='utf-8', newline='') as f:
          reader = csv.reader(f, delimiter=',')
+         arr = []
 
          for row in reader:
               element = (row[0], row[1], str_to_datetime(row[2]))
