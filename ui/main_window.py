@@ -95,11 +95,36 @@ class DomainWindow(QMainWindow):
 
         # Вид
         self.sub_windows = QMenu("Окна", self)
+
+        self.layers_panel_viewer = QAction("Панель слоёв", self)
+        self.tool_bar_viewer = QAction("Панель инструментов", self)
+        self.scroller_viewer = QAction("Ползунок", self)
+
+        self.sub_windows.addAction(self.layers_panel_viewer)
+        self.sub_windows.addAction(self.tool_bar_viewer)
+        self.sub_windows.addAction(self.scroller_viewer)
+
         self.theme = QMenu("Тема", self)
+
+        self.dark_theme = QAction("Тёмная тема", self)
+        self.white_theme = QAction("Светлая тема", self)
+
+        self.theme.addAction(self.dark_theme)
+        self.theme.addAction(self.white_theme)
+
+        self.langague = QMenu("Язык", self)
+
+        self.ru = QAction("Русский", self)
+        self.en = QAction("English", self)
+
+        self.langague.addAction(self.ru)
+        self.langague.addAction(self.en)
+
         self.start_window_view_button = QAction("Показать окно приветствия", self)
 
         self.view_menu.addMenu(self.sub_windows)
         self.view_menu.addMenu(self.theme)
+        self.view_menu.addMenu(self.langague)
         self.view_menu.addAction(self.start_window_view_button)
 
         # Справка
