@@ -271,6 +271,9 @@ class DomainWindow(QMainWindow):
         if self.project is None or self.canvas is None:
             return
 
+        if layer not in self.project.layers:
+            return
+
         if len(self.project.layers) <= 1:
             QMessageBox.information(
                 self,
@@ -279,7 +282,8 @@ class DomainWindow(QMainWindow):
             )
             return
 
-        if layer not in self.project.layers:
+        dialog = DeleteLayerDialog(layer.get_name(), self)
+        if dialog.exec() != QDialog.DialogCode.Accepted:
             return
 
         old_index = self.project.layers.index(layer)
