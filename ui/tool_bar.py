@@ -23,7 +23,10 @@ class ToolBar(QWidget):
         self.current_color = QColor("black")
         self.Hlayout = QHBoxLayout(self)
 
-        self.color_btn = QPushButton("Цвет", self)
+        self.color_btn = QPushButton(self)
+        self.color_btn.setFixedSize(44, 28)
+        self.color_btn.setToolTip("Выбрать цвет")
+        self.update_color_button()
         self.color_btn.clicked.connect(self.choose_color)
 
         # Выпадающий список инструментов.
@@ -52,6 +55,20 @@ class ToolBar(QWidget):
         tool_name = self.tools_combo.itemData(index)
         self.tool_selected.emit(tool_name)
 
+    def update_color_button(self) -> None:
+        self.color_btn.setStyleSheet(
+            f"""
+            QPushButton {{
+                background-color: {self.current_color.name()};
+                border: 1px solid #666666;
+                border-radius: 3px;
+            }}
+            QPushButton:hover {{
+                border: 1px solid #222222;
+            }}
+            """
+        )
+
     def choose_color(self):
         color = QColorDialog.getColor(
             self.current_color,
@@ -61,6 +78,7 @@ class ToolBar(QWidget):
 
         if color.isValid():
             self.current_color = color
+            self.update_color_button()
             self.color_selected.emit(color)
 
     def get_height(self) -> int:
