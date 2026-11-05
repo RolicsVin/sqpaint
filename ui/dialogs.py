@@ -4,6 +4,7 @@ from PyQt6.QtWidgets import (
     QFormLayout,
     QLineEdit,
     QSpinBox,
+    QLabel,
 )
 
 
@@ -47,3 +48,29 @@ class NewProjectDialog(QDialog):
             self.width_spin.value(),
             self.height_spin.value(),
         )
+
+
+class DeleteLayerDialog(QDialog):
+    """Диалог подтверждения удаления слоя."""
+
+    def __init__(self, layer_name: str, parent=None):
+        super().__init__(parent)
+        self.setWindowTitle("Удаление слоя")
+        self.setModal(True)
+
+        layout = QFormLayout(self)
+        layout.addRow(QLabel(
+            f'Вы действительно хотите удалить слой «{layer_name}»?'
+        ))
+
+        buttons = QDialogButtonBox(
+            QDialogButtonBox.StandardButton.Yes
+            | QDialogButtonBox.StandardButton.No,
+            parent=self,
+        )
+        buttons.button(QDialogButtonBox.StandardButton.Yes).setText("Удалить")
+        buttons.button(QDialogButtonBox.StandardButton.No).setText("Отмена")
+        buttons.button(QDialogButtonBox.StandardButton.No).setDefault(True)
+        buttons.accepted.connect(self.accept)
+        buttons.rejected.connect(self.reject)
+        layout.addRow(buttons)
