@@ -1,6 +1,5 @@
 import os
 import sqlite3
-from services import recent_projects
 
 from PyQt6.QtGui import QAction, QActionGroup, QImage
 from PyQt6.QtWidgets import (
@@ -14,6 +13,8 @@ from PyQt6.QtWidgets import (
 
 from core.database import ProjectDatabase
 from core.models import Layer, Project
+from services import recent_projects
+from ui.start_window import RecentProjectWindow
 from ui.canvas import Canvas
 from ui.tool_bar import ToolBar
 from ui.layers_panel import LayerPanel
@@ -47,7 +48,7 @@ class DomainWindow(QMainWindow):
         self.save_action = QAction("Сохранить", self)
         self.save_as_action = QAction("Сохранить как", self)
 
-        self.export_submenu = QMenu("Экспорировать", self)
+        self.export_submenu = QMenu("Экспорировать", self) # Тут подразумевается png, jpg и другие
         self.import_action = QAction("Импортировать", self) # Тут подразумевается png, jpg и другие, не sqlite!
 
         self.exit_action = QAction("Выход", self)
@@ -113,6 +114,11 @@ class DomainWindow(QMainWindow):
             self.set_project(project)
 
         self.setWindowTitle("SQPaint")
+
+        # дочернее окно
+        self.recent_projects_window = RecentProjectWindow()
+        self.recent_projects_window.project_select.connect(self.open_project_path)
+        self.recent_projects_window.show()
 
 
     def resizeEvent(self, event) -> None:
@@ -195,6 +201,23 @@ class DomainWindow(QMainWindow):
             "",
             "Проекты SQPaint (*.sqlite);;Все файлы (*)",
         )
+        if not path:
+            return
+
+        try:
+            project = self.database.load(path)
+        except (OSError, sqlite3.Error, ValueError, TypeError) as error:
+            QMessageBox.critical(
+                self,
+                "Не удалось открыть проект",
+                f"Файл не удалось загрузить. Возможно, он повреждён "
+                f"или не является проектом SQPaint.\n\n{error}",
+            )
+            return
+
+        self.set_project(project)
+
+    def open_project_path(self, path: str):
         if not path:
             return
 
