@@ -1,13 +1,10 @@
 import os
 import sqlite3
 
-from PyQt6.QtGui import QAction, QActionGroup, QImage
+from PyQt6.QtGui import QAction, QImage
 from PyQt6.QtWidgets import (
     QApplication,
-    QDialog,
-    QFileDialog,
     QMainWindow,
-    QMessageBox,
     QMenu
 )
 
@@ -18,7 +15,17 @@ from ui.start_window import RecentProjectWindow
 from ui.canvas import Canvas
 from ui.tool_bar import ToolBar
 from ui.layers_panel import LayerPanel
-from ui.dialogs import *
+from ui.dialogs import (
+    ask_new_project,
+    ask_open_project_path,
+    ask_save_project_path,
+    confirm_delete_layer,
+    show_create_error,
+    show_file_exists,
+    show_last_layer_info,
+    show_open_error,
+    show_save_error,
+)
 
 
 class DomainWindow(QMainWindow):
@@ -87,6 +94,13 @@ class DomainWindow(QMainWindow):
         self.edit_menu.addAction(self.settings)
 
         # Вид
+        self.sub_windows = QMenu("Окна", self)
+        self.theme = QMenu("Тема", self)
+        self.start_window_view_button = QAction("Показать окно приветствия", self)
+
+        self.view_menu.addMenu(self.sub_windows)
+        self.view_menu.addMenu(self.theme)
+        self.view_menu.addAction(self.start_window_view_button)
 
         # Справка
         self.insert = QAction("Обучение", self)
@@ -137,38 +151,17 @@ class DomainWindow(QMainWindow):
             )
 
     def create_project(self) -> None:
-        dialog = NewProjectDialog(self)
-        if dialog.exec() != QDialog.DialogCode.Accepted:
+        values = ask_new_project(self)
+        if values is None:
             return
+        name, width, height = values
 
-        name, width, height = dialog.get_values()
-        if not name:
-            QMessageBox.warning(
-                self,
-                "Некорректное название",
-                "Введите название проекта.",
-            )
-            return
-
-        path, _ = QFileDialog.getSaveFileName(
-            self,
-            "Создать проект",
-            f"{name}.sqlite",
-            "Проекты SQPaint (*.sqlite)",
-        )
+        path = ask_save_project_path(self, name)
         if not path:
             return
 
-        if not path.lower().endswith(".sqlite"):
-            path += ".sqlite"
-
         if os.path.exists(path):
-            QMessageBox.warning(
-                self,
-                "Файл уже существует",
-                "Выберите другое имя или другое расположение файла. "
-                "Существующие файлы не перезаписываются.",
-            )
+            show_file_exists(self)
             return
 
         image = QImage(
@@ -188,37 +181,13 @@ class DomainWindow(QMainWindow):
             project.layers.append(initial_layer)
             self.database.save(project)
         except (OSError, sqlite3.Error, ValueError, RuntimeError) as error:
-            QMessageBox.critical(
-                self,
-                "Не удалось создать проект",
-                f"Проект не удалось создать.\n\n{error}",
-            )
+            show_create_error(self, error)
             return
 
         self.set_project(project)
 
     def open_project(self) -> None:
-        path, _ = QFileDialog.getOpenFileName(
-            self,
-            "Открыть проект",
-            "",
-            "Проекты SQPaint (*.sqlite);;Все файлы (*)",
-        )
-        if not path:
-            return
-
-        try:
-            project = self.database.load(path)
-        except (OSError, sqlite3.Error, ValueError, TypeError) as error:
-            QMessageBox.critical(
-                self,
-                "Не удалось открыть проект",
-                f"Файл не удалось загрузить. Возможно, он повреждён "
-                f"или не является проектом SQPaint.\n\n{error}",
-            )
-            return
-
-        self.set_project(project)
+        self.open_project_path(ask_open_project_path(self))
 
     def open_project_path(self, path: str):
         if not path:
@@ -227,12 +196,7 @@ class DomainWindow(QMainWindow):
         try:
             project = self.database.load(path)
         except (OSError, sqlite3.Error, ValueError, TypeError) as error:
-            QMessageBox.critical(
-                self,
-                "Не удалось открыть проект",
-                f"Файл не удалось загрузить. Возможно, он повреждён "
-                f"или не является проектом SQPaint.\n\n{error}",
-            )
+            show_open_error(self, error)
             return
 
         self.set_project(project)
@@ -301,15 +265,10 @@ class DomainWindow(QMainWindow):
             return
 
         if len(self.project.layers) <= 1:
-            QMessageBox.information(
-                self,
-                "Удаление слоя",
-                "В проекте должен остаться хотя бы один слой.",
-            )
+            show_last_layer_info(self)
             return
 
-        dialog = DeleteLayerDialog(layer.get_name(), self)
-        if dialog.exec() != QDialog.DialogCode.Accepted:
+        if not confirm_delete_layer(self, layer.get_name()):
             return
 
         old_index = self.project.layers.index(layer)
@@ -336,11 +295,7 @@ class DomainWindow(QMainWindow):
         try:
             self.database.save(self.project)
         except (OSError, sqlite3.Error, RuntimeError) as error:
-            QMessageBox.critical(
-                self,
-                "Ошибка сохранения",
-                f"Не удалось сохранить проект.\n\n{error}",
-            )
+            show_save_error(self, error)
 
     def set_canvas_color(self, color) -> None:
         if self.canvas is not None:
