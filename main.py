@@ -20,7 +20,7 @@ from ui.main_window import DomainWindow
 
 
 app = QApplication(sys.argv)
-app.setStyle("Fusion")
+#app.setStyle("Fusion")
 
 database = ProjectDatabase()
 window = DomainWindow(None, database)
