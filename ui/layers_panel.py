@@ -14,6 +14,16 @@ from PyQt6.QtWidgets import (
 )
 
 
+class LayerNameEdit(QLineEdit):
+    """QLineEdit, который отдельно сообщает о потере фокуса."""
+
+    focus_lost = pyqtSignal()
+
+    def focusOutEvent(self, event) -> None:
+        super().focusOutEvent(event)
+        self.focus_lost.emit()
+
+
 class LayerPanel(QWidget):
     WIDTH = 200
 
@@ -150,13 +160,13 @@ class LayerPanel(QWidget):
             True,
         )
 
-        name_edit = QLineEdit(layer.get_name())
+        name_edit = LayerNameEdit(layer.get_name())
         name_edit.setPlaceholderText("Название слоя")
         name_edit.hide()
-        name_edit.editingFinished.connect(
-            lambda item=layer, editor=name_edit, label=name_label:
-                self._commit_layer_name(item, editor, label)
-        )
+        commit_name = lambda item=layer, editor=name_edit, label=name_label: \
+            self._commit_layer_name(item, editor, label)
+        name_edit.focus_lost.connect(commit_name)
+        name_edit.returnPressed.connect(commit_name)
 
         layout.addWidget(box_visible)
         layout.addWidget(name_label, 1)
