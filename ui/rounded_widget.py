@@ -56,13 +56,6 @@ class RoundedWidget(QWidget):
         painter.setBrush(self._color)
         painter.drawRoundedRect(self.rect(), self._radius, self._radius)
 
-    def mousePressEvent(self, event) -> None:
-        if event.button() == Qt.MouseButton.LeftButton:
-            event.accept()
-            return
-
-        super().mousePressEvent(event)
-
     def mouseReleaseEvent(self, event) -> None:
         if event.button() == Qt.MouseButton.LeftButton and self.rect().contains(event.position().toPoint()):
             self.clicked.emit()
