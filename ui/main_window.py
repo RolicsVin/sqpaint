@@ -1,5 +1,6 @@
 import os
 import sqlite3
+from services import recent_projects
 
 from PyQt6.QtGui import QAction, QActionGroup, QImage
 from PyQt6.QtWidgets import (
@@ -232,6 +233,8 @@ class DomainWindow(QMainWindow):
         self.save_action.setEnabled(True)
         self.export_submenu.setEnabled(True)
         self.setWindowTitle(f"SQPaint — {project.get_name()}")
+
+        recent_projects.add_recent_project(project)
 
     def add_layer(self) -> None:
         """Создаёт новый прозрачный слой и делает его активным."""
