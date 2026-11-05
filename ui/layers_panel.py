@@ -51,25 +51,17 @@ class LayerPanel(QWidget):
         self.main_layout.setSpacing(6)
         self.main_layout.setAlignment(Qt.AlignmentFlag.AlignTop)
 
-        self.header_layout = QHBoxLayout()
-
         self.add_layer_button = QPushButton("+")
         self.add_layer_button.setToolTip("Добавить слой")
-        self.remove_layer_button = QPushButton("-")
-        self.remove_layer_button.setToolTip("Удалить выбранный слой")
-
         self.add_layer_button.clicked.connect(self.add_layer_requested.emit)
-        self.remove_layer_button.clicked.connect(self._request_remove_layer)
-
-        self.header_layout.addWidget(self.add_layer_button)
-        self.header_layout.addWidget(self.remove_layer_button)
 
         self.layers_layout = QVBoxLayout()
         self.layers_layout.setAlignment(Qt.AlignmentFlag.AlignTop)
         self.layers_layout.setSpacing(5)
 
-        self.main_layout.addLayout(self.header_layout)
         self.main_layout.addLayout(self.layers_layout)
+        self.main_layout.addStretch(1)
+        self.main_layout.addWidget(self.add_layer_button)
 
         self.setStyleSheet(f"""
             QWidget#layerPanel {{
@@ -113,10 +105,6 @@ class LayerPanel(QWidget):
         layer.set_visible(visible)
         self.layer_visible_change.emit(layer, visible)
         self.layer_change.emit()
-
-    def _request_remove_layer(self) -> None:
-        if self.selected_layer is not None:
-            self.remove_layer_requested.emit(self.selected_layer)
 
     def update_layers(self) -> None:
         """Перестраивает список виджетов слоёв."""
@@ -168,9 +156,18 @@ class LayerPanel(QWidget):
         name_edit.focus_lost.connect(commit_name)
         name_edit.returnPressed.connect(commit_name)
 
+        remove_button = QPushButton("🗑")
+        remove_button.setFixedSize(26, 26)
+        remove_button.setCursor(Qt.CursorShape.PointingHandCursor)
+        remove_button.setToolTip("Удалить слой")
+        remove_button.clicked.connect(
+            lambda checked=False, item=layer: self.remove_layer_requested.emit(item)
+        )
+
         layout.addWidget(box_visible)
         layout.addWidget(name_label, 1)
         layout.addWidget(name_edit, 1)
+        layout.addWidget(remove_button)
 
         row.name_label = name_label
         row.name_edit = name_edit
