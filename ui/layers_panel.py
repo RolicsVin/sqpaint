@@ -31,7 +31,7 @@ class LayerPanel(QWidget):
         super().__init__(parent=parent)
         self.layers = layers
         self.selected_layer: Layer | None = None
-        self.layer_rows: dict[Layer, RoundedWidget] = {}
+        self.layer_rows: dict[int, RoundedWidget] = {}
 
         self.setObjectName("layerPanel")
         self.setAttribute(Qt.WidgetAttribute.WA_StyledBackground, True)
@@ -166,7 +166,7 @@ class LayerPanel(QWidget):
         row.name_edit = name_edit
         row.layer = layer
 
-        self.layer_rows[layer] = row
+        self.layer_rows[id(layer)] = row
         self.layers_layout.addWidget(row)
 
     def _select_layer(self, index: int) -> None:
@@ -179,7 +179,10 @@ class LayerPanel(QWidget):
 
     def _update_selection_colors(self) -> None:
         """Подсвечивает выбранный слой и сбрасывает цвет остальных."""
-        for layer, row in self.layer_rows.items():
+        for layer in self.layers:
+            row = self.layer_rows.get(id(layer))
+            if row is None:
+                continue
             color = (
                 self.SELECTED_LAYER_COLOR
                 if layer is self.selected_layer
@@ -188,7 +191,7 @@ class LayerPanel(QWidget):
             row.set_color(color)
 
     def _begin_rename(self, layer: Layer) -> None:
-        row = self.layer_rows.get(layer)
+        row = self.layer_rows.get(id(layer))
         if row is None:
             return
 
