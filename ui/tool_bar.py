@@ -37,11 +37,6 @@ class ToolBar(QWidget):
         self.tools_combo.setCurrentIndex(0)
         self.tools_combo.currentIndexChanged.connect(self.on_tool_changed)
 
-        # Пока не реализована заливка
-        self.tools_combo.setItemData(
-            2, "Инструмент пока не реализован", role=3
-        )
-
         self.Hlayout.addWidget(self.color_btn)
         self.Hlayout.addWidget(self.tools_combo)
 
