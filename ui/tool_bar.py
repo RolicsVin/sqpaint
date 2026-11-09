@@ -8,6 +8,7 @@ from PyQt6.QtWidgets import (
     QHBoxLayout,
     QColorDialog,
     QComboBox,
+    QSlider,
 )
 
 
@@ -15,6 +16,7 @@ class ToolBar(QWidget):
     HEIGHT = 50
     color_selected = pyqtSignal(QColor)
     tool_selected = pyqtSignal(str)
+    width_changed = pyqtSignal(int)
 
     def __init__(self, parent):
         super().__init__(parent=parent)
@@ -47,18 +49,30 @@ class ToolBar(QWidget):
         self.tools_combo.setCurrentIndex(0)
         self.tools_combo.currentIndexChanged.connect(self.on_tool_changed)
 
+        self.size_label = QLabel("Размер:")
+        self.size_slider = QSlider(Qt.Orientation.Horizontal, self)
+        self.size_slider.setRange(1, 100)
+        self.size_slider.setValue(4)
+        self.size_slider.setFixedWidth(150)
+        self.size_slider.setToolTip("Толщина кисти и ластика")
+
+        self.size_value_label = QLabel("4 px")
+        self.size_slider.valueChanged.connect(self.on_size_changed)
+
         self.Hlayout.addWidget(self.color_btn)
         self.Hlayout.addWidget(self.tools_combo)
-
-        screen = QApplication.primaryScreen()
-        if screen is not None:
-            self.airlabel = QLabel()
-            self.airlabel.setFixedWidth(int(screen.size().width() * 0.8))
-            self.Hlayout.addWidget(self.airlabel)
+        self.Hlayout.addWidget(self.size_label)
+        self.Hlayout.addWidget(self.size_slider)
+        self.Hlayout.addWidget(self.size_value_label)
+        self.Hlayout.addStretch()
 
     def on_tool_changed(self, index: int) -> None:
         tool_name = self.tools_combo.itemData(index)
         self.tool_selected.emit(tool_name)
+
+    def on_size_changed(self, value: int) -> None:
+        self.size_value_label.setText(f"{value} px")
+        self.width_changed.emit(value)
 
     def update_color_button(self) -> None:
         self.color_btn.setStyleSheet(
