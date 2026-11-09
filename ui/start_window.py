@@ -209,7 +209,7 @@ class RecentProjectWindow(QWidget):
         if not logo.isNull():
             logo_label.setPixmap(
                 logo.scaled(
-                    112, 112,
+                    224, 224,
                     Qt.AspectRatioMode.KeepAspectRatio,
                     Qt.TransformationMode.SmoothTransformation,
                 )
