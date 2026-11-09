@@ -83,13 +83,14 @@ class Project:
         name_prefix: str = "Слой",
         image: QImage | None = None,
         visible: bool = True,
+        fill: int = 0,
     ) -> Layer:
         """Создаёт и добавляет слой с уникальным именем."""
         if image is None:
             image = QImage(
                 self.width, self.height, QImage.Format.Format_ARGB32
             )
-            image.fill(0)
+            image.fill(fill)
         else:
             image = image.convertToFormat(QImage.Format.Format_ARGB32)
 
