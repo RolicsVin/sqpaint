@@ -15,6 +15,7 @@ from ui.canvas_view import CanvasView
 from ui.tool_bar import ToolBar
 from ui.layers_panel import LayerPanel
 from ui.view_manager import ViewManager
+from ui.selfie_dialog import SelfieDialog
 from ui.dialogs import (
     SettingsDialog,
     ask_new_project, ask_open_project_path, ask_save_project_path,
@@ -86,14 +87,18 @@ class DomainWindow(QMainWindow):
 
         self.canvas_size = QAction("Размер холста", self)
         self.paste_as_layer_action = QAction("Вставить как слой", self)
+        self.selfie_action = QAction("Сделать селфи", self)
         self.settings_action = QAction("Настройки", self)
         self.edit_menu.addAction(self.canvas_size)
         self.edit_menu.addAction(self.paste_as_layer_action)
+        self.edit_menu.addAction(self.selfie_action)
         self.edit_menu.addAction(self.settings_action)
         # Временная заглушка: пока «Вставить как слой» использует импорт изображения.
         self.canvas_size.triggered.connect(self.change_canvas_size)
         self.canvas_size.setEnabled(False)
         self.paste_as_layer_action.triggered.connect(self.import_image)
+        self.selfie_action.triggered.connect(self.take_selfie)
+        self.selfie_action.setEnabled(False)
         self.settings_action.triggered.connect(self.open_settings)
 
         self.sub_windows = QMenu("Окна", self)
@@ -299,6 +304,7 @@ class DomainWindow(QMainWindow):
         self.save_as_action.setEnabled(True)
         self.export_submenu.setEnabled(True)
         self.import_action.setEnabled(True)
+        self.selfie_action.setEnabled(True)
         self.file_info.setEnabled(True)
         self.canvas_size.setEnabled(True)
         self.setWindowTitle(f"SQPaint — {project.get_name()}")
@@ -448,6 +454,33 @@ class DomainWindow(QMainWindow):
             return
 
         layer = self.project.create_layer("Импорт", image)
+        active_index = self.project.get_layers().index(layer)
+        self.canvas.set_layers(self.project.get_layers(), active=active_index)
+        self.layer_panel.set_layers(self.project.get_layers())
+        self.layer_panel.select_layer(active_index)
+
+    def take_selfie(self) -> None:
+        """Снимает изображение с веб-камеры и добавляет его отдельным слоем."""
+        if self.project is None or self.canvas is None:
+            return
+
+        try:
+            dialog = SelfieDialog(self)
+        except Exception as error:
+            QMessageBox.warning(
+                self, "Веб-камера",
+                f"Не удалось запустить камеру. Проверьте подключение и разрешения.\\n\\n{error}"
+            )
+            return
+
+        if dialog.exec() != dialog.DialogCode.Accepted:
+            return
+
+        image = dialog.get_image()
+        if image is None or image.isNull():
+            return
+
+        layer = self.project.create_layer("Селфи", image)
         active_index = self.project.get_layers().index(layer)
         self.canvas.set_layers(self.project.get_layers(), active=active_index)
         self.layer_panel.set_layers(self.project.get_layers())
