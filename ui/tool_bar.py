@@ -30,8 +30,10 @@ class ToolBar(QWidget):
         self.tools_combo.addItem("🖌", "brush")
         self.tools_combo.addItem("🧽", "eraser")
         self.tools_combo.addItem("🪣", "fill")
+
         for index, name in enumerate(("Кисть", "Ластик", "Заливка")):
             self.tools_combo.setItemData(index, name, Qt.ItemDataRole.ToolTipRole)
+        
         self.tools_combo.currentIndexChanged.connect(self.on_tool_changed)
 
         self.size_label = QLabel("Размер:")
