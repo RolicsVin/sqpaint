@@ -4,7 +4,7 @@ from dataclasses import dataclass
 from datetime import datetime
 
 
-@dataclass
+@dataclass(eq=False)
 class Layer:
     """Класс слоя изображения."""
     name: str
