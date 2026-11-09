@@ -1,5 +1,5 @@
 from PyQt6.QtCore import Qt, pyqtSignal
-from PyQt6.QtWidgets import QScrollArea
+from PyQt6.QtWidgets import QFrame, QScrollArea
 
 
 class CanvasView(QScrollArea):
@@ -11,7 +11,7 @@ class CanvasView(QScrollArea):
         super().__init__(parent)
         self.setWidgetResizable(False)
         self.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        self.setFrameShape(QScrollArea.Shape.NoFrame)
+        self.setFrameShape(QFrame.Shape.NoFrame)
         self.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAsNeeded)
         self.setVerticalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAsNeeded)
         self.setFocusPolicy(Qt.FocusPolicy.StrongFocus)
