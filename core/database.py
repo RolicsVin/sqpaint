@@ -122,6 +122,28 @@ class ProjectDatabase:
             self.conn.execute("DELETE FROM layers")
             self._write_layers(project, self.conn)
 
+    def save_as(self, path: str, project: Project) -> Project:
+        """Сохраняет проект в новый SQLite-файл и переключает БД на него."""
+        if os.path.exists(path):
+            raise FileExistsError(f"Файл уже существует: {path}")
+
+        self.save(project)
+        destination = sqlite3.connect(path)
+        try:
+            self._require_conn()
+            self.conn.backup(destination)
+        except Exception:
+            destination.close()
+            try:
+                os.remove(path)
+            except OSError:
+                pass
+            raise
+        else:
+            destination.close()
+
+        return self.load(path)
+
     def close(self) -> None:
         """Закрывает соединение с файлом проекта."""
         if self.conn is not None:
