@@ -151,6 +151,12 @@ class DomainWindow(QMainWindow):
         self.layer_panel.remove_layer_requested.connect(self.remove_layer)
         self.layer_panel.layer_selected.connect(self.select_layer)
         self.layer_panel.layer_move_requested.connect(self._on_layer_move_requested)
+        self.layer_panel.layer_visibility_requested.connect(
+            self._on_layer_visibility_requested
+        )
+        self.layer_panel.layer_rename_requested.connect(
+            self._on_layer_rename_requested
+        )
         self._layout_child_widgets()
 
         if project is not None:
@@ -295,7 +301,6 @@ class DomainWindow(QMainWindow):
         self.canvas.set_tool(Canvas.BRUSH)
         self.canvas_view.set_canvas(self.canvas)
         self.canvas.set_layers(project.get_layers(), active=0)
-        self.layer_panel.layer_change.connect(self.canvas.re_draw_canvas)
         self.layer_panel.set_layers(project.get_layers())
         self.canvas_view.set_zoom(100)
         self.save_action.setEnabled(True)
@@ -379,6 +384,18 @@ class DomainWindow(QMainWindow):
         self.canvas.set_layers(self.project.get_layers(), active=active_index)
         self.layer_panel.set_layers(self.project.get_layers())
         self.layer_panel.select_layer(active_index)
+
+    def _on_layer_visibility_requested(self, layer, visible: bool) -> None:
+        if self.project is None or self.canvas is None:
+            return
+        if self.project.set_layer_visibility(layer, visible):
+            self.canvas.update()
+
+    def _on_layer_rename_requested(self, layer, name: str) -> None:
+        if self.project is None:
+            return
+        self.project.rename_layer(layer, name)
+        self.layer_panel.refresh_layer_name(layer)
 
     def select_layer(self, index: int) -> None:
         if self.canvas is not None:
