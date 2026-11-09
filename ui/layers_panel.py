@@ -253,14 +253,6 @@ class LayerPanel(QWidget):
         self._update_selection_colors()
         self.layer_selected.emit(index)
 
-    def _select_layer(self, index: int) -> None:
-        if not 0 <= index < len(self.layers):
-            return
-
-        self.selected_layer = self.layers[index]
-        self._update_selection_colors()
-        self.layer_selected.emit(index)
-
     def _update_selection_colors(self) -> None:
         """Подсвечивает выбранный слой и сбрасывает цвет остальных."""
         for layer in self.layers:
