@@ -20,7 +20,7 @@ from ui.dialogs import (
     confirm_delete_layer, show_create_error, show_file_exists,
     show_last_layer_info, show_open_error, show_save_error,
     ask_save_as_path, ask_import_image_path, ask_export_image_path,
-    show_file_info,
+    show_file_info, ask_canvas_size,
 )
 
 
@@ -86,9 +86,12 @@ class DomainWindow(QMainWindow):
         self.canvas_size = QAction("Размер холста", self)
         self.paste_as_layer_action = QAction("Вставить как слой", self)
         self.settings_action = QAction("Настройки", self)
+        self.edit_menu.addAction(self.canvas_size)
         self.edit_menu.addAction(self.paste_as_layer_action)
         self.edit_menu.addAction(self.settings_action)
         # Временная заглушка: пока «Вставить как слой» использует импорт изображения.
+        self.canvas_size.triggered.connect(self.change_canvas_size)
+        self.canvas_size.setEnabled(False)
         self.paste_as_layer_action.triggered.connect(self.import_image)
         self.settings_action.triggered.connect(self.open_settings)
 
@@ -354,8 +357,40 @@ class DomainWindow(QMainWindow):
         self.export_submenu.setEnabled(True)
         self.import_action.setEnabled(True)
         self.file_info.setEnabled(True)
+        self.canvas_size.setEnabled(True)
         self.setWindowTitle(f"SQPaint — {project.get_name()}")
         recent_projects.add_recent_project(project)
+
+    def change_canvas_size(self) -> None:
+        """Запрашивает новые размеры и изменяет все слои документа."""
+        if self.project is None or self.canvas is None:
+            return
+
+        new_size = ask_canvas_size(
+            self, self.project.get_width(), self.project.get_height()
+        )
+        if new_size is None:
+            return
+
+        width, height = new_size
+        if (width, height) == (
+            self.project.get_width(), self.project.get_height()
+        ):
+            return
+
+        try:
+            self.canvas.resize_document(width, height)
+        except (MemoryError, ValueError, RuntimeError) as error:
+            QMessageBox.critical(
+                self, "Размер холста",
+                f"Не удалось изменить размер холста.\\n\\n{error}"
+            )
+            return
+
+        self.project.width = width
+        self.project.height = height
+        self.canvas_view.viewport().update()
+        self.canvas_view.zoom_changed.emit(round(self.canvas_view.zoom * 100))
 
     def add_layer(self) -> None:
         if self.project is None or self.canvas is None:
