@@ -26,8 +26,6 @@ class Fill:
 
         width = image.width()
         height = image.height()
-        pixels = image.bits()
-
         # Scanline flood fill: обрабатываем горизонтальные отрезки,
         # а не помещаем в стек каждый пиксель отдельно.
         stack = [(x, y)]
