@@ -6,7 +6,8 @@ from PyQt6.QtGui import QAction, QImage
 from PyQt6.QtWidgets import (
     QApplication,
     QMainWindow,
-    QMenu
+    QMenu,
+    QMessageBox,
 )
 
 from core.database import ProjectDatabase
