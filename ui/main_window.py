@@ -153,8 +153,12 @@ class DomainWindow(QMainWindow):
         self.layer_panel.setGeometry(
             self.width() - panel_width, 0, panel_width, self.height()
         )
-        self.layer_panel.raise_()
+
+        # Явно задаём порядок слоёв дочерних виджетов:
+        # область холста находится снизу, панели инструментов и слоёв — сверху.
+        self.canvas_view.lower()
         self.tool_bar.raise_()
+        self.layer_panel.raise_()
 
     def resizeEvent(self, event) -> None:
         super().resizeEvent(event)
