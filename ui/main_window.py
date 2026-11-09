@@ -197,6 +197,12 @@ class DomainWindow(QMainWindow):
         self.set_project(project)
 
     def set_project(self, project: Project) -> None:
+        # Сигнал панели должен быть подключён только к текущему Canvas.
+        try:
+            self.layer_panel.layer_change.disconnect()
+        except TypeError:
+            pass
+
         self.project = project
         self.canvas = Canvas(
             self.canvas_view, project.get_layers(),
@@ -204,9 +210,7 @@ class DomainWindow(QMainWindow):
         )
         self.canvas.set_tool(Canvas.BRUSH)
         self.canvas_view.set_canvas(self.canvas)
-        self.layer_panel.layer_change.connect(
-            self.canvas.re_draw_canvas, Qt.ConnectionType.UniqueConnection
-        )
+        self.layer_panel.layer_change.connect(self.canvas.re_draw_canvas)
         self.layer_panel.set_layers(project.get_layers())
         self.canvas_view.set_zoom(100)
         self.save_action.setEnabled(True)
