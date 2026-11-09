@@ -43,6 +43,20 @@ class Canvas(QWidget):
         if e.button() != Qt.MouseButton.LeftButton:
             return
 
+        layer = self.layers[self.active]
+
+        pos = e.position().toPoint()
+
+        if self.active_tool == self.FILL:
+            print('31')
+            self.fill.press(
+                layer.image,
+                pos,
+                self.last,
+                self.color,
+                self.width_px,
+            )
+
         self.last = e.position().toPoint()
 
     def mouseMoveEvent(self, e):
@@ -69,14 +83,6 @@ class Canvas(QWidget):
             )
         elif self.active_tool == self.ERASER:
             self.eraser.move(
-                layer.image,
-                pos,
-                self.last,
-                self.color,
-                self.width_px,
-            )
-        elif self.active_tool == self.FILL:
-            self.fill.press(
                 layer.image,
                 pos,
                 self.last,
