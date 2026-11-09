@@ -146,6 +146,7 @@ class DomainWindow(QMainWindow):
         self.layer_panel.add_layer_requested.connect(self.add_layer)
         self.layer_panel.remove_layer_requested.connect(self.remove_layer)
         self.layer_panel.layer_selected.connect(self.select_layer)
+        self.layer_panel.layers_reordered.connect(self._on_layers_reordered)
         self._layout_child_widgets()
 
         if project is not None:
@@ -396,6 +397,16 @@ class DomainWindow(QMainWindow):
         self.canvas.active = active_index
         self.layer_panel.set_layers(self.project.get_layers())
         self.layer_panel._select_layer(active_index)
+        self.canvas.update()
+
+    def _on_layers_reordered(self) -> None:
+        """Синхронизирует холст с новым порядком слоёв."""
+        if self.project is None or self.canvas is None:
+            return
+        self.canvas.layers = self.project.get_layers()
+        selected = self.layer_panel.selected_layer
+        if selected in self.canvas.layers:
+            self.canvas.active = self.canvas.layers.index(selected)
         self.canvas.update()
 
     def select_layer(self, index: int) -> None:
