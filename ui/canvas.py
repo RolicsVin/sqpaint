@@ -33,6 +33,25 @@ class Canvas(QWidget):
         self.active_tool = tool_name
         self.last = None
 
+    def get_image(self):
+        """Возвращает итоговое изображение из всех видимых слоёв."""
+        from PyQt6.QtGui import QImage
+
+        image = QImage(
+            self.width(),
+            self.height(),
+            QImage.Format.Format_ARGB32,
+        )
+        image.fill(0)
+
+        painter = QPainter(image)
+        for layer in self.layers:
+            if layer.visible:
+                painter.drawImage(0, 0, layer.image)
+        painter.end()
+
+        return image
+
     def paintEvent(self, event):
         painter = QPainter(self)
         for layer in self.layers:
