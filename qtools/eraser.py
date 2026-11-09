@@ -6,7 +6,6 @@ from PyQt6.QtGui import QColor, QPainter, QPen
 class Eraser(Tool):
     """Ластик"""
     def move(self, image, pos, last_pos, color, size):
-        print('Ластик')
         p = QPainter(image)
 
         p.setCompositionMode(QPainter.CompositionMode.CompositionMode_Clear)

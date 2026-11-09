@@ -1,5 +1,6 @@
 from qtools.brush import Brush
 from qtools.eraser import Eraser
+from qtools.fill import Fill
 from PyQt6.QtCore import Qt
 from PyQt6.QtGui import QPainter, QColor
 from PyQt6.QtWidgets import QWidget
@@ -21,6 +22,7 @@ class Canvas(QWidget):
 
         self.brush = Brush()
         self.eraser = Eraser()
+        self.fill = Fill()
         self.active_tool = self.BRUSH
 
     def set_tool(self, tool_name: str) -> None:
@@ -41,79 +43,7 @@ class Canvas(QWidget):
         if e.button() != Qt.MouseButton.LeftButton:
             return
 
-        if self.active_tool == self.FILL:
-            self.fill_at(e.position().toPoint())
-            return
-
-        if self.active_tool in (self.BRUSH, self.ERASER):
-            self.last = e.position().toPoint()
-
-    def fill_at(self, position) -> None:
-        """Заливает связную область активного слоя выбранным цветом."""
-        if not self.layers or not (0 <= self.active < len(self.layers)):
-            return
-
-        layer = self.layers[self.active]
-        if not layer.visible:
-            return
-
-        image = layer.image
-        start_x, start_y = position.x(), position.y()
-
-        if not (0 <= start_x < image.width() and 0 <= start_y < image.height()):
-            return
-
-        target_color = image.pixel(start_x, start_y)
-        replacement_color = self.color.rgba()
-
-        # Если цвет уже совпадает, заливка ничего не изменит.
-        if target_color == replacement_color:
-            return
-
-        # Scanline flood fill: обрабатываем горизонтальные отрезки,
-        # добавляя в стек только начала новых отрезков сверху и снизу.
-        stack = [(start_x, start_y)]
-
-        while stack:
-            x, y = stack.pop()
-
-            if image.pixel(x, y) != target_color:
-                continue
-
-            left = x
-            while left > 0 and image.pixel(left - 1, y) == target_color:
-                left -= 1
-
-            right = x
-            while (
-                right + 1 < image.width()
-                and image.pixel(right + 1, y) == target_color
-            ):
-                right += 1
-
-            scan_above = False
-            scan_below = False
-
-            for current_x in range(left, right + 1):
-                image.setPixel(current_x, y, replacement_color)
-
-                if y > 0:
-                    matches_above = (
-                        image.pixel(current_x, y - 1) == target_color
-                    )
-                    if matches_above and not scan_above:
-                        stack.append((current_x, y - 1))
-                    scan_above = matches_above
-
-                if y + 1 < image.height():
-                    matches_below = (
-                        image.pixel(current_x, y + 1) == target_color
-                    )
-                    if matches_below and not scan_below:
-                        stack.append((current_x, y + 1))
-                    scan_below = matches_below
-
-        self.update()
+        self.last = e.position().toPoint()
 
     def mouseMoveEvent(self, e):
         if self.last is None:
@@ -139,6 +69,14 @@ class Canvas(QWidget):
             )
         elif self.active_tool == self.ERASER:
             self.eraser.move(
+                layer.image,
+                pos,
+                self.last,
+                self.color,
+                self.width_px,
+            )
+        elif self.active_tool == self.FILL:
+            self.fill.press(
                 layer.image,
                 pos,
                 self.last,
