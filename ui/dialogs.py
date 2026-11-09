@@ -1,4 +1,7 @@
-from PyQt6.QtCore import pyqtSignal
+from pathlib import Path
+
+from PyQt6.QtCore import Qt, pyqtSignal
+from PyQt6.QtGui import QPixmap
 from PyQt6.QtWidgets import (
     QDialog,
     QDialogButtonBox,
@@ -434,3 +437,69 @@ class FileInfoDialog(QDialog):
 def show_file_info(parent: QWidget | None, database_path: str) -> None:
     dialog = FileInfoDialog(database_path, parent)
     dialog.exec()
+
+
+class AboutDialog(QDialog):
+    """Информационное окно о программе SQPaint."""
+
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        self.setWindowTitle("О программе SQPaint")
+        self.setModal(True)
+        self.setFixedWidth(380)
+
+        layout = QVBoxLayout(self)
+        layout.setContentsMargins(24, 20, 24, 20)
+        layout.setSpacing(10)
+
+        logo_label = QLabel(self)
+        logo_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        logo_path = Path(__file__).resolve().parents[1] / "logo.png"
+        pixmap = QPixmap(str(logo_path))
+        if not pixmap.isNull():
+            logo_label.setPixmap(
+                pixmap.scaled(
+                    160, 160,
+                    Qt.AspectRatioMode.KeepAspectRatio,
+                    Qt.TransformationMode.SmoothTransformation,
+                )
+            )
+            layout.addWidget(logo_label)
+
+        title = QLabel("<h2 style='margin: 0'>SQPaint</h2>", self)
+        title.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        layout.addWidget(title)
+
+        description = QLabel(
+            "Растровый графический редактор с поддержкой слоёв. "
+            "Проекты сохраняются в формате SQLite (.sqlite).",
+            self,
+        )
+        description.setWordWrap(True)
+        description.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        layout.addWidget(description)
+
+        technology = QLabel("Создано на Python и PyQt6", self)
+        technology.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        layout.addWidget(technology)
+
+        project_link = QLabel(
+            '<a href="https://github.com/RolicsVin/sqpaint">'
+            "Исходный код на GitHub</a>",
+            self,
+        )
+        project_link.setOpenExternalLinks(True)
+        project_link.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        layout.addWidget(project_link)
+
+        buttons = QDialogButtonBox(
+            QDialogButtonBox.StandardButton.Ok, parent=self
+        )
+        buttons.button(QDialogButtonBox.StandardButton.Ok).setText("Закрыть")
+        buttons.accepted.connect(self.accept)
+        layout.addWidget(buttons)
+
+
+def show_about(parent: QWidget | None = None) -> None:
+    """Показывает окно «О программе»."""
+    AboutDialog(parent).exec()
