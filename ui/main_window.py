@@ -89,7 +89,7 @@ class DomainWindow(QMainWindow):
         self.sub_windows = QMenu("Окна", self)
         self.layers_panel_viewer = QAction("Панель слоёв", self)
         self.tool_bar_viewer = QAction("Панель инструментов", self)
-        self.scroller_viewer = QAction("Ползунок", self)
+        self.scroller_viewer = QAction("Ползунок масштаба", self)
         self.sub_windows.addAction(self.layers_panel_viewer)
         self.sub_windows.addAction(self.tool_bar_viewer)
         self.sub_windows.addAction(self.scroller_viewer)
