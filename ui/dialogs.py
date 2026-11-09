@@ -1,3 +1,4 @@
+from PyQt6.QtCore import pyqtSignal
 from PyQt6.QtWidgets import (
     QDialog,
     QDialogButtonBox,
@@ -14,6 +15,94 @@ from PyQt6.QtWidgets import (
     QHeaderView,
     QVBoxLayout,
 )
+
+
+class SettingsDialog(QDialog):
+    """Окно настроек SQPaint. Новые разделы добавляются отдельными вкладками."""
+
+    apply_requested = pyqtSignal(dict)
+
+    def __init__(self, settings: dict, parent=None):
+        super().__init__(parent)
+        from copy import deepcopy
+        from PyQt6.QtWidgets import (
+            QCheckBox, QComboBox, QHBoxLayout, QPushButton, QTabWidget,
+        )
+
+        self.setWindowTitle("Настройки")
+        self.setModal(True)
+        self.resize(460, 300)
+        self._settings = deepcopy(settings if isinstance(settings, dict) else {})
+        view = self._settings.setdefault("view", {})
+
+        root = QVBoxLayout(self)
+        self.tabs = QTabWidget(self)
+        root.addWidget(self.tabs)
+
+        # Вкладка «Вид». При добавлении других разделов создавайте здесь
+        # отдельные вкладки и сохраняйте их параметры в соответствующих ключах.
+        view_page = QWidget(self)
+        view_form = QFormLayout(view_page)
+
+        self.theme_combo = QComboBox(view_page)
+        self.theme_combo.addItem("Тёмная", "dark")
+        self.theme_combo.addItem("Светлая", "light")
+        theme_index = self.theme_combo.findData(view.get("theme", "dark"))
+        self.theme_combo.setCurrentIndex(max(0, theme_index))
+        view_form.addRow("Тема:", self.theme_combo)
+
+        self.layer_panel_check = QCheckBox("Показывать панель слоёв", view_page)
+        self.layer_panel_check.setChecked(view.get("layer_panel_visible", True))
+        view_form.addRow(self.layer_panel_check)
+
+        self.toolbar_check = QCheckBox("Показывать панель инструментов", view_page)
+        self.toolbar_check.setChecked(view.get("toolbar_visible", True))
+        view_form.addRow(self.toolbar_check)
+
+        self.zoom_check = QCheckBox("Показывать управление масштабом", view_page)
+        self.zoom_check.setChecked(view.get("zoom_control_visible", True))
+        view_form.addRow(self.zoom_check)
+
+        self.welcome_check = QCheckBox(
+            "Показывать окно приветствия при запуске", view_page
+        )
+        self.welcome_check.setChecked(view.get("show_welcome", True))
+        view_form.addRow(self.welcome_check)
+
+        self.tabs.addTab(view_page, "Вид")
+
+        buttons_layout = QHBoxLayout()
+        buttons_layout.addStretch()
+        self.cancel_button = QPushButton("Отмена", self)
+        self.apply_button = QPushButton("Применить", self)
+        self.exit_button = QPushButton("Выход", self)
+        buttons_layout.addWidget(self.cancel_button)
+        buttons_layout.addWidget(self.apply_button)
+        buttons_layout.addWidget(self.exit_button)
+        root.addLayout(buttons_layout)
+
+        self.cancel_button.clicked.connect(self.reject)
+        self.apply_button.clicked.connect(self._apply)
+        self.exit_button.clicked.connect(self._apply_and_close)
+
+    def _collect_settings(self) -> dict:
+        """Собирает значения всех вкладок в структуру настроек."""
+        view = self._settings.setdefault("view", {})
+        view.update({
+            "theme": self.theme_combo.currentData(),
+            "layer_panel_visible": self.layer_panel_check.isChecked(),
+            "toolbar_visible": self.toolbar_check.isChecked(),
+            "zoom_control_visible": self.zoom_check.isChecked(),
+            "show_welcome": self.welcome_check.isChecked(),
+        })
+        return self._settings
+
+    def _apply(self) -> None:
+        self.apply_requested.emit(self._collect_settings())
+
+    def _apply_and_close(self) -> None:
+        self._apply()
+        self.accept()
 
 
 class NewProjectDialog(QDialog):
