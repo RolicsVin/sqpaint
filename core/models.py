@@ -105,6 +105,26 @@ class Project:
         self.add_layer(layer)
         return layer
 
+    def rename_layer(self, layer: Layer, name: str) -> bool:
+        """Переименовывает слой, проверяя принадлежность и уникальность имени."""
+        name = str(name).strip()
+        if layer not in self.layers or not name:
+            return False
+        if any(
+            other is not layer and other.get_name() == name
+            for other in self.layers
+        ):
+            return False
+        layer.set_name(name)
+        return True
+
+    def set_layer_visibility(self, layer: Layer, visible: bool) -> bool:
+        """Изменяет видимость слоя, если он принадлежит проекту."""
+        if layer not in self.layers:
+            return False
+        layer.set_visible(bool(visible))
+        return True
+
     def remove_layer(self, layer: Layer) -> bool:
         """Удаляет слой из проекта, если он в нём существует."""
         if layer not in self.layers:
