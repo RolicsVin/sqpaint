@@ -1,4 +1,4 @@
-from PyQt6.QtCore import Qt, pyqtSignal
+from PyQt6.QtCore import QEvent, Qt, pyqtSignal
 from PyQt6.QtWidgets import QFrame, QScrollArea
 
 
@@ -17,6 +17,11 @@ class CanvasView(QScrollArea):
         self.setFocusPolicy(Qt.FocusPolicy.StrongFocus)
         self.canvas = None
         self._zoom = 1.0
+        self._panning = False
+        self._pan_last_global_pos = None
+        self.viewport().setMouseTracking(True)
+        self.viewport().installEventFilter(self)
+        self.viewport().setCursor(Qt.CursorShape.OpenHandCursor)
 
     @property
     def zoom(self) -> float:
@@ -30,8 +35,12 @@ class CanvasView(QScrollArea):
 
         self.canvas = canvas
         self._zoom = 1.0
+        self._panning = False
+        self._pan_last_global_pos = None
         if canvas is not None:
             canvas.set_zoom(self._zoom)
+            canvas.setCursor(Qt.CursorShape.OpenHandCursor)
+            canvas.installEventFilter(self)
             self.setWidget(canvas)
             canvas.show()
 
@@ -69,6 +78,45 @@ class CanvasView(QScrollArea):
         hbar.setValue(round(hbar.value() + new_origin.x() - target_origin_x))
         vbar.setValue(round(vbar.value() + new_origin.y() - target_origin_y))
         self.zoom_changed.emit(percent)
+
+    def eventFilter(self, watched, event):
+        # Навигация по холсту принадлежит CanvasView: Canvas не должен
+        # получать среднюю кнопку как команду рисования.
+        event_type = event.type()
+
+        if event_type == QEvent.Type.MouseButtonPress:
+            if event.button() == Qt.MouseButton.MiddleButton:
+                self._panning = True
+                self._pan_last_global_pos = event.globalPosition().toPoint()
+                self.viewport().setCursor(Qt.CursorShape.ClosedHandCursor)
+                watched.grabMouse()
+                event.accept()
+                return True
+
+        elif event_type == QEvent.Type.MouseMove and self._panning:
+            current_pos = event.globalPosition().toPoint()
+            if self._pan_last_global_pos is not None:
+                delta = current_pos - self._pan_last_global_pos
+                self.horizontalScrollBar().setValue(
+                    self.horizontalScrollBar().value() - delta.x()
+                )
+                self.verticalScrollBar().setValue(
+                    self.verticalScrollBar().value() - delta.y()
+                )
+            self._pan_last_global_pos = current_pos
+            event.accept()
+            return True
+
+        elif event_type == QEvent.Type.MouseButtonRelease:
+            if event.button() == Qt.MouseButton.MiddleButton and self._panning:
+                self._panning = False
+                self._pan_last_global_pos = None
+                watched.releaseMouse()
+                self.viewport().setCursor(Qt.CursorShape.OpenHandCursor)
+                event.accept()
+                return True
+
+        return super().eventFilter(watched, event)
 
     def wheelEvent(self, event) -> None:
         delta = event.angleDelta().y()
