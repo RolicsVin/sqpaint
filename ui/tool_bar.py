@@ -43,6 +43,7 @@ class ToolBar(QWidget):
         self.size_value_label = QLabel("4 px")
         self.size_slider.valueChanged.connect(self.on_size_changed)
 
+        self.zoom_label = QLabel("Масштаб:")
         self.zoom_control = ZoomControl(self)
         self.zoom_control.zoom_changed.connect(self.zoom_changed)
 
@@ -52,7 +53,7 @@ class ToolBar(QWidget):
         self.Hlayout.addWidget(self.size_slider)
         self.Hlayout.addWidget(self.size_value_label)
         self.Hlayout.addStretch()
-        self.Hlayout.addWidget(QLabel("Масштаб:"))
+        self.Hlayout.addWidget(self.zoom_label)
         self.Hlayout.addWidget(self.zoom_control)
 
     def on_tool_changed(self, index: int) -> None:
