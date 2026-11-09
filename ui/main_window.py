@@ -469,7 +469,7 @@ class DomainWindow(QMainWindow):
         except Exception as error:
             QMessageBox.warning(
                 self, "Веб-камера",
-                f"Не удалось запустить камеру. Проверьте подключение и разрешения.\\n\\n{error}"
+                f"Не удалось запустить камеру. Проверьте подключение и разрешения.\n\n{error}"
             )
             return
 
