@@ -11,6 +11,7 @@ from PyQt6.QtWidgets import (
 
 from core.database import ProjectDatabase
 from core.models import Layer, Project
+from core import image_utils
 from services import recent_projects
 from ui.start_window import RecentProjectWindow
 from ui.canvas import Canvas
@@ -411,30 +412,18 @@ class DomainWindow(QMainWindow):
         self.canvas.update()
 
     def export_image(self, image_format: str) -> None:
-        if self.project is None:
+        if self.canvas is None:
             return
 
         path = ask_export_image_path(self, image_format)
         if not path:
             return
 
-        output = QImage(
-            self.project.get_width(),
-            self.project.get_height(),
-            QImage.Format.Format_ARGB32,
-        )
-        output.fill(0xFFFFFFFF if image_format.lower() in ("jpg", "jpeg") else 0)
-
-        from PyQt6.QtGui import QPainter
-        painter = QPainter(output)
-        for layer in self.project.layers:
-            if layer.visible:
-                painter.drawImage(0, 0, layer.image)
-        painter.end()
-
-        if not output.save(path, image_format.upper()):
+        output = self.canvas.get_image()
+        if not image_utils.save_image(output, path, image_format):
             QMessageBox.critical(
-                self, "Экспорт изображения",
+                self,
+                "Экспорт изображения",
                 f"Не удалось сохранить изображение:\\n{path}",
             )
 
