@@ -168,7 +168,7 @@ class Project:
         self.layers.clear()
 
 # Ошибки
-class ProjectError:
+class ProjectError(Exception):
     '''Класс ошибок класса Project.'''
     pass
 
@@ -178,6 +178,6 @@ class AddLayerError(ProjectError):
     pass
 
 
-class LayerError:
+class LayerError(Exception):
     '''Класс ошибок класса Layer.'''
     pass
