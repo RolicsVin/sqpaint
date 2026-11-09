@@ -51,7 +51,6 @@ class ToolBar(QWidget):
         self.Hlayout.addWidget(self.size_label)
         self.Hlayout.addWidget(self.size_slider)
         self.Hlayout.addWidget(self.size_value_label)
-        self.Hlayout.addStretch()
         self.Hlayout.addWidget(QLabel("Масштаб:"))
         self.Hlayout.addWidget(self.zoom_control)
 
