@@ -32,11 +32,15 @@ class ZoomControl(QWidget):
         self.reset_button.setToolTip("Сбросить масштаб")
         self.reset_button.setFixedWidth(48)
 
+        self.air_label = QLabel()
+        self.air_label.setFixedWidth(200)
+
         layout.addWidget(self.zoom_out_button)
         layout.addWidget(self.slider)
         layout.addWidget(self.zoom_in_button)
         layout.addWidget(self.value_label)
         layout.addWidget(self.reset_button)
+        layout.addWidget(self.air_label)
 
         self.slider.valueChanged.connect(self._on_slider_changed)
         self.zoom_out_button.clicked.connect(

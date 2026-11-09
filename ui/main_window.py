@@ -56,6 +56,7 @@ class DomainWindow(QMainWindow):
 
         for action in (self.new_action, self.open_action, self.save_action, self.save_as_action):
             self.file_menu.addAction(action)
+        
         self.file_menu.addSeparator()
         self.file_menu.addMenu(self.export_submenu)
         self.file_menu.addAction(self.import_action)
