@@ -44,6 +44,35 @@ class Canvas(QWidget):
         self.update()
         return self.zoom
 
+    def resize_document(self, width: int, height: int) -> None:
+        """Изменяет размер документа, сохраняя пиксели в левом верхнем углу."""
+        width, height = int(width), int(height)
+        if width <= 0 or height <= 0:
+            raise ValueError("Размеры холста должны быть положительными.")
+        if width == self.document_width and height == self.document_height:
+            return
+
+        resized_images = []
+        for layer in self.layers:
+            resized = QImage(width, height, QImage.Format.Format_ARGB32)
+            resized.fill(0)
+            painter = QPainter(resized)
+            painter.setCompositionMode(
+                QPainter.CompositionMode.CompositionMode_Source
+            )
+            painter.drawImage(0, 0, layer.image)
+            painter.end()
+            resized_images.append(resized)
+
+        for layer, image in zip(self.layers, resized_images):
+            layer.image = image
+
+        self.document_width = width
+        self.document_height = height
+        self.last = None
+        self.set_zoom(self.zoom)
+        self.update()
+
     def set_tool(self, tool_name: str) -> None:
         if tool_name not in (self.BRUSH, self.ERASER, self.FILL):
             return
