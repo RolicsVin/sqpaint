@@ -3,7 +3,7 @@ import sqlite3
 
 from PyQt6.QtCore import Qt
 from PyQt6.QtGui import QAction, QImage
-from PyQt6.QtWidgets import QApplication, QMainWindow, QMenu, QMessageBox
+from PyQt6.QtWidgets import QApplication, QDialog, QMainWindow, QMenu, QMessageBox
 
 from core.database import ProjectDatabase
 from core.models import Project
@@ -473,7 +473,7 @@ class DomainWindow(QMainWindow):
             )
             return
 
-        if dialog.exec() != dialog.DialogCode.Accepted:
+        if dialog.exec() != QDialog.DialogCode.Accepted:
             return
 
         image = dialog.get_image()
