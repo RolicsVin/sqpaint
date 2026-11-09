@@ -1,5 +1,6 @@
 import os
 import sqlite3
+import os
 
 from PyQt6.QtGui import QAction, QImage
 from PyQt6.QtWidgets import (
@@ -25,6 +26,10 @@ from ui.dialogs import (
     show_last_layer_info,
     show_open_error,
     show_save_error,
+    ask_save_as_path,
+    ask_import_image_path,
+    ask_export_image_path,
+    show_file_info,
 )
 
 
@@ -82,9 +87,17 @@ class DomainWindow(QMainWindow):
         self.new_action.triggered.connect(self.create_project)
         self.open_action.triggered.connect(self.open_project)
         self.save_action.triggered.connect(self.save)
+        self.save_as_action.triggered.connect(self.save_as)
+        self.import_action.triggered.connect(self.import_image)
+        self.export_png.triggered.connect(lambda: self.export_image("png"))
+        self.export_jpg.triggered.connect(lambda: self.export_image("jpg"))
         self.exit_action.triggered.connect(self.close)
+        self.file_info.triggered.connect(self.open_file_info)
         self.save_action.setEnabled(False)
+        self.save_as_action.setEnabled(False)
         self.export_submenu.setEnabled(False)
+        self.import_action.setEnabled(False)
+        self.file_info.setEnabled(False)
 
         # Правка
         self.insert = QAction("Вставить как слой", self)
@@ -247,7 +260,10 @@ class DomainWindow(QMainWindow):
         self.layer_panel.set_layers(project.get_layers())
 
         self.save_action.setEnabled(True)
+        self.save_as_action.setEnabled(True)
         self.export_submenu.setEnabled(True)
+        self.import_action.setEnabled(True)
+        self.file_info.setEnabled(True)
         self.setWindowTitle(f"SQPaint — {project.get_name()}")
 
         recent_projects.add_recent_project(project)
@@ -334,6 +350,104 @@ class DomainWindow(QMainWindow):
     def set_canvas_width(self, width: int) -> None:
         if self.canvas is not None:
             self.canvas.width_px = width
+
+    def save_as(self) -> None:
+        if self.project is None:
+            return
+
+        path = ask_save_as_path(self, self.project.get_name())
+        if not path:
+            return
+        if os.path.exists(path):
+            show_file_exists(self)
+            return
+
+        try:
+            # Сначала сохраняем актуальное состояние, затем копируем SQLite
+            # через backup API, не копируя файл с открытой транзакцией.
+            self.database.save(self.project)
+            destination = sqlite3.connect(path)
+            try:
+                self.database.conn.backup(destination)
+            finally:
+                destination.close()
+            project = self.database.load(path)
+            self.set_project(project)
+        except (OSError, sqlite3.Error, ValueError, RuntimeError) as error:
+            show_save_error(self, error)
+
+    def import_image(self) -> None:
+        if self.project is None or self.canvas is None:
+            return
+
+        path = ask_import_image_path(self)
+        if not path:
+            return
+
+        image = QImage(path)
+        if image.isNull():
+            QMessageBox.warning(
+                self, "Импорт изображения",
+                "Не удалось открыть выбранное изображение.",
+            )
+            return
+
+        image = image.convertToFormat(QImage.Format.Format_ARGB32)
+        existing_names = {layer.get_name() for layer in self.project.layers}
+        number = 1
+        while f"Импорт {number}" in existing_names:
+            number += 1
+
+        z_order = max(
+            (layer.get_z_order() for layer in self.project.layers),
+            default=-1,
+        ) + 1
+        layer = Layer(f"Импорт {number}", z_order, True, image)
+        self.project.layers.append(layer)
+        self.canvas.layers = self.project.get_layers()
+        self.canvas.active = len(self.project.layers) - 1
+        self.layer_panel.set_layers(self.project.get_layers())
+        self.layer_panel._select_layer(self.canvas.active)
+        self.canvas.update()
+
+    def export_image(self, image_format: str) -> None:
+        if self.project is None:
+            return
+
+        path = ask_export_image_path(self, image_format)
+        if not path:
+            return
+
+        output = QImage(
+            self.project.get_width(),
+            self.project.get_height(),
+            QImage.Format.Format_ARGB32,
+        )
+        output.fill(0xFFFFFFFF if image_format.lower() in ("jpg", "jpeg") else 0)
+
+        from PyQt6.QtGui import QPainter
+        painter = QPainter(output)
+        for layer in self.project.layers:
+            if layer.visible:
+                painter.drawImage(0, 0, layer.image)
+        painter.end()
+
+        if not output.save(path, image_format.upper()):
+            QMessageBox.critical(
+                self, "Экспорт изображения",
+                f"Не удалось сохранить изображение:\\n{path}",
+            )
+
+    def open_file_info(self) -> None:
+        if self.project is None:
+            return
+        # Содержимое файла должно соответствовать последним изменениям.
+        try:
+            self.database.save(self.project)
+        except (OSError, sqlite3.Error, RuntimeError) as error:
+            show_save_error(self, error)
+            return
+        show_file_info(self, self.project.get_path())
 
     def closeEvent(self, event) -> None:
         self.database.close()
