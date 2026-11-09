@@ -8,6 +8,11 @@ from PyQt6.QtWidgets import (
     QMessageBox,
     QSpinBox,
     QWidget,
+    QTabWidget,
+    QTableWidget,
+    QTableWidgetItem,
+    QHeaderView,
+    QVBoxLayout,
 )
 
 
@@ -182,3 +187,111 @@ def show_last_layer_info(parent: QWidget | None = None) -> None:
         "Удаление слоя",
         "В проекте должен остаться хотя бы один слой.",
     )
+
+
+# --- Диалоги файловых операций ---
+
+def ask_save_as_path(parent: QWidget | None = None, name: str = "Проект") -> str:
+    path, _ = QFileDialog.getSaveFileName(
+        parent, "Сохранить проект как", f"{name}.sqlite",
+        f"{PROJECT_FILTER};;Все файлы (*)",
+    )
+    if path and not path.lower().endswith(PROJECT_EXTENSION):
+        path += PROJECT_EXTENSION
+    return path
+
+
+def ask_import_image_path(parent: QWidget | None = None) -> str:
+    path, _ = QFileDialog.getOpenFileName(
+        parent, "Импортировать изображение",
+        "", "Изображения (*.png *.jpg *.jpeg *.bmp *.webp);;Все файлы (*)",
+    )
+    return path
+
+
+def ask_export_image_path(parent: QWidget | None, image_format: str) -> str:
+    ext = image_format.lower()
+    path, _ = QFileDialog.getSaveFileName(
+        parent, f"Экспортировать {ext.upper()}",
+        f"Изображение.{ext}",
+        f"{ext.upper()} (*.{ext})",
+    )
+    if path and not path.lower().endswith(f".{ext}"):
+        path += f".{ext}"
+    return path
+
+
+class FileInfoDialog(QDialog):
+    """Окно просмотра содержимого SQLite-файла проекта."""
+
+    TABLES = (
+        ("project", "project"),
+        ("layers", "layers"),
+        ("logs", "logs"),
+    )
+
+    def __init__(self, database_path: str, parent=None):
+        super().__init__(parent)
+        import sqlite3
+
+        self.setWindowTitle("О файле проекта")
+        self.resize(900, 520)
+
+        layout = QVBoxLayout(self)
+        self.tabs = QTabWidget(self)
+        layout.addWidget(self.tabs)
+
+        try:
+            connection = sqlite3.connect(
+                f"file:{database_path}?mode=ro", uri=True
+            )
+            try:
+                for tab_title, table_name in self.TABLES:
+                    table = QTableWidget(self)
+                    table.setEditTriggers(
+                        QTableWidget.EditTrigger.NoEditTriggers
+                    )
+                    table.setAlternatingRowColors(True)
+                    table.setSelectionBehavior(
+                        QTableWidget.SelectionBehavior.SelectRows
+                    )
+                    self._load_table(connection, table, table_name)
+                    self.tabs.addTab(table, tab_title)
+            finally:
+                connection.close()
+        except sqlite3.Error as error:
+            QMessageBox.critical(
+                self, "Ошибка чтения файла",
+                f"Не удалось прочитать содержимое SQLite-файла.\\n\\n{error}",
+            )
+
+    @staticmethod
+    def _load_table(connection, widget: QTableWidget, table_name: str) -> None:
+        cursor = connection.execute(f'SELECT * FROM "{table_name}"')
+        columns = [item[0] for item in cursor.description or ()]
+        rows = cursor.fetchall()
+
+        widget.setColumnCount(len(columns))
+        widget.setHorizontalHeaderLabels(columns)
+        widget.setRowCount(len(rows))
+
+        for row_index, row in enumerate(rows):
+            for column_index, value in enumerate(row):
+                if isinstance(value, bytes):
+                    display = f"<BLOB: {len(value)} байт>"
+                elif value is None:
+                    display = "NULL"
+                else:
+                    display = str(value)
+                widget.setItem(
+                    row_index, column_index, QTableWidgetItem(display)
+                )
+
+        header = widget.horizontalHeader()
+        header.setSectionResizeMode(QHeaderView.ResizeMode.ResizeToContents)
+        header.setStretchLastSection(True)
+
+
+def show_file_info(parent: QWidget | None, database_path: str) -> None:
+    dialog = FileInfoDialog(database_path, parent)
+    dialog.exec()
