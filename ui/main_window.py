@@ -2,11 +2,11 @@ import os
 import sqlite3
 
 from PyQt6.QtCore import Qt
-from PyQt6.QtGui import QAction, QImage, QPalette, QColor
+from PyQt6.QtGui import QAction, QImage
 from PyQt6.QtWidgets import QApplication, QMainWindow, QMenu, QMessageBox
 
 from core.database import ProjectDatabase
-from core.models import Layer, Project
+from core.models import Project
 from core import image_utils
 from services import recent_projects, settings as settings_service
 from ui.start_window import RecentProjectWindow
@@ -14,6 +14,7 @@ from ui.canvas import Canvas
 from ui.canvas_view import CanvasView
 from ui.tool_bar import ToolBar
 from ui.layers_panel import LayerPanel
+from ui.view_manager import ViewManager
 from ui.dialogs import (
     SettingsDialog,
     ask_new_project, ask_open_project_path, ask_save_project_path,
@@ -149,7 +150,7 @@ class DomainWindow(QMainWindow):
         self.layer_panel.add_layer_requested.connect(self.add_layer)
         self.layer_panel.remove_layer_requested.connect(self.remove_layer)
         self.layer_panel.layer_selected.connect(self.select_layer)
-        self.layer_panel.layers_reordered.connect(self._on_layers_reordered)
+        self.layer_panel.layer_move_requested.connect(self._on_layer_move_requested)
         self._layout_child_widgets()
 
         if project is not None:
@@ -160,7 +161,20 @@ class DomainWindow(QMainWindow):
         self.recent_projects_window.project_select.connect(self.open_project_path)
         self.recent_projects_window.create_project.connect(self.create_project)
         self.recent_projects_window.open_project.connect(self.open_project)
-        self._apply_view_settings()
+        self.view_manager = ViewManager(
+            self.view_settings,
+            self.layer_panel,
+            self.tool_bar,
+            self._layout_child_widgets,
+            self.layers_panel_viewer,
+            self.tool_bar_viewer,
+            self.scroller_viewer,
+            self.start_window_view_button,
+            self.dark_theme,
+            self.white_theme,
+            self.recent_projects_window,
+        )
+        self.view_manager.apply()
         self.show()
         if self.view_settings.get("show_welcome", True):
             self.recent_projects_window.show()
@@ -188,100 +202,35 @@ class DomainWindow(QMainWindow):
         self._layout_child_widgets()
 
 
-    def _apply_view_settings(self) -> None:
-        """Применяет сохранённые параметры интерфейса при запуске."""
-        actions = (
-            (self.layers_panel_viewer, "layer_panel_visible"),
-            (self.tool_bar_viewer, "toolbar_visible"),
-            (self.scroller_viewer, "zoom_control_visible"),
-            (self.start_window_view_button, "show_welcome"),
-        )
-        for action, key in actions:
-            action.blockSignals(True)
-            action.setChecked(self.view_settings.get(key, True))
-            action.blockSignals(False)
-
-        self.layer_panel.setVisible(self.layers_panel_viewer.isChecked())
-        self.tool_bar.setVisible(self.tool_bar_viewer.isChecked())
-        self.tool_bar.zoom_control.setVisible(self.scroller_viewer.isChecked())
-        self.tool_bar.zoom_label.setVisible(self.scroller_viewer.isChecked())
-        self._set_theme(self.view_settings.get("theme", "dark"), save=False)
-        self._layout_child_widgets()
-
     def _save_view_settings(self) -> None:
+        """Сохраняет уже подготовленные UI-настройки через файловый сервис."""
         self.settings_data["view"] = self.view_settings
         try:
             settings_service.save_data(self.settings_data)
         except OSError as error:
-            QMessageBox.warning(self, "Настройки", f"Не удалось сохранить настройки: {error}")
+            QMessageBox.warning(
+                self, "Настройки",
+                f"Не удалось сохранить настройки: {error}"
+            )
 
     def _on_layer_panel_visibility_changed(self, visible: bool) -> None:
-        self.layer_panel.setVisible(visible)
-        self.view_settings["layer_panel_visible"] = visible
-        self._layout_child_widgets()
+        self.view_manager.set_layer_panel_visible(visible)
         self._save_view_settings()
 
     def _on_toolbar_visibility_changed(self, visible: bool) -> None:
-        self.tool_bar.setVisible(visible)
-        self.view_settings["toolbar_visible"] = visible
-        self._layout_child_widgets()
+        self.view_manager.set_toolbar_visible(visible)
         self._save_view_settings()
 
     def _on_zoom_visibility_changed(self, visible: bool) -> None:
-        self.tool_bar.zoom_control.setVisible(visible)
-        self.tool_bar.zoom_label.setVisible(visible)
-        self.view_settings["zoom_control_visible"] = visible
+        self.view_manager.set_zoom_visible(visible)
         self._save_view_settings()
 
     def _on_welcome_preference_changed(self, visible: bool) -> None:
-        self.view_settings["show_welcome"] = visible
-        if hasattr(self, "recent_projects_window"):
-            if visible:
-                self.recent_projects_window.show()
-            else:
-                self.recent_projects_window.hide()
+        self.view_manager.set_welcome_visible(visible)
         self._save_view_settings()
 
     def _set_theme(self, theme: str, save: bool = True) -> None:
-        if theme not in ("dark", "light"):
-            theme = "dark"
-        self.view_settings["theme"] = theme
-        app = QApplication.instance()
-        if app is not None:
-            app.setStyle("Fusion")
-            palette = QPalette()
-            if theme == "dark":
-                colors = {
-                    QPalette.ColorRole.Window: "#242424",
-                    QPalette.ColorRole.WindowText: "#eeeeee",
-                    QPalette.ColorRole.Base: "#181818",
-                    QPalette.ColorRole.AlternateBase: "#2b2b2b",
-                    QPalette.ColorRole.Text: "#eeeeee",
-                    QPalette.ColorRole.Button: "#353535",
-                    QPalette.ColorRole.ButtonText: "#eeeeee",
-                    QPalette.ColorRole.Highlight: "#42658c",
-                    QPalette.ColorRole.HighlightedText: "#ffffff",
-                }
-            else:
-                colors = {
-                    QPalette.ColorRole.Window: "#eeeeee",
-                    QPalette.ColorRole.WindowText: "#202020",
-                    QPalette.ColorRole.Base: "#ffffff",
-                    QPalette.ColorRole.AlternateBase: "#f2f2f2",
-                    QPalette.ColorRole.Text: "#202020",
-                    QPalette.ColorRole.Button: "#e2e2e2",
-                    QPalette.ColorRole.ButtonText: "#202020",
-                    QPalette.ColorRole.Highlight: "#3978bd",
-                    QPalette.ColorRole.HighlightedText: "#ffffff",
-                }
-            for role, color in colors.items():
-                palette.setColor(role, QColor(color))
-            app.setPalette(palette)
-
-        self.dark_theme.setCheckable(True)
-        self.white_theme.setCheckable(True)
-        self.dark_theme.setChecked(theme == "dark")
-        self.white_theme.setChecked(theme == "light")
+        self.view_manager.set_theme(theme)
         if save:
             self._save_view_settings()
 
@@ -294,8 +243,7 @@ class DomainWindow(QMainWindow):
     def _apply_settings(self, values: dict) -> None:
         """Применяет и сохраняет настройки, переданные окном настроек."""
         view = values.get("view", {})
-        self.view_settings.update(view)
-        self._apply_view_settings()
+        self.view_manager.apply(view)
         self._save_view_settings()
 
     def create_project(self) -> None:
@@ -310,12 +258,9 @@ class DomainWindow(QMainWindow):
             show_file_exists(self)
             return
 
-        image = QImage(width, height, QImage.Format.Format_ARGB32)
-        image.fill(0xFFFFFFFF)
-        initial_layer = Layer("Слой 1", 0, True, image)
         try:
             project = self.database.create(path, name, width, height)
-            project.layers.append(initial_layer)
+            project.create_layer(fill=0xFFFFFFFF)
             self.database.save(project)
         except (OSError, sqlite3.Error, ValueError, RuntimeError) as error:
             show_create_error(self, error)
@@ -349,6 +294,7 @@ class DomainWindow(QMainWindow):
         )
         self.canvas.set_tool(Canvas.BRUSH)
         self.canvas_view.set_canvas(self.canvas)
+        self.canvas.set_layers(project.get_layers(), active=0)
         self.layer_panel.layer_change.connect(self.canvas.re_draw_canvas)
         self.layer_panel.set_layers(project.get_layers())
         self.canvas_view.set_zoom(100)
@@ -362,7 +308,6 @@ class DomainWindow(QMainWindow):
         recent_projects.add_recent_project(project)
 
     def change_canvas_size(self) -> None:
-        """Запрашивает новые размеры и изменяет все слои документа."""
         if self.project is None or self.canvas is None:
             return
 
@@ -373,81 +318,71 @@ class DomainWindow(QMainWindow):
             return
 
         width, height = new_size
-        if (width, height) == (
-            self.project.get_width(), self.project.get_height()
-        ):
+        if (width, height) == (self.project.get_width(), self.project.get_height()):
             return
 
         try:
-            self.canvas.resize_document(width, height)
+            self.project.resize(width, height)
+            self.canvas.set_document_size(width, height)
         except (MemoryError, ValueError, RuntimeError) as error:
             QMessageBox.critical(
                 self, "Размер холста",
-                f"Не удалось изменить размер холста.\n\n{error}"
+                f"Не удалось изменить размер холста.\\n\\n{error}"
             )
             return
 
-        self.project.width = width
-        self.project.height = height
         self.canvas_view.viewport().update()
         self.canvas_view.zoom_changed.emit(round(self.canvas_view.zoom * 100))
 
     def add_layer(self) -> None:
         if self.project is None or self.canvas is None:
             return
-        existing_names = {layer.get_name() for layer in self.project.layers}
-        number = 1
-        while f"Слой {number}" in existing_names:
-            number += 1
-        image = QImage(
-            self.project.get_width(), self.project.get_height(),
-            QImage.Format.Format_ARGB32
-        )
-        image.fill(0)
-        z_order = max(
-            (layer.get_z_order() for layer in self.project.layers), default=-1
-        ) + 1
-        layer = Layer(f"Слой {number}", z_order, True, image)
-        self.project.layers.append(layer)
-        self.layer_panel.set_layers(self.project.get_layers())
-        self.canvas.layers = self.project.get_layers()
-        self.canvas.active = len(self.project.layers) - 1
-        self.layer_panel._select_layer(self.canvas.active)
-        self.canvas.update()
 
-    def remove_layer(self, layer: Layer) -> None:
+        layer = self.project.create_layer()
+        active_index = self.project.get_layers().index(layer)
+        self.canvas.set_layers(self.project.get_layers(), active=active_index)
+        self.layer_panel.set_layers(self.project.get_layers())
+        self.layer_panel.select_layer(active_index)
+
+    def remove_layer(self, layer) -> None:
         if self.project is None or self.canvas is None:
             return
-        if layer not in self.project.layers:
+        if layer not in self.project.get_layers():
             return
-        if len(self.project.layers) <= 1:
+        if len(self.project.get_layers()) <= 1:
             show_last_layer_info(self)
             return
         if not confirm_delete_layer(self, layer.get_name()):
             return
-        old_index = self.project.layers.index(layer)
-        self.project.layers.remove(layer)
-        active_index = min(old_index, len(self.project.layers) - 1)
-        self.canvas.layers = self.project.get_layers()
-        self.canvas.active = active_index
-        self.layer_panel.set_layers(self.project.get_layers())
-        self.layer_panel._select_layer(active_index)
-        self.canvas.update()
 
-    def _on_layers_reordered(self) -> None:
-        """Синхронизирует холст с новым порядком слоёв."""
+        old_index = self.project.get_layers().index(layer)
+        if not self.project.remove_layer(layer):
+            return
+
+        active_index = min(old_index, len(self.project.get_layers()) - 1)
+        self.canvas.set_layers(self.project.get_layers(), active=active_index)
+        self.layer_panel.set_layers(self.project.get_layers())
+        self.layer_panel.select_layer(active_index)
+
+    def _on_layer_move_requested(self, source, target, insert_before: bool) -> None:
         if self.project is None or self.canvas is None:
             return
-        self.canvas.layers = self.project.get_layers()
+        if not self.project.move_layer(source, target, insert_before):
+            return
+
         selected = self.layer_panel.selected_layer
-        if selected in self.canvas.layers:
-            self.canvas.active = self.canvas.layers.index(selected)
-        self.canvas.update()
+        active_index = (
+            self.project.get_layers().index(selected)
+            if selected in self.project.get_layers()
+            else 0
+        )
+        self.canvas.set_layers(self.project.get_layers(), active=active_index)
+        self.layer_panel.set_layers(self.project.get_layers())
+        self.layer_panel.select_layer(active_index)
 
     def select_layer(self, index: int) -> None:
-        if self.canvas is None or not (0 <= index < len(self.canvas.layers)):
-            return
-        self.canvas.active = index
+        if self.canvas is not None:
+            self.canvas.set_active_layer(index)
 
     def save(self) -> None:
         if self.project is None:
@@ -483,13 +418,7 @@ class DomainWindow(QMainWindow):
             show_file_exists(self)
             return
         try:
-            self.database.save(self.project)
-            destination = sqlite3.connect(path)
-            try:
-                self.database.conn.backup(destination)
-            finally:
-                destination.close()
-            project = self.database.load(path)
+            project = self.database.save_as(path, self.project)
             self.set_project(project)
         except (OSError, sqlite3.Error, ValueError, RuntimeError) as error:
             show_save_error(self, error)
@@ -500,6 +429,7 @@ class DomainWindow(QMainWindow):
         path = ask_import_image_path(self)
         if not path:
             return
+
         image = QImage(path)
         if image.isNull():
             QMessageBox.warning(
@@ -507,21 +437,12 @@ class DomainWindow(QMainWindow):
                 "Не удалось открыть выбранное изображение."
             )
             return
-        image = image.convertToFormat(QImage.Format.Format_ARGB32)
-        existing_names = {layer.get_name() for layer in self.project.layers}
-        number = 1
-        while f"Импорт {number}" in existing_names:
-            number += 1
-        z_order = max(
-            (layer.get_z_order() for layer in self.project.layers), default=-1
-        ) + 1
-        layer = Layer(f"Импорт {number}", z_order, True, image)
-        self.project.layers.append(layer)
-        self.canvas.layers = self.project.get_layers()
-        self.canvas.active = len(self.project.layers) - 1
+
+        layer = self.project.create_layer("Импорт", image)
+        active_index = self.project.get_layers().index(layer)
+        self.canvas.set_layers(self.project.get_layers(), active=active_index)
         self.layer_panel.set_layers(self.project.get_layers())
-        self.layer_panel._select_layer(self.canvas.active)
-        self.canvas.update()
+        self.layer_panel.select_layer(active_index)
 
     def export_image(self, image_format: str) -> None:
         if self.canvas is None:
