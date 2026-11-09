@@ -1,6 +1,5 @@
 import os
 import sqlite3
-import os
 
 from PyQt6.QtGui import QAction, QImage
 from PyQt6.QtWidgets import (
