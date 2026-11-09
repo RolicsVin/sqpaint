@@ -89,6 +89,8 @@ class CanvasView(QScrollArea):
                 self._panning = True
                 self._pan_last_global_pos = event.globalPosition().toPoint()
                 self.viewport().setCursor(Qt.CursorShape.ClosedHandCursor)
+                if self.canvas is not None:
+                    self.canvas.setCursor(Qt.CursorShape.ClosedHandCursor)
                 watched.grabMouse()
                 event.accept()
                 return True
@@ -113,6 +115,8 @@ class CanvasView(QScrollArea):
                 self._pan_last_global_pos = None
                 watched.releaseMouse()
                 self.viewport().setCursor(Qt.CursorShape.OpenHandCursor)
+                if self.canvas is not None:
+                    self.canvas.setCursor(Qt.CursorShape.OpenHandCursor)
                 event.accept()
                 return True
 
