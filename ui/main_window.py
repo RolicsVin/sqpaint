@@ -2,13 +2,13 @@ import os
 import sqlite3
 
 from PyQt6.QtCore import Qt
-from PyQt6.QtGui import QAction, QImage
+from PyQt6.QtGui import QAction, QImage, QPalette, QColor
 from PyQt6.QtWidgets import QApplication, QMainWindow, QMenu, QMessageBox
 
 from core.database import ProjectDatabase
 from core.models import Layer, Project
 from core import image_utils
-from services import recent_projects
+from services import recent_projects, settings as settings_service
 from ui.start_window import RecentProjectWindow
 from ui.canvas import Canvas
 from ui.canvas_view import CanvasView
@@ -30,6 +30,8 @@ class DomainWindow(QMainWindow):
         super().__init__()
         self.project = None
         self.database = database
+        self.settings_data = settings if isinstance(settings, dict) else settings_service.load_data()
+        self.view_settings = self.settings_data.setdefault("view", {})
         self.canvas: Canvas | None = None
         self.canvas_view: CanvasView | None = None
 
@@ -90,6 +92,8 @@ class DomainWindow(QMainWindow):
         self.layers_panel_viewer = QAction("Панель слоёв", self)
         self.tool_bar_viewer = QAction("Панель инструментов", self)
         self.scroller_viewer = QAction("Ползунок масштаба", self)
+        for action in (self.layers_panel_viewer, self.tool_bar_viewer, self.scroller_viewer):
+            action.setCheckable(True)
         self.sub_windows.addAction(self.layers_panel_viewer)
         self.sub_windows.addAction(self.tool_bar_viewer)
         self.sub_windows.addAction(self.scroller_viewer)
@@ -105,11 +109,19 @@ class DomainWindow(QMainWindow):
         self.en = QAction("English", self)
         self.langague.addAction(self.ru)
         self.langague.addAction(self.en)
-        self.start_window_view_button = QAction("Показать окно приветствия", self)
+        self.start_window_view_button = QAction("Показывать окно приветствия при запуске", self)
+        self.start_window_view_button.setCheckable(True)
         self.view_menu.addMenu(self.sub_windows)
         self.view_menu.addMenu(self.theme)
         self.view_menu.addMenu(self.langague)
         self.view_menu.addAction(self.start_window_view_button)
+
+        self.layers_panel_viewer.toggled.connect(self._on_layer_panel_visibility_changed)
+        self.tool_bar_viewer.toggled.connect(self._on_toolbar_visibility_changed)
+        self.scroller_viewer.toggled.connect(self._on_zoom_visibility_changed)
+        self.dark_theme.triggered.connect(lambda: self._set_theme("dark"))
+        self.white_theme.triggered.connect(lambda: self._set_theme("light"))
+        self.start_window_view_button.toggled.connect(self._on_welcome_preference_changed)
 
         self.insert = QAction("Обучение", self)
         self.settings = QAction("О программе", self)
@@ -140,12 +152,14 @@ class DomainWindow(QMainWindow):
         self.recent_projects_window.project_select.connect(self.open_project_path)
         self.recent_projects_window.create_project.connect(self.create_project)
         self.recent_projects_window.open_project.connect(self.open_project)
+        self._apply_view_settings()
         self.show()
-        self.recent_projects_window.show()
+        if self.view_settings.get("show_welcome", True):
+            self.recent_projects_window.show()
 
     def _layout_child_widgets(self) -> None:
-        panel_width = LayerPanel.WIDTH
-        top = self.HEADERS_HEIGHT + ToolBar.HEIGHT
+        panel_width = LayerPanel.WIDTH if self.layer_panel.isVisible() else 0
+        top = self.HEADERS_HEIGHT + (ToolBar.HEIGHT if self.tool_bar.isVisible() else 0)
         self.tool_bar.setGeometry(0, self.HEADERS_HEIGHT, self.width(), ToolBar.HEIGHT)
         self.canvas_view.setGeometry(
             0, top, max(0, self.width() - panel_width),
@@ -164,6 +178,104 @@ class DomainWindow(QMainWindow):
     def resizeEvent(self, event) -> None:
         super().resizeEvent(event)
         self._layout_child_widgets()
+
+
+    def _apply_view_settings(self) -> None:
+        """Применяет сохранённые параметры интерфейса при запуске."""
+        actions = (
+            (self.layers_panel_viewer, "layer_panel_visible"),
+            (self.tool_bar_viewer, "toolbar_visible"),
+            (self.scroller_viewer, "zoom_control_visible"),
+            (self.start_window_view_button, "show_welcome"),
+        )
+        for action, key in actions:
+            action.blockSignals(True)
+            action.setChecked(self.view_settings.get(key, True))
+            action.blockSignals(False)
+
+        self.layer_panel.setVisible(self.layers_panel_viewer.isChecked())
+        self.tool_bar.setVisible(self.tool_bar_viewer.isChecked())
+        self.tool_bar.zoom_control.setVisible(self.scroller_viewer.isChecked())
+        self.tool_bar.zoom_label.setVisible(self.scroller_viewer.isChecked())
+        self._set_theme(self.view_settings.get("theme", "dark"), save=False)
+        self._layout_child_widgets()
+
+    def _save_view_settings(self) -> None:
+        self.settings_data["view"] = self.view_settings
+        try:
+            settings_service.save_data(self.settings_data)
+        except OSError as error:
+            QMessageBox.warning(self, "Настройки", f"Не удалось сохранить настройки: {error}")
+
+    def _on_layer_panel_visibility_changed(self, visible: bool) -> None:
+        self.layer_panel.setVisible(visible)
+        self.view_settings["layer_panel_visible"] = visible
+        self._layout_child_widgets()
+        self._save_view_settings()
+
+    def _on_toolbar_visibility_changed(self, visible: bool) -> None:
+        self.tool_bar.setVisible(visible)
+        self.view_settings["toolbar_visible"] = visible
+        self._layout_child_widgets()
+        self._save_view_settings()
+
+    def _on_zoom_visibility_changed(self, visible: bool) -> None:
+        self.tool_bar.zoom_control.setVisible(visible)
+        self.tool_bar.zoom_label.setVisible(visible)
+        self.view_settings["zoom_control_visible"] = visible
+        self._save_view_settings()
+
+    def _on_welcome_preference_changed(self, visible: bool) -> None:
+        self.view_settings["show_welcome"] = visible
+        if hasattr(self, "recent_projects_window"):
+            if visible:
+                self.recent_projects_window.show()
+            else:
+                self.recent_projects_window.hide()
+        self._save_view_settings()
+
+    def _set_theme(self, theme: str, save: bool = True) -> None:
+        if theme not in ("dark", "light"):
+            theme = "dark"
+        self.view_settings["theme"] = theme
+        app = QApplication.instance()
+        if app is not None:
+            app.setStyle("Fusion")
+            palette = QPalette()
+            if theme == "dark":
+                colors = {
+                    QPalette.ColorRole.Window: "#242424",
+                    QPalette.ColorRole.WindowText: "#eeeeee",
+                    QPalette.ColorRole.Base: "#181818",
+                    QPalette.ColorRole.AlternateBase: "#2b2b2b",
+                    QPalette.ColorRole.Text: "#eeeeee",
+                    QPalette.ColorRole.Button: "#353535",
+                    QPalette.ColorRole.ButtonText: "#eeeeee",
+                    QPalette.ColorRole.Highlight: "#42658c",
+                    QPalette.ColorRole.HighlightedText: "#ffffff",
+                }
+            else:
+                colors = {
+                    QPalette.ColorRole.Window: "#eeeeee",
+                    QPalette.ColorRole.WindowText: "#202020",
+                    QPalette.ColorRole.Base: "#ffffff",
+                    QPalette.ColorRole.AlternateBase: "#f2f2f2",
+                    QPalette.ColorRole.Text: "#202020",
+                    QPalette.ColorRole.Button: "#e2e2e2",
+                    QPalette.ColorRole.ButtonText: "#202020",
+                    QPalette.ColorRole.Highlight: "#3978bd",
+                    QPalette.ColorRole.HighlightedText: "#ffffff",
+                }
+            for role, color in colors.items():
+                palette.setColor(role, QColor(color))
+            app.setPalette(palette)
+
+        self.dark_theme.setCheckable(True)
+        self.white_theme.setCheckable(True)
+        self.dark_theme.setChecked(theme == "dark")
+        self.white_theme.setChecked(theme == "light")
+        if save:
+            self._save_view_settings()
 
     def create_project(self) -> None:
         values = ask_new_project(self)
@@ -372,5 +484,6 @@ class DomainWindow(QMainWindow):
         show_file_info(self, self.project.get_path())
 
     def closeEvent(self, event) -> None:
+        self._save_view_settings()
         self.database.close()
         super().closeEvent(event)
