@@ -1,8 +1,8 @@
 from qtools.brush import Brush
 from qtools.eraser import Eraser
 from qtools.fill import Fill
-from PyQt6.QtCore import Qt
-from PyQt6.QtGui import QPainter, QColor
+from PyQt6.QtCore import Qt, QPoint
+from PyQt6.QtGui import QPainter, QColor, QImage
 from PyQt6.QtWidgets import QWidget
 
 
@@ -11,9 +11,16 @@ class Canvas(QWidget):
     ERASER = "eraser"
     FILL = "fill"
 
+    MIN_ZOOM = 0.1
+    MAX_ZOOM = 4.0
+
     def __init__(self, parent, layers, w, h):
         super().__init__(parent=parent)
-        self.setFixedSize(w, h)
+        self.document_width = int(w)
+        self.document_height = int(h)
+        self.zoom = 1.0
+        self.setFixedSize(self.document_width, self.document_height)
+
         self.layers = layers
         self.active = 0
         self.last = None
@@ -25,21 +32,37 @@ class Canvas(QWidget):
         self.fill = Fill()
         self.active_tool = self.BRUSH
 
+    def set_zoom(self, zoom: float) -> float:
+        """Меняет только размер отображения, не затрагивая изображения слоёв."""
+        zoom = max(self.MIN_ZOOM, min(self.MAX_ZOOM, float(zoom)))
+        self.zoom = zoom
+        self.last = None
+        self.setFixedSize(
+            max(1, round(self.document_width * zoom)),
+            max(1, round(self.document_height * zoom)),
+        )
+        self.update()
+        return self.zoom
+
     def set_tool(self, tool_name: str) -> None:
-        """Меняет активный инструмент и сбрасывает текущий штрих."""
         if tool_name not in (self.BRUSH, self.ERASER, self.FILL):
             return
-
         self.active_tool = tool_name
         self.last = None
 
-    def get_image(self):
-        """Возвращает итоговое изображение из всех видимых слоёв."""
-        from PyQt6.QtGui import QImage
+    def _document_pos(self, event) -> QPoint:
+        """Преобразует экранную позицию мыши в координаты документа."""
+        position = event.position()
+        return QPoint(
+            int(position.x() / self.zoom),
+            int(position.y() / self.zoom),
+        )
 
+    def get_image(self):
+        """Возвращает композицию в исходном разрешении документа."""
         image = QImage(
-            self.width(),
-            self.height(),
+            self.document_width,
+            self.document_height,
             QImage.Format.Format_ARGB32,
         )
         image.fill(0)
@@ -49,11 +72,12 @@ class Canvas(QWidget):
             if layer.visible:
                 painter.drawImage(0, 0, layer.image)
         painter.end()
-
         return image
 
     def paintEvent(self, event):
         painter = QPainter(self)
+        painter.setRenderHint(QPainter.RenderHint.SmoothPixmapTransform, False)
+        painter.scale(self.zoom, self.zoom)
         for layer in self.layers:
             if layer.visible:
                 painter.drawImage(0, 0, layer.image)
@@ -61,7 +85,6 @@ class Canvas(QWidget):
     def mousePressEvent(self, e):
         if e.button() != Qt.MouseButton.LeftButton:
             return
-
         if not self.layers or not (0 <= self.active < len(self.layers)):
             return
 
@@ -69,16 +92,14 @@ class Canvas(QWidget):
         if not layer.visible:
             return
 
-        pos = e.position().toPoint()
+        pos = self._document_pos(e)
+        if not (0 <= pos.x() < self.document_width and
+                0 <= pos.y() < self.document_height):
+            return
 
         if self.active_tool == self.FILL:
-            # Заливка выполняется сразу по нажатию, без ожидания mouseMoveEvent.
             self.fill.press(
-                layer.image,
-                pos,
-                None,
-                self.color,
-                self.width_px,
+                layer.image, pos, None, self.color, self.width_px
             )
             self.last = None
             self.update()
@@ -89,32 +110,21 @@ class Canvas(QWidget):
     def mouseMoveEvent(self, e):
         if self.last is None:
             return
-
         if not self.layers or not (0 <= self.active < len(self.layers)):
             return
 
         layer = self.layers[self.active]
-
         if not layer.visible:
             return
 
-        pos = e.position().toPoint()
-
+        pos = self._document_pos(e)
         if self.active_tool == self.BRUSH:
             self.brush.move(
-                layer.image,
-                pos,
-                self.last,
-                self.color,
-                self.width_px,
+                layer.image, pos, self.last, self.color, self.width_px
             )
         elif self.active_tool == self.ERASER:
             self.eraser.move(
-                layer.image,
-                pos,
-                self.last,
-                self.color,
-                self.width_px,
+                layer.image, pos, self.last, self.color, self.width_px
             )
 
         self.last = pos
