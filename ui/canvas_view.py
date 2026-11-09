@@ -21,7 +21,7 @@ class CanvasView(QScrollArea):
         self._pan_last_global_pos = None
         self.viewport().setMouseTracking(True)
         self.viewport().installEventFilter(self)
-        self.viewport().setCursor(Qt.CursorShape.OpenHandCursor)
+        self.viewport().setCursor(Qt.CursorShape.ArrowCursor)
 
     @property
     def zoom(self) -> float:
@@ -39,7 +39,7 @@ class CanvasView(QScrollArea):
         self._pan_last_global_pos = None
         if canvas is not None:
             canvas.set_zoom(self._zoom)
-            canvas.setCursor(Qt.CursorShape.OpenHandCursor)
+            canvas.setCursor(Qt.CursorShape.ArrowCursor)
             canvas.installEventFilter(self)
             self.setWidget(canvas)
             canvas.show()
@@ -114,9 +114,9 @@ class CanvasView(QScrollArea):
                 self._panning = False
                 self._pan_last_global_pos = None
                 watched.releaseMouse()
-                self.viewport().setCursor(Qt.CursorShape.OpenHandCursor)
+                self.viewport().setCursor(Qt.CursorShape.ArrowCursor)
                 if self.canvas is not None:
-                    self.canvas.setCursor(Qt.CursorShape.OpenHandCursor)
+                    self.canvas.setCursor(Qt.CursorShape.ArrowCursor)
                 event.accept()
                 return True
 
