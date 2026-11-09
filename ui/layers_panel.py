@@ -102,8 +102,8 @@ class LayerPanel(QWidget):
     add_layer_requested = pyqtSignal()
     remove_layer_requested = pyqtSignal(object)
     layer_selected = pyqtSignal(int)
-    layer_visible_change = pyqtSignal(Layer, bool)
-    layer_change = pyqtSignal()
+    layer_visibility_requested = pyqtSignal(object, bool)
+    layer_rename_requested = pyqtSignal(object, str)
     layer_move_requested = pyqtSignal(object, object, bool)
 
     def __init__(self, parent, layers: list[Layer]):
@@ -170,10 +170,8 @@ class LayerPanel(QWidget):
         """)
 
     def change_visible_layer(self, layer: Layer, visible: bool) -> None:
-        """Изменяет видимость слоя и уведомляет холст."""
-        layer.set_visible(visible)
-        self.layer_visible_change.emit(layer, visible)
-        self.layer_change.emit()
+        """Передаёт запрос на изменение видимости владельцу документа."""
+        self.layer_visibility_requested.emit(layer, visible)
 
     def update_layers(self) -> None:
         """Перестраивает список виджетов слоёв."""
@@ -284,23 +282,19 @@ class LayerPanel(QWidget):
         editor: QLineEdit,
         label: QLabel,
     ) -> None:
-        new_name = editor.text().strip()
-
-        if not new_name:
-            new_name = layer.get_name()
-        else:
-            duplicate = any(
-                other is not layer and other.get_name() == new_name
-                for other in self.layers
-            )
-            if duplicate:
-                new_name = layer.get_name()
-
-        layer.set_name(new_name)
-        label.setText(new_name)
-        editor.setText(new_name)
+        new_name = editor.text().strip() or layer.get_name()
+        self.layer_rename_requested.emit(layer, new_name)
         editor.hide()
         label.show()
+
+    def refresh_layer_name(self, layer: Layer) -> None:
+        """Обновляет подпись после ответа владельца модели."""
+        row = self.layer_rows.get(id(layer))
+        if row is None:
+            return
+        name = layer.get_name()
+        row.name_label.setText(name)
+        row.name_edit.setText(name)
 
     def clear_layout(self, layout) -> None:
         while layout.count():
