@@ -1,5 +1,5 @@
 """В этом модуле содержатся самые главные классы - Project и Layer."""
-from PyQt6.QtGui import QImage
+from PyQt6.QtGui import QImage, QPainter
 from dataclasses import dataclass
 from datetime import datetime
 
@@ -68,41 +68,103 @@ class Project:
         return self.layers
 
     def add_layer(self, layer: Layer) -> bool:
-        """Добавит слой в проект. Вернёт успех или не успех(bool)."""
+        """Добавляет слой и нормализует порядок слоёв."""
         if not isinstance(layer, Layer):
-            raise AddLayerError(f'Добавлять можно только слои: {layer}')
-        
-        if layer.get_name() in list(map(lambda x: x.get_name(), self.layers)):
-            # Не может быть одинаковых имём
-            print('Добавление слоя потерпело неудачу - имена совпадают.')
+            raise AddLayerError(f"Добавлять можно только объекты Layer: {layer!r}")
+        if any(existing.get_name() == layer.get_name() for existing in self.layers):
             return False
 
-        if layer.get_z_order() in list(map(lambda x: x.get_z_order(), self.layers)):
-            # Слои не должны быть друг в друге
-            print('Добавление слоя потерпело неудачу - z_order совпадают.')
-            return False
-        
         self.layers.append(layer)
-        print('добавлен слой')
+        self._normalize_layer_order()
         return True
+
+    def create_layer(
+        self,
+        name_prefix: str = "Слой",
+        image: QImage | None = None,
+        visible: bool = True,
+    ) -> Layer:
+        """Создаёт и добавляет слой с уникальным именем."""
+        if image is None:
+            image = QImage(
+                self.width, self.height, QImage.Format.Format_ARGB32
+            )
+            image.fill(0)
+        else:
+            image = image.convertToFormat(QImage.Format.Format_ARGB32)
+
+        existing_names = {layer.get_name() for layer in self.layers}
+        number = 1
+        name = f"{name_prefix} {number}"
+        while name in existing_names:
+            number += 1
+            name = f"{name_prefix} {number}"
+
+        layer = Layer(name, len(self.layers), visible, image)
+        self.add_layer(layer)
+        return layer
 
     def remove_layer(self, layer: Layer) -> bool:
-        """Удалит слой из проекта. Вернёт успех или не успех(bool)."""
+        """Удаляет слой из проекта, если он в нём существует."""
         if layer not in self.layers:
-            print(f'Удаление слоя завершилось ошибкой: такого слоя не существует. {layer.get_name()}')
             return False
-        
-        self.layers.remove(self.layers)
-        print(f'Был удалён слой {layer.get_name()}')
-
+        self.layers.remove(layer)
+        self._normalize_layer_order()
         return True
 
-    def remove_all_layers(self) -> None:
-        """ОЧЕНЬ ОСТОРОЖНО. Удаляет все слои."""
-        for layer in self.layers:
-            self.remove_layer(layer.get_name())
-        print('Были удалены все слои')
+    def move_layer(
+        self, source: Layer, target: Layer, insert_before: bool = True
+    ) -> bool:
+        """Перемещает source относительно target и обновляет z_order."""
+        if (
+            source is target
+            or source not in self.layers
+            or target not in self.layers
+        ):
+            return False
 
+        self.layers.remove(source)
+        target_index = self.layers.index(target)
+        if not insert_before:
+            target_index += 1
+        self.layers.insert(target_index, source)
+        self._normalize_layer_order()
+        return True
+
+    def resize(self, width: int, height: int) -> None:
+        """Меняет размер документа и всех слоёв, сохраняя левый верхний угол."""
+        width, height = int(width), int(height)
+        if width <= 0 or height <= 0:
+            raise ValueError("Размеры холста должны быть положительными.")
+        if width == self.width and height == self.height:
+            return
+
+        resized_images = []
+        for layer in self.layers:
+            resized = QImage(width, height, QImage.Format.Format_ARGB32)
+            resized.fill(0)
+            painter = QPainter(resized)
+            painter.setCompositionMode(
+                QPainter.CompositionMode.CompositionMode_Source
+            )
+            painter.drawImage(0, 0, layer.image)
+            painter.end()
+            resized_images.append(resized)
+
+        for layer, image in zip(self.layers, resized_images):
+            layer.image = image
+
+        self.width = width
+        self.height = height
+
+    def _normalize_layer_order(self) -> None:
+        """Поддерживает непрерывный z_order в порядке списка слоёв."""
+        for z_order, layer in enumerate(self.layers):
+            layer.set_z_order(z_order)
+
+    def remove_all_layers(self) -> None:
+        """Удаляет все слои проекта."""
+        self.layers.clear()
 
 # Ошибки
 class ProjectError:
