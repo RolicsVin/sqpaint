@@ -87,7 +87,7 @@ class LayerRow(RoundedWidget):
             return
 
         insert_before = event.position().y() < self.height() / 2
-        self.panel.reorder_layers(source, self.layer, insert_before)
+        self.panel.layer_move_requested.emit(source, self.layer, insert_before)
         event.setDropAction(Qt.DropAction.MoveAction)
         event.accept()
 
@@ -104,7 +104,7 @@ class LayerPanel(QWidget):
     layer_selected = pyqtSignal(int)
     layer_visible_change = pyqtSignal(Layer, bool)
     layer_change = pyqtSignal()
-    layers_reordered = pyqtSignal()
+    layer_move_requested = pyqtSignal(object, object, bool)
 
     def __init__(self, parent, layers: list[Layer]):
         super().__init__(parent=parent)
@@ -241,28 +241,17 @@ class LayerPanel(QWidget):
         self.layer_rows[id(layer)] = row
         self.layers_layout.addWidget(row)
 
-    def reorder_layers(self, source: Layer, target: Layer, insert_before: bool) -> None:
-        """Меняет порядок слоёв после перетаскивания строки."""
-        if source is target or source not in self.layers or target not in self.layers:
+    def select_layer(self, index: int) -> None:
+        """Публичный интерфейс выбора слоя."""
+        self._select_layer(index)
+
+    def _select_layer(self, index: int) -> None:
+        if not 0 <= index < len(self.layers):
             return
 
-        source_index = self.layers.index(source)
-        target_index = self.layers.index(target)
-        self.layers.pop(source_index)
-
-        # После удаления исходного элемента индекс цели может измениться.
-        target_index = self.layers.index(target)
-        if not insert_before:
-            target_index += 1
-        self.layers.insert(target_index, source)
-
-        # z_order соответствует порядку от нижнего слоя к верхнему.
-        for z_order, layer in enumerate(self.layers):
-            layer.set_z_order(z_order)
-
-        self.update_layers()
-        self._select_layer(self.layers.index(source))
-        self.layers_reordered.emit()
+        self.selected_layer = self.layers[index]
+        self._update_selection_colors()
+        self.layer_selected.emit(index)
 
     def _select_layer(self, index: int) -> None:
         if not 0 <= index < len(self.layers):
