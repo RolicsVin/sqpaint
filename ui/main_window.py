@@ -148,6 +148,7 @@ class DomainWindow(QMainWindow):
 
         self.tool_bar.color_selected.connect(self.set_canvas_color)
         self.tool_bar.tool_selected.connect(self.set_canvas_tool)
+        self.tool_bar.width_changed.connect(self.set_canvas_width)
 
         if project is not None:
             self.set_project(project)
@@ -329,6 +330,10 @@ class DomainWindow(QMainWindow):
     def set_canvas_tool(self, tool_name: str) -> None:
         if self.canvas is not None:
             self.canvas.set_tool(tool_name)
+
+    def set_canvas_width(self, width: int) -> None:
+        if self.canvas is not None:
+            self.canvas.width_px = width
 
     def closeEvent(self, event) -> None:
         self.database.close()
