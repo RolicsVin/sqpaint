@@ -182,8 +182,6 @@ class DomainWindow(QMainWindow):
         )
         self.view_manager.apply()
         self.show()
-        if self.view_settings.get("show_welcome", True):
-            self.recent_projects_window.show()
 
     def _layout_child_widgets(self) -> None:
         panel_width = LayerPanel.WIDTH if not self.layer_panel.isHidden() else 0
