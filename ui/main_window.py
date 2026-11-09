@@ -36,7 +36,7 @@ from ui.dialogs import (
 class DomainWindow(QMainWindow):
     HEADERS_HEIGHT = 25
 
-    def __init__(self, project: Project | None, database: ProjectDatabase):
+    def __init__(self, project: Project | None, database: ProjectDatabase, settings: dict):
         super().__init__()
         self.project = None
         self.database = database

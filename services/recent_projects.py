@@ -30,7 +30,7 @@ def _read_entries():
     unique = {}
     with open(_get_csv_path(), 'r', encoding='utf-8', newline='') as f:
         for row in csv.reader(f, delimiter=','):
-            if len(row) < 3:                      # пустая или битая строка
+            if len(row) < 3: # пустая или битая строка
                 continue
             name, project_path, date_str = row[:3]
             try:
