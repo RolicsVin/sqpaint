@@ -1,9 +1,12 @@
 # Стартовое окно
+from pathlib import Path
+
 from core.time_utils import *
 from ui.rounded_widget import RoundedWidget
 from services import recent_projects
 
 from PyQt6.QtCore import Qt, pyqtSignal
+from PyQt6.QtGui import QPixmap
 from PyQt6.QtWidgets import (
     QWidget, QHBoxLayout, QVBoxLayout, QLabel, QPushButton,
     QScrollArea, QSizePolicy,
@@ -198,6 +201,22 @@ class RecentProjectWindow(QWidget):
         root.setContentsMargins(32, 28, 32, 28)
         root.setSpacing(0)
 
+        # --- Логотип приложения ---
+        logo_label = QLabel()
+        logo_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        logo_path = Path(__file__).resolve().parent.parent / "logo.png"
+        logo = QPixmap(str(logo_path))
+        if not logo.isNull():
+            logo_label.setPixmap(
+                logo.scaled(
+                    112, 112,
+                    Qt.AspectRatioMode.KeepAspectRatio,
+                    Qt.TransformationMode.SmoothTransformation,
+                )
+            )
+        root.addWidget(logo_label)
+        root.addSpacing(12)
+
         # --- Заголовок ---
         title = QLabel("Добро пожаловать в SQPaint!")
         title.setObjectName("title")
@@ -260,13 +279,12 @@ class RecentProjectWindow(QWidget):
         self.create_project.emit()
         self.hide()
 
-
     def _fill_projects(self) -> None:
         projects = recent_projects.get_recent_projects()
 
         if not projects:
             empty = QLabel(
-                "Пока нет недавних проектов.\n"
+                "Пока нет недавних проектов.\\n"
                 "Создайте новый или откройте существующий."
             )
             empty.setObjectName("emptyLabel")
