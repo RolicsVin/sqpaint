@@ -1,10 +1,10 @@
 from core.models import Layer
 from ui.rounded_widget import RoundedWidget
 
-from PyQt6.QtCore import Qt, pyqtSignal
+from PyQt6.QtCore import Qt, pyqtSignal, QMimeData
 from PyQt6.QtGui import QColor, QDrag
-from PyQt6.QtCore import QMimeData
 from PyQt6.QtWidgets import (
+    QApplication,
     QWidget,
     QPushButton,
     QLineEdit,
