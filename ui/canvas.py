@@ -44,29 +44,31 @@ class Canvas(QWidget):
         self.update()
         return self.zoom
 
-    def resize_document(self, width: int, height: int) -> None:
-        """Изменяет размер документа, сохраняя пиксели в левом верхнем углу."""
+    def set_layers(self, layers, active: int | None = None) -> None:
+        """Подключает актуальную коллекцию слоёв документа."""
+        self.layers = layers
+        if active is not None:
+            self.set_active_layer(active)
+        elif not self.layers:
+            self.active = 0
+        else:
+            self.active = max(0, min(self.active, len(self.layers) - 1))
+        self.last = None
+        self.update()
+
+    def set_active_layer(self, index: int) -> bool:
+        """Выбирает активный слой по индексу."""
+        if not 0 <= index < len(self.layers):
+            return False
+        self.active = index
+        self.last = None
+        return True
+
+    def set_document_size(self, width: int, height: int) -> None:
+        """Синхронизирует размеры отображения с уже изменённым Project."""
         width, height = int(width), int(height)
         if width <= 0 or height <= 0:
             raise ValueError("Размеры холста должны быть положительными.")
-        if width == self.document_width and height == self.document_height:
-            return
-
-        resized_images = []
-        for layer in self.layers:
-            resized = QImage(width, height, QImage.Format.Format_ARGB32)
-            resized.fill(0)
-            painter = QPainter(resized)
-            painter.setCompositionMode(
-                QPainter.CompositionMode.CompositionMode_Source
-            )
-            painter.drawImage(0, 0, layer.image)
-            painter.end()
-            resized_images.append(resized)
-
-        for layer, image in zip(self.layers, resized_images):
-            layer.image = image
-
         self.document_width = width
         self.document_height = height
         self.last = None
