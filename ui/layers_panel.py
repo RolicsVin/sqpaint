@@ -2,7 +2,8 @@ from core.models import Layer
 from ui.rounded_widget import RoundedWidget
 
 from PyQt6.QtCore import Qt, pyqtSignal
-from PyQt6.QtGui import QColor
+from PyQt6.QtGui import QColor, QDrag
+from PyQt6.QtCore import QMimeData
 from PyQt6.QtWidgets import (
     QWidget,
     QPushButton,
@@ -24,6 +25,73 @@ class LayerNameEdit(QLineEdit):
         self.focus_lost.emit()
 
 
+class LayerRow(RoundedWidget):
+    """Строка слоя с поддержкой перетаскивания."""
+
+    def __init__(self, panel, layer, parent=None):
+        super().__init__(parent, color=panel.LAYER_COLOR, radius=6)
+        self.panel = panel
+        self.layer = layer
+        self._drag_start = None
+        self.setAcceptDrops(True)
+        self.setCursor(Qt.CursorShape.OpenHandCursor)
+
+    def mousePressEvent(self, event) -> None:
+        if event.button() == Qt.MouseButton.LeftButton:
+            self._drag_start = event.position().toPoint()
+        super().mousePressEvent(event)
+
+    def mouseMoveEvent(self, event) -> None:
+        if self._drag_start is None or not (event.buttons() & Qt.MouseButton.LeftButton):
+            return
+        distance = (event.position().toPoint() - self._drag_start).manhattanLength()
+        if distance <  QApplication.startDragDistance():
+            return
+
+        drag = QDrag(self)
+        mime = QMimeData()
+        mime.setText(str(id(self.layer)))
+        drag.setMimeData(mime)
+        self.setCursor(Qt.CursorShape.ClosedHandCursor)
+        drag.exec(Qt.DropAction.MoveAction)
+        self.setCursor(Qt.CursorShape.OpenHandCursor)
+        self._drag_start = None
+
+    def dragEnterEvent(self, event) -> None:
+        if event.mimeData().hasText():
+            event.setDropAction(Qt.DropAction.MoveAction)
+            event.accept()
+        else:
+            event.ignore()
+
+    def dragMoveEvent(self, event) -> None:
+        if event.mimeData().hasText():
+            event.setDropAction(Qt.DropAction.MoveAction)
+            event.accept()
+        else:
+            event.ignore()
+
+    def dropEvent(self, event) -> None:
+        try:
+            source_id = int(event.mimeData().text())
+        except ValueError:
+            event.ignore()
+            return
+
+        source = next(
+            (layer for layer in self.panel.layers if id(layer) == source_id),
+            None,
+        )
+        if source is None:
+            event.ignore()
+            return
+
+        insert_before = event.position().y() < self.height() / 2
+        self.panel.reorder_layers(source, self.layer, insert_before)
+        event.setDropAction(Qt.DropAction.MoveAction)
+        event.accept()
+
+
 class LayerPanel(QWidget):
     WIDTH = 200
 
@@ -36,6 +104,7 @@ class LayerPanel(QWidget):
     layer_selected = pyqtSignal(int)
     layer_visible_change = pyqtSignal(Layer, bool)
     layer_change = pyqtSignal()
+    layers_reordered = pyqtSignal()
 
     def __init__(self, parent, layers: list[Layer]):
         super().__init__(parent=parent)
@@ -120,11 +189,7 @@ class LayerPanel(QWidget):
         self._update_selection_colors()
 
     def create_layer_row(self, layer: Layer, index: int) -> None:
-        row = RoundedWidget(
-            self,
-            color=self.LAYER_COLOR,
-            radius=6,
-        )
+        row = LayerRow(self, layer, self)
         row.setObjectName("layerRow")
         row.setFixedHeight(38)
         row.setCursor(Qt.CursorShape.PointingHandCursor)
@@ -175,6 +240,29 @@ class LayerPanel(QWidget):
 
         self.layer_rows[id(layer)] = row
         self.layers_layout.addWidget(row)
+
+    def reorder_layers(self, source: Layer, target: Layer, insert_before: bool) -> None:
+        """Меняет порядок слоёв после перетаскивания строки."""
+        if source is target or source not in self.layers or target not in self.layers:
+            return
+
+        source_index = self.layers.index(source)
+        target_index = self.layers.index(target)
+        self.layers.pop(source_index)
+
+        # После удаления исходного элемента индекс цели может измениться.
+        target_index = self.layers.index(target)
+        if not insert_before:
+            target_index += 1
+        self.layers.insert(target_index, source)
+
+        # z_order соответствует порядку от нижнего слоя к верхнему.
+        for z_order, layer in enumerate(self.layers):
+            layer.set_z_order(z_order)
+
+        self.update_layers()
+        self._select_layer(self.layers.index(source))
+        self.layers_reordered.emit()
 
     def _select_layer(self, index: int) -> None:
         if not 0 <= index < len(self.layers):
