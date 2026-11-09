@@ -1,4 +1,4 @@
-from PyQt6.QtCore import pyqtSignal
+from PyQt6.QtCore import Qt, pyqtSignal
 from PyQt6.QtGui import QColor
 from PyQt6.QtWidgets import (
     QApplication,
@@ -29,11 +29,21 @@ class ToolBar(QWidget):
         self.update_color_button()
         self.color_btn.clicked.connect(self.choose_color)
 
-        # Выпадающий список инструментов.
+        # Выпадающий список инструментов с эмодзи вместо надписей.
         self.tools_combo = QComboBox(self)
-        self.tools_combo.addItem("Кисть", "brush")
-        self.tools_combo.addItem("Ластик", "eraser")
-        self.tools_combo.addItem("Заливка", "fill")
+        self.tools_combo.addItem("🖌", "brush")
+        self.tools_combo.addItem("🧽", "eraser")
+        self.tools_combo.addItem("🪣", "fill")
+
+        # Подсказки сохраняют понятные названия инструментов.
+        tool_names = ("Кисть", "Ластик", "Заливка")
+        for index, name in enumerate(tool_names):
+            self.tools_combo.setItemData(
+                index,
+                name,
+                Qt.ItemDataRole.ToolTipRole,
+            )
+
         self.tools_combo.setCurrentIndex(0)
         self.tools_combo.currentIndexChanged.connect(self.on_tool_changed)
 
