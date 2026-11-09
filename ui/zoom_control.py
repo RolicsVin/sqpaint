@@ -32,10 +32,12 @@ class ZoomControl(QWidget):
         self.reset_button.setToolTip("Сбросить масштаб")
         self.reset_button.setFixedWidth(48)
 
+        # Процентный индикатор располагается в начале блока масштаба,
+        # рядом с остальными инструментами, а не на его правом краю.
+        layout.addWidget(self.value_label)
         layout.addWidget(self.zoom_out_button)
         layout.addWidget(self.slider)
         layout.addWidget(self.zoom_in_button)
-        layout.addWidget(self.value_label)
         layout.addWidget(self.reset_button)
 
         self.slider.valueChanged.connect(self._on_slider_changed)
