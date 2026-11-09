@@ -22,7 +22,7 @@ from ui.dialogs import (
     confirm_delete_layer, show_create_error, show_file_exists,
     show_last_layer_info, show_open_error, show_save_error,
     ask_save_as_path, ask_import_image_path, ask_export_image_path,
-    show_file_info, ask_canvas_size,
+    show_file_info, ask_canvas_size, show_about,
 )
 
 
@@ -140,6 +140,7 @@ class DomainWindow(QMainWindow):
         self.about_action = QAction("О программе", self)
         self.help_menu.addAction(self.tutorial_action)
         self.help_menu.addAction(self.about_action)
+        self.about_action.triggered.connect(lambda: show_about(self))
 
         self.tool_bar = ToolBar(self)
         self.tool_bar.move(0, self.HEADERS_HEIGHT)
