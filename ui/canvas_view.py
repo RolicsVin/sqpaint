@@ -12,12 +12,8 @@ class CanvasView(QScrollArea):
         self.setWidgetResizable(False)
         self.setAlignment(Qt.AlignmentFlag.AlignCenter)
         self.setFrameShape(QScrollArea.Shape.NoFrame)
-        self.setHorizontalScrollBarPolicy(
-            Qt.ScrollBarPolicy.ScrollBarAsNeeded
-        )
-        self.setVerticalScrollBarPolicy(
-            Qt.ScrollBarPolicy.ScrollBarAsNeeded
-        )
+        self.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAsNeeded)
+        self.setVerticalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAsNeeded)
         self.setFocusPolicy(Qt.FocusPolicy.StrongFocus)
         self.canvas = None
         self._zoom = 1.0
@@ -53,34 +49,32 @@ class CanvasView(QScrollArea):
         if anchor is None:
             anchor = viewport.rect().center()
 
-        # Запоминаем координату документа под точкой масштабирования.
+        # mapTo() уже учитывает текущую прокрутку, поэтому добавлять
+        # значение scrollbar к координате документа нельзя.
         old_origin = self.canvas.mapTo(viewport, self.canvas.rect().topLeft())
-        document_x = (
-            self.horizontalScrollBar().value() + anchor.x() - old_origin.x()
-        ) / self._zoom
-        document_y = (
-            self.verticalScrollBar().value() + anchor.y() - old_origin.y()
-        ) / self._zoom
+        document_x = (anchor.x() - old_origin.x()) / self._zoom
+        document_y = (anchor.y() - old_origin.y()) / self._zoom
 
         self._zoom = new_zoom
         self.canvas.set_zoom(new_zoom)
 
-        # После изменения размера QScrollArea обновляет диапазоны прокрутки.
         new_origin = self.canvas.mapTo(viewport, self.canvas.rect().topLeft())
-        self.horizontalScrollBar().setValue(round(
-            document_x * new_zoom - anchor.x() + new_origin.x()
-        ))
-        self.verticalScrollBar().setValue(round(
-            document_y * new_zoom - anchor.y() + new_origin.y()
-        ))
+        target_origin_x = anchor.x() - document_x * new_zoom
+        target_origin_y = anchor.y() - document_y * new_zoom
+
+        # Сдвигаем полосы прокрутки так, чтобы прежняя точка документа
+        # осталась под курсором (если диапазон прокрутки это позволяет).
+        hbar = self.horizontalScrollBar()
+        vbar = self.verticalScrollBar()
+        hbar.setValue(round(hbar.value() + new_origin.x() - target_origin_x))
+        vbar.setValue(round(vbar.value() + new_origin.y() - target_origin_y))
         self.zoom_changed.emit(percent)
 
     def wheelEvent(self, event) -> None:
         delta = event.angleDelta().y()
         if event.modifiers() & Qt.KeyboardModifier.ControlModifier:
             if delta:
-                steps = delta / 120.0
-                factor = 1.15 ** steps
+                factor = 1.15 ** (delta / 120.0)
                 percent = round(self._zoom * factor * 100)
                 anchor = self.viewport().mapFrom(
                     self, event.position().toPoint()
