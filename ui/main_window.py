@@ -383,7 +383,7 @@ class DomainWindow(QMainWindow):
         except (MemoryError, ValueError, RuntimeError) as error:
             QMessageBox.critical(
                 self, "Размер холста",
-                f"Не удалось изменить размер холста.\\n\\n{error}"
+                f"Не удалось изменить размер холста.\n\n{error}"
             )
             return
 
