@@ -147,6 +147,46 @@ class NewProjectDialog(QDialog):
         )
 
 
+class CanvasSizeDialog(QDialog):
+    """Диалог изменения размеров документа."""
+
+    def __init__(self, width: int, height: int, parent=None):
+        super().__init__(parent)
+        self.setWindowTitle("Размер холста")
+        self.setModal(True)
+        self.setMinimumWidth(300)
+
+        self.width_spin = QSpinBox(self)
+        self.width_spin.setRange(1, 8192)
+        self.width_spin.setValue(width)
+        self.width_spin.setSuffix(" px")
+
+        self.height_spin = QSpinBox(self)
+        self.height_spin.setRange(1, 8192)
+        self.height_spin.setValue(height)
+        self.height_spin.setSuffix(" px")
+
+        form = QFormLayout(self)
+        form.addRow("Ширина:", self.width_spin)
+        form.addRow("Высота:", self.height_spin)
+        form.addRow(QLabel(
+            "При уменьшении холста содержимое за его границами будет обрезано."
+        ))
+
+        buttons = QDialogButtonBox(
+            QDialogButtonBox.StandardButton.Ok
+            | QDialogButtonBox.StandardButton.Cancel,
+            parent=self,
+        )
+        buttons.button(QDialogButtonBox.StandardButton.Ok).setText("Применить")
+        buttons.accepted.connect(self.accept)
+        buttons.rejected.connect(self.reject)
+        form.addRow(buttons)
+
+    def get_size(self) -> tuple[int, int]:
+        return self.width_spin.value(), self.height_spin.value()
+
+
 class DeleteLayerDialog(QDialog):
     """Диалог подтверждения удаления слоя."""
 
@@ -226,6 +266,16 @@ def ask_open_project_path(parent: QWidget | None = None) -> str:
         f"{PROJECT_FILTER};;Все файлы (*)",
     )
     return path
+
+
+def ask_canvas_size(
+    parent: QWidget | None, width: int, height: int
+) -> tuple[int, int] | None:
+    """Возвращает новые размеры холста или None при отмене."""
+    dialog = CanvasSizeDialog(width, height, parent)
+    if dialog.exec() != QDialog.DialogCode.Accepted:
+        return None
+    return dialog.get_size()
 
 
 def confirm_delete_layer(parent: QWidget | None, layer_name: str) -> bool:
