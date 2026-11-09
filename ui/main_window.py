@@ -15,6 +15,7 @@ from ui.canvas_view import CanvasView
 from ui.tool_bar import ToolBar
 from ui.layers_panel import LayerPanel
 from ui.dialogs import (
+    SettingsDialog,
     ask_new_project, ask_open_project_path, ask_save_project_path,
     confirm_delete_layer, show_create_error, show_file_exists,
     show_last_layer_info, show_open_error, show_save_error,
@@ -83,10 +84,13 @@ class DomainWindow(QMainWindow):
         self.file_info.setEnabled(False)
 
         self.canvas_size = QAction("Размер холста", self)
-        self.insert = QAction("Вставить как слой", self)
-        self.settings = QAction("Настройки", self)
-        self.edit_menu.addAction(self.insert)
-        self.edit_menu.addAction(self.settings)
+        self.paste_as_layer_action = QAction("Вставить как слой", self)
+        self.settings_action = QAction("Настройки", self)
+        self.edit_menu.addAction(self.paste_as_layer_action)
+        self.edit_menu.addAction(self.settings_action)
+        # Временная заглушка: пока «Вставить как слой» использует импорт изображения.
+        self.paste_as_layer_action.triggered.connect(self.import_image)
+        self.settings_action.triggered.connect(self.open_settings)
 
         self.sub_windows = QMenu("Окна", self)
         self.layers_panel_viewer = QAction("Панель слоёв", self)
@@ -123,10 +127,10 @@ class DomainWindow(QMainWindow):
         self.white_theme.triggered.connect(lambda: self._set_theme("light"))
         self.start_window_view_button.toggled.connect(self._on_welcome_preference_changed)
 
-        self.insert = QAction("Обучение", self)
-        self.settings = QAction("О программе", self)
-        self.help_menu.addAction(self.insert)
-        self.help_menu.addAction(self.settings)
+        self.tutorial_action = QAction("Обучение", self)
+        self.about_action = QAction("О программе", self)
+        self.help_menu.addAction(self.tutorial_action)
+        self.help_menu.addAction(self.about_action)
 
         self.tool_bar = ToolBar(self)
         self.tool_bar.move(0, self.HEADERS_HEIGHT)
@@ -276,6 +280,19 @@ class DomainWindow(QMainWindow):
         self.white_theme.setChecked(theme == "light")
         if save:
             self._save_view_settings()
+
+    def open_settings(self) -> None:
+        """Открывает окно настроек с временной копией текущих значений."""
+        dialog = SettingsDialog(self.settings_data, self)
+        dialog.apply_requested.connect(self._apply_settings)
+        dialog.exec()
+
+    def _apply_settings(self, values: dict) -> None:
+        """Применяет и сохраняет настройки, переданные окном настроек."""
+        view = values.get("view", {})
+        self.view_settings.update(view)
+        self._apply_view_settings()
+        self._save_view_settings()
 
     def create_project(self) -> None:
         values = ask_new_project(self)
