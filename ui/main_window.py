@@ -80,6 +80,7 @@ class DomainWindow(QMainWindow):
         self.import_action.setEnabled(False)
         self.file_info.setEnabled(False)
 
+        self.canvas_size = QAction("Размер холста", self)
         self.insert = QAction("Вставить как слой", self)
         self.settings = QAction("Настройки", self)
         self.edit_menu.addAction(self.insert)
