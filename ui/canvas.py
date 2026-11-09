@@ -43,21 +43,29 @@ class Canvas(QWidget):
         if e.button() != Qt.MouseButton.LeftButton:
             return
 
+        if not self.layers or not (0 <= self.active < len(self.layers)):
+            return
+
         layer = self.layers[self.active]
+        if not layer.visible:
+            return
 
         pos = e.position().toPoint()
 
         if self.active_tool == self.FILL:
-            print('31')
+            # Заливка выполняется сразу по нажатию, без ожидания mouseMoveEvent.
             self.fill.press(
                 layer.image,
                 pos,
-                self.last,
+                None,
                 self.color,
                 self.width_px,
             )
+            self.last = None
+            self.update()
+            return
 
-        self.last = e.position().toPoint()
+        self.last = pos
 
     def mouseMoveEvent(self, e):
         if self.last is None:
