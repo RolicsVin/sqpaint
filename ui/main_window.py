@@ -158,8 +158,8 @@ class DomainWindow(QMainWindow):
             self.recent_projects_window.show()
 
     def _layout_child_widgets(self) -> None:
-        panel_width = LayerPanel.WIDTH if self.layer_panel.isVisible() else 0
-        top = self.HEADERS_HEIGHT + (ToolBar.HEIGHT if self.tool_bar.isVisible() else 0)
+        panel_width = LayerPanel.WIDTH if not self.layer_panel.isHidden() else 0
+        top = self.HEADERS_HEIGHT + (ToolBar.HEIGHT if not self.tool_bar.isHidden() else 0)
         self.tool_bar.setGeometry(0, self.HEADERS_HEIGHT, self.width(), ToolBar.HEIGHT)
         self.canvas_view.setGeometry(
             0, top, max(0, self.width() - panel_width),
