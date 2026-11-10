@@ -36,7 +36,7 @@ class ToolBar(QWidget):
 
         self.shapes_combo = LocalizedComboBox(self)
         self.shapes_combo.add_localized_item({"ru": "Прямоугольник", "en": "Rectangle"}, "rectangle")
-        self.shapes_combo.add_localized_item({"ru": "Круг", "en": "Ellipse"}, "ellipse")
+        self.shapes_combo.add_localized_item({"ru": "Круг", "en": "Circle"}, "circle")
         self.shapes_combo.add_localized_item({"ru": "Звезда", "en": "Star"}, "star")
         self.shapes_combo.setFixedWidth(125)
         self.shapes_combo.hide()
