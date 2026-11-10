@@ -101,6 +101,7 @@ class HistoryController:
         active = min(canvas.active, max(0, len(project.layers) - 1))
         canvas.set_layers(project.get_layers(), active=active)
         canvas.set_document_size(project.get_width(), project.get_height())
+        canvas.supports_transparency = project.supports_transparency
         w.layer_panel.set_layers(project.get_layers())
         if project.layers:
             w.layer_panel.select_layer(active)
