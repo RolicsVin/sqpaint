@@ -1,9 +1,4 @@
-import os
-import sqlite3
-
-from PyQt6.QtCore import Qt
-from PyQt6.QtGui import QAction
-from PyQt6.QtWidgets import QApplication, QMainWindow, QMessageBox
+from PyQt6.QtWidgets import QApplication, QMainWindow
 
 from core.database import ProjectDatabase
 from core.models import Project
@@ -19,7 +14,6 @@ from ui.document_controller import DocumentController
 from ui.localization_controller import WindowLocalizationController
 from ui.preferences_controller import PreferencesController
 from ui.menu_controller import MenuController
-from ui.dialogs import *
 
 
 class DomainWindow(QMainWindow):
