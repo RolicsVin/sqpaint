@@ -252,6 +252,16 @@ class DeleteLayerDialog(QDialog):
         buttons.rejected.connect(self.reject)
         layout.addRow(buttons)
 
+        manager = getattr(parent, "localization", None)
+        if manager is not None:
+            manager.register(self, {"ru": "Удаление слоя", "en": "Delete layer"})
+            manager.register(layout.itemAt(0, QFormLayout.ItemRole.FieldRole).widget(), {
+                "ru": f'Вы действительно хотите удалить слой «{layer_name}»?',
+                "en": f'Do you really want to delete layer “{layer_name}”?'
+            })
+            manager.register(buttons.button(QDialogButtonBox.StandardButton.Yes), {"ru": "Удалить", "en": "Delete"})
+            manager.register(buttons.button(QDialogButtonBox.StandardButton.No), {"ru": "Отмена", "en": "Cancel"})
+
 # ---------------------------------------------------------------------------
 # Функции-обёртки: всё, что окно показывает пользователю, живёт здесь.
 # ---------------------------------------------------------------------------
@@ -362,8 +372,8 @@ def show_save_error(parent: QWidget | None, error: Exception) -> None:
 def show_last_layer_info(parent: QWidget | None = None) -> None:
     QMessageBox.information(
         parent,
-        "Удаление слоя",
-        "В проекте должен остаться хотя бы один слой.",
+        _tr(parent, "Удаление слоя", "Delete layer"),
+        _tr(parent, "В проекте должен остаться хотя бы один слой.", "A project must contain at least one layer."),
     )
 
 
