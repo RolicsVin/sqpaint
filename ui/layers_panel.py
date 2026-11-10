@@ -132,42 +132,37 @@ class LayerPanel(QWidget):
         self.main_layout.addStretch(1)
         self.main_layout.addWidget(self.add_layer_button)
 
+        self.apply_theme("dark")
+
+    def apply_theme(self, theme: str) -> None:
+        """Применяет палитру панели слоёв для выбранной темы."""
+        dark = theme != "light"
+        self.COLOR = "#161616" if dark else "#eeeeee"
+        self.LAYER_COLOR = QColor("#1f1f1f" if dark else "#ffffff")
+        self.SELECTED_LAYER_COLOR = QColor("#394b63" if dark else "#c9def5")
+        text = "#e5e7eb" if dark else "#202020"
+        edit_bg = "#252a31" if dark else "#ffffff"
+        button_bg = "#3a414b" if dark else "#e0e0e0"
+        button_hover = "#485362" if dark else "#d0d0d0"
+        button_pressed = "#29313b" if dark else "#c0c0c0"
+        border = "#505966" if dark else "#b8b8b8"
         self.setStyleSheet(f"""
-            QWidget#layerPanel {{
-                background-color: {self.COLOR};
-            }}
+            QWidget#layerPanel {{ background-color: {self.COLOR}; }}
             QWidget#layerPanel QPushButton {{
-                background-color: #3a414b;
-                color: #f1f3f5;
-                border: 1px solid #505966;
-                border-radius: 4px;
-                padding: 4px 8px;
+                background-color: {button_bg}; color: {text};
+                border: 1px solid {border}; border-radius: 4px; padding: 4px 8px;
             }}
-            QWidget#layerPanel QPushButton:hover {{
-                background-color: #485362;
-            }}
-            QWidget#layerPanel QPushButton:pressed {{
-                background-color: #29313b;
-            }}
-            QWidget#layerPanel QCheckBox {{
-                color: #e5e7eb;
-            }}
-            QWidget#layerPanel QLabel {{
-                color: #e5e7eb;
-                background: transparent;
-            }}
+            QWidget#layerPanel QPushButton:hover {{ background-color: {button_hover}; }}
+            QWidget#layerPanel QPushButton:pressed {{ background-color: {button_pressed}; }}
+            QWidget#layerPanel QCheckBox, QWidget#layerPanel QLabel {{ color: {text}; }}
+            QWidget#layerPanel QLabel {{ background: transparent; }}
             QWidget#layerPanel QLineEdit {{
-                background-color: #252a31;
-                color: #e5e7eb;
-                border: 1px solid #aebdca;
-                border-radius: 3px;
-                padding: 3px;
+                background-color: {edit_bg}; color: {text};
+                border: 1px solid {border}; border-radius: 3px; padding: 3px;
             }}
-            QWidget#layerPanel QLineEdit:focus {{
-                border: 1px solid #7898bd;
-                background-color: #20252b;
-            }}
+            QWidget#layerPanel QLineEdit:focus {{ border: 1px solid #7898bd; }}
         """)
+        self._update_selection_colors()
 
     def change_visible_layer(self, layer: Layer, visible: bool) -> None:
         """Передаёт запрос на изменение видимости владельцу документа."""
