@@ -8,7 +8,7 @@ from PyQt6.QtWidgets import QApplication, QDialog, QMainWindow, QMenu, QMessageB
 from core.database import ProjectDatabase
 from core.models import Project
 from core.localization import LocalizationManager
-from core import image_utils
+from core.exporter import Exporter
 from services import recent_projects, settings as settings_service
 from ui.start_window import RecentProjectWindow
 from ui.canvas import Canvas
@@ -625,8 +625,9 @@ class DomainWindow(QMainWindow):
         path = ask_export_image_path(self, image_format)
         if not path:
             return
+
         output = self.canvas.get_image()
-        if not image_utils.save_image(output, path, image_format):
+        if not Exporter.export(output, path, image_format):
             QMessageBox.critical(
                 self, self._tr("Экспорт изображения", "Export image"),
                 self._tr(f"Не удалось сохранить изображение:\n{path}", f"Could not save the image:\n{path}")
