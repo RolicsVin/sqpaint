@@ -1,7 +1,7 @@
 """Runtime localization primitives for SQPaint widgets."""
 from __future__ import annotations
 
-from PyQt6.QtWidgets import QLabel, QPushButton, QComboBox
+from PyQt6.QtWidgets import QLabel, QPushButton, QComboBox, QMenu
 
 
 class LocalizedLabel(QLabel):
@@ -104,7 +104,10 @@ class LocalizationManager:
         text = translations.get(self.language)
         if text is None:
             return
-        if hasattr(widget, "setWindowTitle"):
+        if isinstance(widget, QMenu):
+            widget.setTitle(text)
+            widget.menuAction().setText(text)
+        elif hasattr(widget, "setWindowTitle"):
             widget.setWindowTitle(text)
         elif hasattr(widget, "setTitle"):
             widget.setTitle(text)
