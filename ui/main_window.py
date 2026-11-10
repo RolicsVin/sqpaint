@@ -15,6 +15,7 @@ from ui.localization_controller import WindowLocalizationController
 from ui.preferences_controller import PreferencesController
 from ui.menu_controller import MenuController
 from ui.history_controller import HistoryController
+from ui.dialogs import confirm_exit
 
 
 class DomainWindow(QMainWindow):
@@ -255,6 +256,14 @@ class DomainWindow(QMainWindow):
         self.document_controller.open_file_info()
 
     def closeEvent(self, event) -> None:
+        has_unsaved_changes = (
+            self.history_controller.is_dirty() if self.project is not None else False
+        )
+        if not confirm_exit(self, has_unsaved_changes):
+            event.ignore()
+            return
+
         self._save_view_settings()
         self.database.close()
+        event.accept()
         super().closeEvent(event)
