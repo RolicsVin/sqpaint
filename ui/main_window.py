@@ -173,7 +173,8 @@ class DomainWindow(QMainWindow):
         self.project = project
         self.canvas = Canvas(
             self.canvas_view, project.get_layers(),
-            project.get_width(), project.get_height()
+            project.get_width(), project.get_height(),
+            project.supports_transparency,
         )
         self.canvas.set_tool(Canvas.BRUSH)
         self.canvas.crop_requested.connect(self.crop_document)

@@ -45,6 +45,8 @@ class Project:
     created_at: datetime
     path: str
     layers: list[Layer]
+    supports_transparency: bool = True
+    max_undo_steps: int = 10
 
     def get_name(self) -> str:
         return self.name
