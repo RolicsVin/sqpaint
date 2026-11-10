@@ -203,6 +203,12 @@ class DomainWindow(QMainWindow):
         self.show()
 
 
+    def _tr(self, ru: str, en: str) -> str:
+        return self.localization_controller.translate(ru, en)
+
+    def _set_language(self, language: str) -> None:
+        self.localization_controller.set_language(language)
+
     def _layout_child_widgets(self) -> None:
         panel_width = LayerPanel.WIDTH if not self.layer_panel.isHidden() else 0
         top = self.HEADERS_HEIGHT + (ToolBar.HEIGHT if not self.tool_bar.isHidden() else 0)
