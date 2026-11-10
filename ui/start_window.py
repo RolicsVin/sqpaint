@@ -297,13 +297,13 @@ class RecentProjectWindow(QWidget):
 
         if not projects:
             empty = QLabel(
-                "Пока нет недавних проектов.\\n"
+                "Пока нет недавних проектов.\n"
                 "Создайте новый или откройте существующий."
             )
             empty.setObjectName("emptyLabel")
             empty.setAlignment(Qt.AlignmentFlag.AlignCenter)
             if self.localization is not None:
-                self.localization.register(empty, {"ru": "Пока нет недавних проектов.\\nСоздайте новый или откройте существующий.", "en": "No recent projects yet.\\nCreate a new project or open an existing one."})
+                self.localization.register(empty, {"ru": "Пока нет недавних проектов.\nСоздайте новый или откройте существующий.", "en": "No recent projects yet.\nCreate a new project or open an existing one."})
             self.Vlayout.addWidget(empty, 1)
             return
 
