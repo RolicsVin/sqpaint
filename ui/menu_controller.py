@@ -2,7 +2,7 @@
 from PyQt6.QtGui import QAction, QKeySequence
 from PyQt6.QtWidgets import QMenu
 
-from ui.dialogs import show_about
+from ui.dialogs import show_about, show_tutorial
 
 
 class MenuController:
@@ -123,5 +123,6 @@ class MenuController:
         w.about_action = QAction("О программе", w)
         w.help_menu.addAction(w.tutorial_action)
         w.help_menu.addAction(w.about_action)
+        w.tutorial_action.triggered.connect(lambda: show_tutorial(w))
         w.about_action.triggered.connect(lambda: show_about(w))
 
