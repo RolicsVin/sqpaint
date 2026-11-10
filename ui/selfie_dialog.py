@@ -41,6 +41,13 @@ class SelfieDialog(QDialog):
         self.capture_button.clicked.connect(self._capture)
         self.cancel_button.clicked.connect(self.reject)
 
+        manager = getattr(parent, "localization", None)
+        if manager is not None:
+            manager.register(self, {"ru": "Сделать селфи", "en": "Take a selfie"})
+            manager.register(self.preview, {"ru": "Ожидание камеры…", "en": "Waiting for camera…"})
+            manager.register(self.capture_button, {"ru": "Сделать снимок", "en": "Take photo"})
+            manager.register(self.cancel_button, {"ru": "Отмена", "en": "Cancel"})
+
         self._timer = QTimer(self)
         self._timer.setInterval(30)
         self._timer.timeout.connect(self._update_preview)
