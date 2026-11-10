@@ -317,7 +317,7 @@ def ask_open_project_path(parent: QWidget | None = None) -> str:
         parent,
         _tr(parent, "Открыть проект", "Open project"),
         "",
-        f"{PROJECT_FILTER};;Все файлы (*)",
+        f"{_tr(parent, 'Проекты SQPaint (*.sqlite)', 'SQPaint projects (*.sqlite)')};;{_tr(parent, 'Все файлы (*)', 'All files (*)')}",
     )
     return path
 
@@ -385,7 +385,7 @@ def show_last_layer_info(parent: QWidget | None = None) -> None:
 def ask_save_as_path(parent: QWidget | None = None, name: str = "Проект") -> str:
     path, _ = QFileDialog.getSaveFileName(
         parent, _tr(parent, "Сохранить проект как", "Save project as"), f"{name}.sqlite",
-        f"{PROJECT_FILTER};;Все файлы (*)",
+        f"{_tr(parent, 'Проекты SQPaint (*.sqlite)', 'SQPaint projects (*.sqlite)')};;{_tr(parent, 'Все файлы (*)', 'All files (*)')}",
     )
     if path and not path.lower().endswith(PROJECT_EXTENSION):
         path += PROJECT_EXTENSION
@@ -395,7 +395,7 @@ def ask_save_as_path(parent: QWidget | None = None, name: str = "Проект") 
 def ask_import_image_path(parent: QWidget | None = None) -> str:
     path, _ = QFileDialog.getOpenFileName(
         parent, _tr(parent, "Импортировать изображение", "Import image"),
-        "", "Изображения (*.png *.jpg *.jpeg *.bmp *.webp);;Все файлы (*)",
+        "", f"{_tr(parent, 'Изображения', 'Images')} (*.png *.jpg *.jpeg *.bmp *.webp);;{_tr(parent, 'Все файлы (*)', 'All files (*)')}",
     )
     return path
 
