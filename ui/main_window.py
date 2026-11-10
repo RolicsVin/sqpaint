@@ -375,8 +375,8 @@ class DomainWindow(QMainWindow):
             self.canvas_view.viewport().update()
         except (ValueError, MemoryError, RuntimeError) as error:
             QMessageBox.warning(
-                self, "Кадрирование",
-                f"Не удалось кадрировать холст:\n{error}"
+                self, self._tr("Кадрирование", "Crop"),
+                self._tr(f"Не удалось кадрировать холст:\n{error}", f"Could not crop the canvas:\n{error}")
             )
 
     def change_canvas_size(self) -> None:
@@ -398,8 +398,8 @@ class DomainWindow(QMainWindow):
             self.canvas.set_document_size(width, height)
         except (MemoryError, ValueError, RuntimeError) as error:
             QMessageBox.critical(
-                self, "Размер холста",
-                f"Не удалось изменить размер холста.\\n\\n{error}"
+                self, self._tr("Размер холста", "Canvas size"),
+                self._tr(f"Не удалось изменить размер холста.\\n\\n{error}", f"Could not resize the canvas.\\n\\n{error}")
             )
             return
 
@@ -583,8 +583,8 @@ class DomainWindow(QMainWindow):
             dialog = SelfieDialog(self)
         except Exception as error:
             QMessageBox.warning(
-                self, "Веб-камера",
-                f"Не удалось запустить камеру. Проверьте подключение и разрешения.\n\n{error}"
+                self, self._tr("Веб-камера", "Webcam"),
+                self._tr(f"Не удалось запустить камеру. Проверьте подключение и разрешения.\n\n{error}", f"Could not start the camera. Check the connection and permissions.\n\n{error}")
             )
             return
 
@@ -611,8 +611,8 @@ class DomainWindow(QMainWindow):
         output = self.canvas.get_image()
         if not image_utils.save_image(output, path, image_format):
             QMessageBox.critical(
-                self, "Экспорт изображения",
-                f"Не удалось сохранить изображение:\n{path}"
+                self, self._tr("Экспорт изображения", "Export image"),
+                self._tr(f"Не удалось сохранить изображение:\n{path}", f"Could not save the image:\n{path}")
             )
 
     def open_file_info(self) -> None:
