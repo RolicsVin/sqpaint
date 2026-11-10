@@ -224,7 +224,7 @@ class CanvasSizeDialog(QDialog):
             manager.register(form.itemAt(1, QFormLayout.ItemRole.LabelRole).widget(), {"ru": "Высота:", "en": "Height:"})
             manager.register(buttons.button(QDialogButtonBox.StandardButton.Ok), {"ru": "Применить", "en": "Apply"})
             manager.register(buttons.button(QDialogButtonBox.StandardButton.Cancel), {"ru": "Отмена", "en": "Cancel"})
-            manager.register(form.itemAt(2).widget(), {"ru": "При уменьшении холста содержимое за его границами будет обрезано.", "en": "Content outside the canvas will be cropped when its size is reduced."})
+            manager.register(form.itemAt(2, QFormLayout.ItemRole.SpanningRole).widget(), {"ru": "При уменьшении холста содержимое за его границами будет обрезано.", "en": "Content outside the canvas will be cropped when its size is reduced."})
 
     def get_size(self) -> tuple[int, int]:
         return self.width_spin.value(), self.height_spin.value()
