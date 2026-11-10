@@ -45,7 +45,11 @@ class HistoryManager:
         after = self.capture()
         if before == after:
             return False
-        self.database.record_history(self.project, before, after, label)
+        try:
+            self.database.record_history(self.project, before, after, label)
+        except Exception:
+            self._apply_payload(before)
+            raise
         return True
 
     def undo(self) -> bool:
@@ -62,9 +66,8 @@ class HistoryManager:
         self._restore(entry["state"], entry["cursor"])
         return True
 
-    def _restore(self, payload: bytes, cursor: int) -> None:
+    def _project_from_payload(self, payload: bytes) -> Project:
         state = json.loads(zlib.decompress(payload).decode("utf-8"))
-        project = self.project
         layers = [
             Layer(
                 item["name"], int(item["z_order"]), bool(item["visible"]),
@@ -72,16 +75,27 @@ class HistoryManager:
             )
             for item in state["layers"]
         ]
-        restored = Project(
+        return Project(
             state["name"], int(state["width"]), int(state["height"]),
-            datetime.fromisoformat(state["created_at"]), project.path, layers,
+            datetime.fromisoformat(state["created_at"]), self.project.path, layers,
         )
+
+    def _apply_payload(self, payload: bytes) -> None:
+        restored = self._project_from_payload(payload)
+        self.project.name = restored.name
+        self.project.width = restored.width
+        self.project.height = restored.height
+        self.project.created_at = restored.created_at
+        self.project.layers = restored.layers
+
+    def _restore(self, payload: bytes, cursor: int) -> None:
+        restored = self._project_from_payload(payload)
         self.database.restore_history_state(restored, cursor)
-        project.name = restored.name
-        project.width = restored.width
-        project.height = restored.height
-        project.created_at = restored.created_at
-        project.layers = restored.layers
+        self.project.name = restored.name
+        self.project.width = restored.width
+        self.project.height = restored.height
+        self.project.created_at = restored.created_at
+        self.project.layers = restored.layers
 
     def status(self) -> tuple[bool, bool]:
         return self.database.history_status()
