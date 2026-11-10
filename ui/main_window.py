@@ -229,6 +229,9 @@ class DomainWindow(QMainWindow):
             self.localization.register(widget, translations)
         self.localization.register(self.tool_bar, {})
 
+    def _tr(self, ru: str, en: str) -> str:
+        return en if self.localization.language == "en" else ru
+
     def _set_language(self, language: str) -> None:
         """Мгновенно переключает язык интерфейса и сохраняет выбор."""
         self.localization.set_language(language)
@@ -267,8 +270,8 @@ class DomainWindow(QMainWindow):
             settings_service.save_data(self.settings_data)
         except OSError as error:
             QMessageBox.warning(
-                self, "Настройки",
-                f"Не удалось сохранить настройки: {error}"
+                self, self._tr("Настройки", "Settings"),
+                self._tr(f"Не удалось сохранить настройки: {error}", f"Could not save settings: {error}")
             )
 
     def _on_layer_panel_visibility_changed(self, visible: bool) -> None:
@@ -523,8 +526,8 @@ class DomainWindow(QMainWindow):
         image = QImage(path)
         if image.isNull():
             QMessageBox.warning(
-                self, "Вставить как слой",
-                "Не удалось открыть выбранное изображение."
+                self, self._tr("Вставить как слой", "Paste as layer"),
+                self._tr("Не удалось открыть выбранное изображение.", "Could not open the selected image.")
             )
             return
 
@@ -546,8 +549,8 @@ class DomainWindow(QMainWindow):
         image = QImage(image_path)
         if image.isNull():
             QMessageBox.warning(
-                self, "Импорт изображения",
-                "Не удалось открыть выбранное изображение."
+                self, self._tr("Импорт изображения", "Import image"),
+                self._tr("Не удалось открыть выбранное изображение.", "Could not open the selected image.")
             )
             return
 
