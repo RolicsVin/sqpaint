@@ -91,6 +91,8 @@ class Canvas(QWidget):
     def set_tool(self, tool_name: str) -> None:
         if tool_name not in (self.BRUSH, self.ERASER, self.FILL, self.CROP):
             return
+        if self.last is not None and self.active_tool in (self.BRUSH, self.ERASER):
+            self.history_finished.emit("PaintStroke" if self.active_tool == self.BRUSH else "EraseStroke")
         self.active_tool = tool_name
         self.last = None
         if tool_name != self.CROP:
