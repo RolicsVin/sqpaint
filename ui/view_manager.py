@@ -121,6 +121,9 @@ class ViewManager:
         if theme not in ("dark", "light"):
             theme = "dark"
         self.settings["theme"] = theme
+        self.layer_panel.apply_theme(theme)
+        if self.recent_window is not None:
+            self.recent_window.apply_theme(theme)
 
         app = QApplication.instance()
         if app is not None:
