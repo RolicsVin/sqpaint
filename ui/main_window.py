@@ -289,6 +289,7 @@ class DomainWindow(QMainWindow):
             project.get_width(), project.get_height()
         )
         self.canvas.set_tool(Canvas.BRUSH)
+        self.canvas.crop_requested.connect(self.crop_document)
         self.canvas_view.set_canvas(self.canvas)
         self.canvas.set_layers(project.get_layers(), active=0)
         self.layer_panel.set_layers(project.get_layers())
@@ -302,6 +303,22 @@ class DomainWindow(QMainWindow):
         self.canvas_size.setEnabled(True)
         self.setWindowTitle(f"SQPaint — {project.get_name()}")
         recent_projects.add_recent_project(project)
+
+    def crop_document(self, rect) -> None:
+        """Применяет выбранную область кадрирования ко всему документу."""
+        if self.project is None or self.canvas is None:
+            return
+        self._commit_pending_transform()
+        try:
+            self.project.crop(rect.x(), rect.y(), rect.width(), rect.height())
+            self.canvas.set_document_size(rect.width(), rect.height())
+            self.canvas.update()
+            self.canvas_view.viewport().update()
+        except (ValueError, MemoryError, RuntimeError) as error:
+            QMessageBox.warning(
+                self, "Кадрирование",
+                f"Не удалось кадрировать холст:\n{error}"
+            )
 
     def change_canvas_size(self) -> None:
         if self.project is None or self.canvas is None:
