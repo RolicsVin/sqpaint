@@ -19,10 +19,11 @@ class Canvas(QWidget):
     MIN_ZOOM = 0.1
     MAX_ZOOM = 4.0
 
-    def __init__(self, parent, layers, w, h):
+    def __init__(self, parent, layers, w, h, supports_transparency: bool = True):
         super().__init__(parent=parent)
         self.document_width = int(w)
         self.document_height = int(h)
+        self.supports_transparency = bool(supports_transparency)
         self.zoom = 1.0
         self.setFixedSize(self.document_width, self.document_height)
 
@@ -205,7 +206,7 @@ class Canvas(QWidget):
             self.document_height,
             QImage.Format.Format_ARGB32,
         )
-        image.fill(0)
+        image.fill(0 if self.supports_transparency else QColor("white"))
 
         painter = QPainter(image)
         for layer in self.layers:
