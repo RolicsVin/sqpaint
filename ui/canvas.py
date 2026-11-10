@@ -219,6 +219,15 @@ class Canvas(QWidget):
         painter = QPainter(self)
         painter.setRenderHint(QPainter.RenderHint.SmoothPixmapTransform, False)
         painter.scale(self.zoom, self.zoom)
+
+        # Если прозрачность отключена, документ всегда компонуется на белом фоне.
+        # Прозрачные пиксели слоёв не должны показывать содержимое окна под холстом.
+        if not self.supports_transparency:
+            painter.fillRect(
+                QRectF(0, 0, self.document_width, self.document_height),
+                QColor("white"),
+            )
+
         for index, layer in enumerate(self.layers):
             if layer.visible and not (self.transform_image is not None and index == self.active):
                 painter.drawImage(0, 0, layer.image)
