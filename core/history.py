@@ -17,7 +17,7 @@ from core.models import Layer
 class HistoryManager:
     """Хранит ограниченную линейную историю состояний документа в RAM."""
 
-    def __init__(self, database=None, limit: int = 20):
+    def __init__(self, database=None, limit: int = 10):
         self.database = database  # Оставлено для совместимости конструктора контроллера.
         self.project = None
         self.limit = max(1, int(limit))
@@ -28,6 +28,7 @@ class HistoryManager:
 
     def set_project(self, project, saved_history=None) -> None:
         self.project = project
+        self.limit = max(1, int(getattr(project, "max_undo_steps", 10)))
         self._states = []
         self._labels = []
         self._cursor = 0
@@ -46,6 +47,15 @@ class HistoryManager:
 
         self._states = [self.capture()]
         self.mark_saved()
+
+    def set_limit(self, limit: int) -> None:
+        """Изменяет лимит истории и удаляет самые старые действия при необходимости."""
+        self.limit = max(1, int(limit))
+        overflow = max(0, len(self._labels) - self.limit)
+        if overflow:
+            del self._labels[:overflow]
+            del self._states[:overflow]
+            self._cursor = max(0, self._cursor - overflow)
 
     def capture(self) -> dict:
         if self.project is None:
