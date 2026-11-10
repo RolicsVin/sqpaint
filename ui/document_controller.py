@@ -69,8 +69,10 @@ class DocumentController:
             return
         self.w._commit_pending_transform()
         try:
-            self.w.database.save(self.w.project)
-        except (OSError, sqlite3.Error, RuntimeError) as error:
+            self.w.database.save(
+                self.w.project, self.w.history_controller.export_for_save()
+            )
+        except (OSError, sqlite3.Error, RuntimeError, ValueError) as error:
             show_save_error(self.w, error)
 
     def save_as(self) -> None:
@@ -84,7 +86,9 @@ class DocumentController:
             show_file_exists(self.w)
             return
         try:
-            project = self.w.database.save_as(path, self.w.project)
+            project = self.w.database.save_as(
+                path, self.w.project, self.w.history_controller.export_for_save()
+            )
             self.w.set_project(project)
         except (OSError, sqlite3.Error, ValueError, RuntimeError) as error:
             show_save_error(self.w, error)
@@ -311,10 +315,5 @@ class DocumentController:
     def open_file_info(self) -> None:
         project = self.w.project
         if project is None:
-            return
-        try:
-            self.w.database.save(project)
-        except (OSError, sqlite3.Error, RuntimeError) as error:
-            show_save_error(self.w, error)
             return
         show_file_info(self.w, project.get_path())
