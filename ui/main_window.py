@@ -171,7 +171,7 @@ class DomainWindow(QMainWindow):
             self.set_project(project)
 
         self.setWindowTitle("SQPaint")
-        self.recent_projects_window = RecentProjectWindow()
+        self.recent_projects_window = RecentProjectWindow(self.localization)
         self.recent_projects_window.project_select.connect(self.open_project_path)
         self.recent_projects_window.create_project.connect(self.create_project)
         self.recent_projects_window.open_project.connect(self.open_project)
