@@ -3,6 +3,11 @@ from pathlib import Path
 from PyQt6.QtCore import Qt, pyqtSignal
 from PyQt6.QtGui import QPixmap
 from core.localization import LocalizedComboBox
+def _tr(parent, ru: str, en: str) -> str:
+    manager = getattr(parent, "localization", None)
+    return en if manager is not None and manager.language == "en" else ru
+
+
 from PyQt6.QtWidgets import (
     QDialog,
     QDialogButtonBox,
@@ -160,6 +165,9 @@ class NewProjectDialog(QDialog):
         manager = getattr(parent, "localization", None)
         if manager is not None:
             manager.register(self, {"ru": "Новый проект", "en": "New project"})
+            manager.register(form.itemAt(0, QFormLayout.ItemRole.LabelRole).widget(), {"ru": "Название:", "en": "Name:"})
+            manager.register(form.itemAt(1, QFormLayout.ItemRole.LabelRole).widget(), {"ru": "Ширина:", "en": "Width:"})
+            manager.register(form.itemAt(2, QFormLayout.ItemRole.LabelRole).widget(), {"ru": "Высота:", "en": "Height:"})
             manager.register(buttons.button(QDialogButtonBox.StandardButton.Ok), {"ru": "ОК", "en": "OK"})
             manager.register(buttons.button(QDialogButtonBox.StandardButton.Cancel), {"ru": "Отмена", "en": "Cancel"})
 
@@ -210,6 +218,8 @@ class CanvasSizeDialog(QDialog):
         manager = getattr(parent, "localization", None)
         if manager is not None:
             manager.register(self, {"ru": "Размер холста", "en": "Canvas size"})
+            manager.register(form.itemAt(0, QFormLayout.ItemRole.LabelRole).widget(), {"ru": "Ширина:", "en": "Width:"})
+            manager.register(form.itemAt(1, QFormLayout.ItemRole.LabelRole).widget(), {"ru": "Высота:", "en": "Height:"})
             manager.register(buttons.button(QDialogButtonBox.StandardButton.Ok), {"ru": "Применить", "en": "Apply"})
             manager.register(buttons.button(QDialogButtonBox.StandardButton.Cancel), {"ru": "Отмена", "en": "Cancel"})
 
@@ -266,8 +276,8 @@ def ask_new_project(parent: QWidget | None = None) -> tuple[str, int, int] | Non
     if not name:
         QMessageBox.warning(
             parent,
-            "Некорректное название",
-            "Введите название проекта.",
+            _tr(parent, "Некорректное название", "Invalid name"),
+            _tr(parent, "Введите название проекта.", "Enter a project name."),
         )
         return None
 
@@ -319,9 +329,8 @@ def confirm_delete_layer(parent: QWidget | None, layer_name: str) -> bool:
 def show_file_exists(parent: QWidget | None = None) -> None:
     QMessageBox.warning(
         parent,
-        "Файл уже существует",
-        "Выберите другое имя или другое расположение файла. "
-        "Существующие файлы не перезаписываются.",
+        _tr(parent, "Файл уже существует", "File already exists"),
+        _tr(parent, "Выберите другое имя или другое расположение файла. Существующие файлы не перезаписываются.", "Choose another name or location. Existing files are not overwritten."),
     )
 
 
