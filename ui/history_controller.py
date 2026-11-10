@@ -72,6 +72,11 @@ class HistoryController:
         self._pending = None
         self.commit(before, pending_label or label)
 
+    def flush_pending(self) -> None:
+        """Фиксирует незавершённое действие перед сохранением или закрытием."""
+        if self._pending is not None:
+            self._finish_canvas_action("")
+
     def _refresh_actions(self) -> None:
         try:
             can_undo, can_redo = self.history.status() if self.history.project else (False, False)
