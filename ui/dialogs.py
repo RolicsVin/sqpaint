@@ -173,6 +173,7 @@ class NewProjectDialog(QDialog):
             manager.register(form.itemAt(2, QFormLayout.ItemRole.LabelRole).widget(), {"ru": "Высота:", "en": "Height:"})
             manager.register(buttons.button(QDialogButtonBox.StandardButton.Ok), {"ru": "ОК", "en": "OK"})
             manager.register(buttons.button(QDialogButtonBox.StandardButton.Cancel), {"ru": "Отмена", "en": "Cancel"})
+            manager.set_language(manager.language)
 
     def get_values(self) -> tuple[str, int, int]:
         return (
@@ -226,6 +227,7 @@ class CanvasSizeDialog(QDialog):
             manager.register(buttons.button(QDialogButtonBox.StandardButton.Ok), {"ru": "Применить", "en": "Apply"})
             manager.register(buttons.button(QDialogButtonBox.StandardButton.Cancel), {"ru": "Отмена", "en": "Cancel"})
             manager.register(form.itemAt(2, QFormLayout.ItemRole.SpanningRole).widget(), {"ru": "При уменьшении холста содержимое за его границами будет обрезано.", "en": "Content outside the canvas will be cropped when its size is reduced."})
+            manager.set_language(manager.language)
 
     def get_size(self) -> tuple[int, int]:
         return self.width_spin.value(), self.height_spin.value()
@@ -260,11 +262,12 @@ class DeleteLayerDialog(QDialog):
         if manager is not None:
             manager.register(self, {"ru": "Удаление слоя", "en": "Delete layer"})
             manager.register(layout.itemAt(0).widget(), {
-                "ru": f'Вы действительно хотите удалить слой «{layer_name}»?',
-                "en": f'Do you really want to delete layer “{layer_name}”?'
+                "ru": f'Вы уверены, что хотите удалить этот слой «{layer_name}»?',
+                "en": f'Are you sure you want to delete this layer “{layer_name}”?'
             })
             manager.register(buttons.button(QDialogButtonBox.StandardButton.Yes), {"ru": "Удалить", "en": "Delete"})
             manager.register(buttons.button(QDialogButtonBox.StandardButton.No), {"ru": "Отмена", "en": "Cancel"})
+            manager.set_language(manager.language)
 
 # ---------------------------------------------------------------------------
 # Функции-обёртки: всё, что окно показывает пользователю, живёт здесь.
