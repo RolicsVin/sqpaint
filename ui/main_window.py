@@ -429,6 +429,7 @@ class DomainWindow(QMainWindow):
 
     def set_canvas_tool(self, tool_name: str) -> None:
         if self.canvas is not None:
+            self._commit_pending_transform()
             self.canvas.set_tool(tool_name)
 
     def set_canvas_width(self, width: int) -> None:
