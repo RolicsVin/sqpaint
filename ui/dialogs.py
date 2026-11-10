@@ -2,6 +2,7 @@ from pathlib import Path
 
 from PyQt6.QtCore import Qt, pyqtSignal
 from PyQt6.QtGui import QPixmap
+from core.localization import LocalizedComboBox
 from PyQt6.QtWidgets import (
     QDialog,
     QDialogButtonBox,
@@ -47,9 +48,9 @@ class SettingsDialog(QDialog):
         view_page = QWidget(self)
         view_form = QFormLayout(view_page)
 
-        self.theme_combo = QComboBox(view_page)
-        self.theme_combo.addItem("Тёмная", "dark")
-        self.theme_combo.addItem("Светлая", "light")
+        self.theme_combo = LocalizedComboBox(view_page)
+        self.theme_combo.add_localized_item({"ru": "Тёмная", "en": "Dark"}, "dark")
+        self.theme_combo.add_localized_item({"ru": "Светлая", "en": "Light"}, "light")
         theme_index = self.theme_combo.findData(view.get("theme", "dark"))
         self.theme_combo.setCurrentIndex(max(0, theme_index))
         view_form.addRow("Тема:", self.theme_combo)
@@ -98,6 +99,9 @@ class SettingsDialog(QDialog):
             manager.register(self.toolbar_check, {"ru": "Показывать панель инструментов", "en": "Show tools panel"})
             manager.register(self.zoom_check, {"ru": "Показывать управление масштабом", "en": "Show zoom control"})
             manager.register(self.welcome_check, {"ru": "Показывать окно приветствия при запуске", "en": "Show welcome window on startup"})
+            manager.register(self.theme_combo, {})
+            self.theme_combo.set_language(manager.language)
+            self.tabs.setTabText(0, "View" if manager.language == "en" else "Вид")
 
     def _collect_settings(self) -> dict:
         """Собирает значения всех вкладок в структуру настроек."""
