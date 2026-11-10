@@ -328,10 +328,10 @@ PROJECT_FILTER = "Проекты SQPaint (*.sqlite)"
 
 # --- Запросы данных у пользователя ---
 
-def ask_new_project(parent: QWidget | None = None) -> tuple[str, int, int] | None:
+def ask_new_project(parent: QWidget | None = None) -> tuple[str, int, int, bool, int] | None:
     """Показывает диалог нового проекта.
 
-    Возвращает (название, ширина, высота) или None, если пользователь
+    Возвращает параметры проекта или None, если пользователь
     отменил диалог или ввёл пустое название.
     """
     dialog = NewProjectDialog(parent)
