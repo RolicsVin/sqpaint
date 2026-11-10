@@ -24,6 +24,13 @@ class HistoryController:
         self._refresh_actions()
         self._refresh_title()
 
+    def set_limit(self, limit: int) -> None:
+        self.history.set_limit(limit)
+        if self.window.project is not None:
+            self.window.project.max_undo_steps = self.history.limit
+        self._refresh_actions()
+        self._refresh_title()
+
     def begin(self):
         if self.history.project is None:
             return None
@@ -94,6 +101,7 @@ class HistoryController:
         active = min(canvas.active, max(0, len(project.layers) - 1))
         canvas.set_layers(project.get_layers(), active=active)
         canvas.set_document_size(project.get_width(), project.get_height())
+        canvas.supports_transparency = project.supports_transparency
         w.layer_panel.set_layers(project.get_layers())
         if project.layers:
             w.layer_panel.select_layer(active)
