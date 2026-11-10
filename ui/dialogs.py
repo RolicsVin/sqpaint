@@ -617,4 +617,4 @@ def confirm_exit(parent, has_unsaved_changes: bool) -> bool:
         QMessageBox.StandardButton.No,
     )
     return result == QMessageBox.StandardButton.Yes
-\n
+
