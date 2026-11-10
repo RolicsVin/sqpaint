@@ -280,6 +280,10 @@ class RecentProjectWindow(QWidget):
         scroll.setWidget(container)
         root.addWidget(scroll, 1)
 
+        # Применяем текущий язык после создания всех элементов стартового окна.
+        if self.localization is not None:
+            self.localization.set_language(self.localization.language)
+
     def open(self):
         self.open_project.emit()
         self.hide()
