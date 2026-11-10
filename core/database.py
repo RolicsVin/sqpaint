@@ -17,7 +17,9 @@ class ProjectDatabase:
         name       TEXT    NOT NULL,
         width      INTEGER NOT NULL,
         height     INTEGER NOT NULL,
-        created_at TEXT    NOT NULL
+        created_at TEXT    NOT NULL,
+        max_undo_steps INTEGER NOT NULL DEFAULT 20,
+        history_cursor INTEGER NOT NULL DEFAULT 0
     );
 
     CREATE TABLE layers (
@@ -31,6 +33,14 @@ class ProjectDatabase:
     CREATE TABLE logs (
         id         INTEGER PRIMARY KEY,
         log        TEXT NOT NULL,
+        created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+    );
+
+    CREATE TABLE action_history (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        command_type TEXT NOT NULL,
+        before_state BLOB NOT NULL,
+        after_state BLOB NOT NULL,
         created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
     );
     """
@@ -50,6 +60,7 @@ class ProjectDatabase:
         conn = sqlite3.connect(path)
         try:
             conn.executescript(self.SCHEMA)
+            self._ensure_history_schema(conn)
             with conn:
                 conn.execute(
                     "INSERT INTO project (id, name, width, height, created_at) "
@@ -75,6 +86,7 @@ class ProjectDatabase:
         # текущее соединение и открытый в интерфейсе проект остаются нетронутыми.
         conn = sqlite3.connect(path)
         try:
+            self._ensure_history_schema(conn)
             row = conn.execute(
                 "SELECT name, width, height, created_at FROM project WHERE id = 1"
             ).fetchone()
@@ -144,6 +156,67 @@ class ProjectDatabase:
 
         return self.load(path)
 
+    @staticmethod
+    def _ensure_history_schema(conn: sqlite3.Connection) -> None:
+        """Мигрирует старые проекты и создаёт таблицу истории."""
+        columns = {row[1] for row in conn.execute("PRAGMA table_info(project)")}
+        if "max_undo_steps" not in columns:
+            conn.execute("ALTER TABLE project ADD COLUMN max_undo_steps INTEGER NOT NULL DEFAULT 20")
+        if "history_cursor" not in columns:
+            conn.execute("ALTER TABLE project ADD COLUMN history_cursor INTEGER NOT NULL DEFAULT 0")
+        conn.execute("""CREATE TABLE IF NOT EXISTS action_history (
+            id INTEGER PRIMARY KEY AUTOINCREMENT, command_type TEXT NOT NULL,
+            before_state BLOB NOT NULL, after_state BLOB NOT NULL,
+            created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP)""")
+
+    def record_history(self, project: Project, before_state: bytes, after_state: bytes, command_type: str) -> None:
+        """Сохраняет проект и новую команду в одной транзакции."""
+        self._require_conn()
+        with self.conn:
+            self.conn.execute("UPDATE project SET name=?, width=?, height=? WHERE id=1", (project.name, project.width, project.height))
+            self.conn.execute("DELETE FROM layers")
+            self._write_layers(project, self.conn)
+            cursor, limit = self.conn.execute("SELECT history_cursor, max_undo_steps FROM project WHERE id=1").fetchone()
+            self.conn.execute("DELETE FROM action_history WHERE id > ?", (cursor,))
+            self.conn.execute("INSERT INTO action_history(command_type,before_state,after_state) VALUES(?,?,?)", (command_type, sqlite3.Binary(before_state), sqlite3.Binary(after_state)))
+            self.conn.execute("UPDATE project SET history_cursor=last_insert_rowid() WHERE id=1")
+            self.conn.execute("DELETE FROM action_history WHERE id NOT IN (SELECT id FROM action_history ORDER BY id DESC LIMIT ?)", (max(1, int(limit)),))
+
+    def get_history_entry(self, direction: str) -> dict | None:
+        """Возвращает соседнюю команду, не изменяя курсор."""
+        self._require_conn()
+        cursor = self.conn.execute("SELECT history_cursor FROM project WHERE id=1").fetchone()[0]
+        if direction == "undo":
+            row = self.conn.execute("SELECT id,before_state FROM action_history WHERE id=?", (cursor,)).fetchone()
+            if row is None: return None
+            previous = self.conn.execute("SELECT COALESCE(MAX(id),0) FROM action_history WHERE id < ?", (cursor,)).fetchone()[0]
+            return {"id": row[0], "before_state": row[1], "previous_cursor": previous}
+        if direction == "redo":
+            row = self.conn.execute("SELECT id,after_state FROM action_history WHERE id > ? ORDER BY id LIMIT 1", (cursor,)).fetchone()
+            return None if row is None else {"id": row[0], "after_state": row[1]}
+        raise ValueError("direction должен быть 'undo' или 'redo'")
+
+    def restore_history_state(self, project: Project, cursor: int) -> None:
+        """Сохраняет восстановленное состояние и курсор одной транзакцией."""
+        self._require_conn()
+        with self.conn:
+            self.conn.execute("UPDATE project SET name=?,width=?,height=?,history_cursor=? WHERE id=1", (project.name, project.width, project.height, int(cursor)))
+            self.conn.execute("DELETE FROM layers")
+            self._write_layers(project, self.conn)
+
+    def history_status(self) -> tuple[bool, bool]:
+        self._require_conn()
+        cursor = self.conn.execute("SELECT history_cursor FROM project WHERE id=1").fetchone()[0]
+        undo = self.conn.execute("SELECT 1 FROM action_history WHERE id=?", (cursor,)).fetchone() is not None
+        redo = self.conn.execute("SELECT 1 FROM action_history WHERE id>? LIMIT 1", (cursor,)).fetchone() is not None
+        return undo, redo
+
+    def set_history_limit(self, limit: int) -> None:
+        self._require_conn()
+        limit = max(1, int(limit))
+        with self.conn:
+            self.conn.execute("UPDATE project SET max_undo_steps=? WHERE id=1", (limit,))
+            self.conn.execute("DELETE FROM action_history WHERE id NOT IN (SELECT id FROM action_history ORDER BY id DESC LIMIT ?)", (limit,))
     def close(self) -> None:
         """Закрывает соединение с файлом проекта."""
         if self.conn is not None:
