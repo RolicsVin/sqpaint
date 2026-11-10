@@ -94,6 +94,9 @@ class Canvas(QWidget):
         if tool_name != self.CROP:
             self.crop_start = None
             self.crop_rect = None
+            self.setCursor(Qt.CursorShape.ArrowCursor)
+        else:
+            self.setCursor(Qt.CursorShape.CrossCursor)
         self.update()
 
     def _document_pos(self, event) -> QPoint:
