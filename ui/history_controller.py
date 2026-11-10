@@ -22,6 +22,7 @@ class HistoryController:
         canvas.history_started.connect(self._begin_canvas_action)
         canvas.history_finished.connect(self._finish_canvas_action)
         self._refresh_actions()
+        self._refresh_title()
 
     def begin(self):
         if self.history.project is None:
@@ -31,6 +32,21 @@ class HistoryController:
     def export_for_save(self) -> dict:
         """Подготавливает историю для записи при явном сохранении проекта."""
         return self.history.export_for_save()
+
+    def mark_saved(self) -> None:
+        self.history.mark_saved()
+        self._refresh_title()
+
+    def is_dirty(self) -> bool:
+        return self.history.is_dirty()
+
+    def _refresh_title(self) -> None:
+        project = self.window.project
+        if project is None:
+            self.window.setWindowTitle("SQPaint")
+            return
+        suffix = " *" if self.is_dirty() else ""
+        self.window.setWindowTitle(f"SQPaint — {project.get_name()}{suffix}")
 
     def commit(self, before, label: str) -> bool:
         if before is None:
@@ -42,6 +58,7 @@ class HistoryController:
             self._show_error("История действий", "Action history", error)
             return False
         self._refresh_actions()
+        self._refresh_title()
         return changed
 
     def _begin_canvas_action(self, label: str) -> None:
@@ -77,7 +94,7 @@ class HistoryController:
             w.layer_panel.select_layer(active)
         w.canvas_view.viewport().update()
         w.canvas_view.zoom_changed.emit(round(w.canvas_view.zoom * 100))
-        w.setWindowTitle(f"SQPaint — {project.get_name()}")
+        self._refresh_title()
         self._refresh_actions()
 
     def undo(self) -> None:
