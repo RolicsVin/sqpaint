@@ -189,8 +189,10 @@ class RecentProjectWindow(QWidget):
     open_project = pyqtSignal()
     create_project = pyqtSignal()
 
-    def __init__(self, localization=None):
-        super().__init__()
+    def __init__(self, localization=None, parent=None):
+        # Отдельное окно, принадлежащее главному окну: закрывается вместе с ним.
+        super().__init__(parent)
+        self.setWindowFlag(Qt.Window, True)
         self.localization = localization
         self.setObjectName("startWindow")
         self.setAttribute(Qt.WidgetAttribute.WA_StyledBackground, True)
