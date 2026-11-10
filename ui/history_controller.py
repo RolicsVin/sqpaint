@@ -36,6 +36,7 @@ class HistoryController:
         try:
             changed = self.history.commit(before, label)
         except (OSError, sqlite3.Error, RuntimeError, ValueError) as error:
+            self._refresh_document()
             self._show_error("История действий", "Action history", error)
             return False
         self._refresh_actions()
