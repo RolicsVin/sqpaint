@@ -44,7 +44,7 @@ class DocumentController:
             return
         try:
             project = self.w.database.create(path, name, width, height, supports_transparency, max_undo_steps)
-            project.create_layer(fill=0xFFFFFFFF)
+            project.create_layer(fill=0 if supports_transparency else 0xFFFFFFFF)
             self.w.database.save(project)
         except (OSError, sqlite3.Error, ValueError, RuntimeError) as error:
             show_create_error(self.w, error)
