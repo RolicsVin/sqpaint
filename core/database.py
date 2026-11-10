@@ -40,12 +40,12 @@ class ProjectDatabase:
         self.conn: sqlite3.Connection | None = None
         self._loaded_history: dict | None = None
 
-    def create(self, path: str, name: str, width: int, height: int) -> Project:
+    def create(self, path: str, name: str, width: int, height: int, supports_transparency: bool = True, max_undo_steps: int = 10) -> Project:
         """Создаёт новый файл проекта и возвращает Project."""
         if os.path.exists(path):
             raise FileExistsError(f"Файл уже существует: {path}")
 
-        project = Project(name, width, height, datetime.now(), path, [])
+        project = Project(name, width, height, datetime.now(), path, [], bool(supports_transparency), max(1, int(max_undo_steps)))
 
         self.close()
         conn = sqlite3.connect(path)
@@ -96,13 +96,12 @@ class ProjectDatabase:
                 )
             ]
 
+            project_columns = {item[1] for item in conn.execute("PRAGMA table_info(project)")}
+            supports_transparency = bool(conn.execute("SELECT supports_transparency FROM project WHERE id=1").fetchone()[0]) if "supports_transparency" in project_columns else True
+            project_history_limit = int(conn.execute("SELECT max_undo_steps FROM project WHERE id=1").fetchone()[0]) if "max_undo_steps" in project_columns else 10
             project = Project(
-                row[0],
-                width,
-                height,
-                str_to_datetime(row[3]),
-                path,
-                layers,
+                row[0], width, height, str_to_datetime(row[3]), path, layers,
+                supports_transparency, max(1, project_history_limit),
             )
 
             # Читаем историю без изменения файла при открытии проекта.
@@ -123,7 +122,7 @@ class ProjectDatabase:
                 ).fetchone()[0]
                 max_steps = (
                     conn.execute("SELECT max_undo_steps FROM project WHERE id=1").fetchone()[0]
-                    if "max_undo_steps" in columns else 20
+                    if "max_undo_steps" in columns else 10
                 )
                 cursor_index = sum(
                     1 for item in conn.execute("SELECT id FROM action_history ORDER BY id")
@@ -155,15 +154,16 @@ class ProjectDatabase:
         """Сохраняет документ и историю только по явной команде пользователя."""
         self._require_conn()
         self._ensure_history_schema(self.conn)
-        history_data = history_data or {"records": [], "cursor": 0, "limit": 20}
+        history_data = history_data or {"records": [], "cursor": 0, "limit": getattr(project, "max_undo_steps", 10)}
 
         with self.conn:
             self.conn.execute(
-                "UPDATE project SET name=?, width=?, height=?, history_cursor=?, max_undo_steps=? WHERE id=1",
+                "UPDATE project SET name=?, width=?, height=?, history_cursor=?, max_undo_steps=?, supports_transparency=? WHERE id=1",
                 (
                     project.name, project.width, project.height,
                     int(history_data.get("cursor", 0)),
-                    max(1, int(history_data.get("limit", 20))),
+                    max(1, int(history_data.get("limit", getattr(project, "max_undo_steps", 10)))),
+                    int(bool(project.supports_transparency)),
                 ),
             )
             self.conn.execute("DELETE FROM layers")
@@ -214,7 +214,11 @@ class ProjectDatabase:
         columns = {row[1] for row in conn.execute("PRAGMA table_info(project)")}
         if "max_undo_steps" not in columns:
             conn.execute(
-                "ALTER TABLE project ADD COLUMN max_undo_steps INTEGER NOT NULL DEFAULT 20"
+                "ALTER TABLE project ADD COLUMN max_undo_steps INTEGER NOT NULL DEFAULT 10"
+            )
+        if "supports_transparency" not in columns:
+            conn.execute(
+                "ALTER TABLE project ADD COLUMN supports_transparency INTEGER NOT NULL DEFAULT 1"
             )
         if "history_cursor" not in columns:
             conn.execute(
