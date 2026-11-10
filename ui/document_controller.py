@@ -69,6 +69,7 @@ class DocumentController:
         if self.w.project is None:
             return
         self.w._commit_pending_transform()
+        self.w.history_controller.flush_pending()
         try:
             with OperationDialog(self.w, "Файл сохраняется...", "Saving file..."):
                 self.w.database.save(
@@ -82,6 +83,7 @@ class DocumentController:
         if self.w.project is None:
             return
         self.w._commit_pending_transform()
+        self.w.history_controller.flush_pending()
         path = ask_save_as_path(self.w, self.w.project.get_name())
         if not path:
             return
