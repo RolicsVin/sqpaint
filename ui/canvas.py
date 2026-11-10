@@ -100,6 +100,8 @@ class Canvas(QWidget):
         if self.last is not None and self.active_tool in (self.BRUSH, self.ERASER):
             label = "PaintStroke" if self.active_tool == self.BRUSH else "EraseStroke"
             self.history_finished.emit(label)
+        if self.shape_start is not None:
+            self.history_finished.emit("DrawShape")
         self.shape_start = self.shape_current = None
         self.active_tool = tool_name
         self.last = None
@@ -375,6 +377,8 @@ class Canvas(QWidget):
 
     def mouseReleaseEvent(self, e):
         if e.button() == Qt.MouseButton.LeftButton and self.shape_start is not None:
+            self.shape_current = QPointF(e.position().x() / self.zoom,
+                                         e.position().y() / self.zoom)
             if self.layers and 0 <= self.active < len(self.layers):
                 layer = self.layers[self.active]
                 if layer.visible and self.shape_current is not None:
