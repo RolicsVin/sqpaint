@@ -1,10 +1,8 @@
 from PyQt6.QtCore import Qt, pyqtSignal
 from PyQt6.QtGui import QColor
-from PyQt6.QtWidgets import (
-    QWidget, QPushButton, QLabel, QHBoxLayout, QColorDialog,
-    QComboBox, QSlider,
-)
-from ui.zoom_control import ZoomControl\nfrom core.localization import LocalizedLabel, LocalizedButton, LocalizedComboBox
+from PyQt6.QtWidgets import QWidget, QHBoxLayout, QColorDialog, QSlider
+from core.localization import LocalizedLabel, LocalizedButton, LocalizedComboBox
+from ui.zoom_control import ZoomControl
 
 
 class ToolBar(QWidget):
@@ -18,29 +16,24 @@ class ToolBar(QWidget):
         super().__init__(parent=parent)
         self.setFixedHeight(self.HEIGHT)
         self.current_color = QColor("black")
+        self._language = "ru"
         self.Hlayout = QHBoxLayout(self)
 
         self.color_btn = LocalizedButton(parent=self)
         self.color_btn.setFixedSize(44, 28)
-        self.color_btn.setToolTip("Выбрать цвет")\n        self.color_btn.add_localization("en", "Choose color")
+        self.color_btn.setToolTip("Выбрать цвет")
         self.update_color_button()
         self.color_btn.clicked.connect(self.choose_color)
 
-        self.tools_combo = QComboBox(self)
-        self.tools_combo.addItem("🖌 Кисть", "brush")
-        self.tools_combo.addItem("🧽 Ластик", "eraser")
-        self.tools_combo.addItem("🪣 Заливка", "fill")
-        self.tools_combo.addItem("✂️ Кадрирование", "crop")
-        for index, name in enumerate(("Кисть", "Ластик", "Заливка", "Кадрирование")):
-            self.tools_combo.setItemData(index, name, Qt.ItemDataRole.ToolTipRole)
-        self.tools_combo.setItemData(
-            3,
-            "Кадрирование: выделите область мышью, Enter — применить, Esc — отменить",
-            Qt.ItemDataRole.ToolTipRole,
-        )
+        self.tools_combo = LocalizedComboBox(self)
+        self.tools_combo.add_localized_item({"ru": "🖌 Кисть", "en": "🖌 Brush"}, "brush")
+        self.tools_combo.add_localized_item({"ru": "🧽 Ластик", "en": "🧽 Eraser"}, "eraser")
+        self.tools_combo.add_localized_item({"ru": "🪣 Заливка", "en": "🪣 Fill"}, "fill")
+        self.tools_combo.add_localized_item({"ru": "✂️ Кадрирование", "en": "✂️ Crop"}, "crop")
         self.tools_combo.currentIndexChanged.connect(self.on_tool_changed)
 
-        self.size_label = LocalizedLabel("Размер:")\n        self.size_label.add_localization("en", "Size:")
+        self.size_label = LocalizedLabel("Размер:")
+        self.size_label.add_localization("en", "Size:")
         self.size_slider = QSlider(Qt.Orientation.Horizontal, self)
         self.size_slider.setRange(1, 100)
         self.size_slider.setValue(4)
@@ -49,7 +42,8 @@ class ToolBar(QWidget):
         self.size_value_label = LocalizedLabel("4 px")
         self.size_slider.valueChanged.connect(self.on_size_changed)
 
-        self.zoom_label = LocalizedLabel("Масштаб:")\n        self.zoom_label.add_localization("en", "Zoom:")
+        self.zoom_label = LocalizedLabel("Масштаб:")
+        self.zoom_label.add_localization("en", "Zoom:")
         self.zoom_control = ZoomControl(self)
         self.zoom_control.zoom_changed.connect(self.zoom_changed)
 
@@ -63,10 +57,15 @@ class ToolBar(QWidget):
         self.Hlayout.addWidget(self.zoom_control)
 
     def set_language(self, language: str) -> None:
+        self._language = language
         self.tools_combo.set_language(language)
         self.size_label.set_language(language)
         self.zoom_label.set_language(language)
-        self.color_btn.set_language(language)
+        self.color_btn.setToolTip("Выбрать цвет" if language == "ru" else "Choose color")
+        self.size_slider.setToolTip(
+            "Толщина кисти и ластика" if language == "ru"
+            else "Brush and eraser thickness"
+        )
 
     def on_tool_changed(self, index: int) -> None:
         self.tool_selected.emit(self.tools_combo.itemData(index))
@@ -91,7 +90,8 @@ class ToolBar(QWidget):
         )
 
     def choose_color(self):
-        color = QColorDialog.getColor(self.current_color, self, "Выбор цвета" if self.color_btn._language == "ru" else "Choose color")
+        title = "Выбор цвета" if self._language == "ru" else "Choose color"
+        color = QColorDialog.getColor(self.current_color, self, title)
         if color.isValid():
             self.current_color = color
             self.update_color_button()
