@@ -256,6 +256,8 @@ class DomainWindow(QMainWindow):
         self.document_controller.open_file_info()
 
     def closeEvent(self, event) -> None:
+        self._commit_pending_transform()
+        self.history_controller.flush_pending()
         has_unsaved_changes = (
             self.history_controller.is_dirty() if self.project is not None else False
         )
