@@ -189,8 +189,9 @@ class RecentProjectWindow(QWidget):
     open_project = pyqtSignal()
     create_project = pyqtSignal()
 
-    def __init__(self):
+    def __init__(self, localization=None):
         super().__init__()
+        self.localization = localization
         self.setObjectName("startWindow")
         self.setAttribute(Qt.WidgetAttribute.WA_StyledBackground, True)
         self.setStyleSheet(STYLE)
@@ -253,6 +254,14 @@ class RecentProjectWindow(QWidget):
         root.addWidget(section)
         root.addSpacing(10)
 
+        if self.localization is not None:
+            self.localization.register(self, {"ru": "Недавние проекты", "en": "Recent projects"})
+            self.localization.register(title, {"ru": "Добро пожаловать в SQPaint!", "en": "Welcome to SQPaint!"})
+            self.localization.register(subtitle, {"ru": "Растровый редактор, проекты хранятся в .sqlite", "en": "Raster editor; projects are stored in .sqlite"})
+            self.localization.register(self.create_button, {"ru": "Создать проект", "en": "Create project"})
+            self.localization.register(self.open_button, {"ru": "Открыть проект…", "en": "Open project…"})
+            self.localization.register(section, {"ru": "НЕДАВНИЕ ПРОЕКТЫ", "en": "RECENT PROJECTS"})
+
         scroll = QScrollArea()
         scroll.setObjectName("projectsScroll")
         scroll.setWidgetResizable(True)
@@ -289,6 +298,8 @@ class RecentProjectWindow(QWidget):
             )
             empty.setObjectName("emptyLabel")
             empty.setAlignment(Qt.AlignmentFlag.AlignCenter)
+            if self.localization is not None:
+                self.localization.register(empty, {"ru": "Пока нет недавних проектов.\\nСоздайте новый или откройте существующий.", "en": "No recent projects yet.\\nCreate a new project or open an existing one."})
             self.Vlayout.addWidget(empty, 1)
             return
 
