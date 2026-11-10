@@ -2,8 +2,8 @@ import os
 import sqlite3
 
 from PyQt6.QtCore import Qt
-from PyQt6.QtGui import QAction, QImage
-from PyQt6.QtWidgets import QApplication, QDialog, QMainWindow, QMenu, QMessageBox
+from PyQt6.QtGui import QAction
+from PyQt6.QtWidgets import QApplication, QMainWindow, QMessageBox
 
 from core.database import ProjectDatabase
 from core.models import Project
@@ -18,6 +18,7 @@ from ui.view_manager import ViewManager
 from ui.document_controller import DocumentController
 from ui.localization_controller import WindowLocalizationController
 from ui.preferences_controller import PreferencesController
+from ui.menu_controller import MenuController
 from ui.dialogs import *
 
 
@@ -37,108 +38,8 @@ class DomainWindow(QMainWindow):
         if screen is not None:
             self.setGeometry(screen.availableGeometry())
 
-        self.menu_bar = self.menuBar()
-        self.file_menu = self.menu_bar.addMenu("Файл")
-        self.edit_menu = self.menu_bar.addMenu("Правка")
-        self.view_menu = self.menu_bar.addMenu("Вид")
-        self.help_menu = self.menu_bar.addMenu("Справка")
-
-        self.new_action = QAction("Создать", self)
-        self.open_action = QAction("Открыть", self)
-        self.save_action = QAction("Сохранить", self)
-        self.save_as_action = QAction("Сохранить как", self)
-        self.export_submenu = QMenu("Экспортировать", self)
-        self.import_action = QAction("Импортировать", self)
-        self.exit_action = QAction("Выход", self)
-        self.file_info = QAction("О файле", self)
-        self.export_png = self.export_submenu.addAction("PNG")
-        self.export_jpg = self.export_submenu.addAction("JPG")
-
-        for action in (self.new_action, self.open_action, self.save_action, self.save_as_action):
-            self.file_menu.addAction(action)
-        
-        self.file_menu.addSeparator()
-        self.file_menu.addMenu(self.export_submenu)
-        self.file_menu.addAction(self.import_action)
-        self.file_menu.addSeparator()
-        self.file_menu.addAction(self.exit_action)
-        self.file_menu.addSeparator()
-        self.file_menu.addAction(self.file_info)
-
-        self.new_action.triggered.connect(self.create_project)
-        self.open_action.triggered.connect(self.open_project)
-        self.save_action.triggered.connect(self.save)
-        self.save_as_action.triggered.connect(self.save_as)
-        self.import_action.triggered.connect(self.create_project_from_image)
-        self.export_png.triggered.connect(lambda: self.export_image("png"))
-        self.export_jpg.triggered.connect(lambda: self.export_image("jpg"))
-        self.exit_action.triggered.connect(self.close)
-        self.file_info.triggered.connect(self.open_file_info)
-        self.save_action.setEnabled(False)
-        self.save_as_action.setEnabled(False)
-        self.export_submenu.setEnabled(False)
-        self.import_action.setEnabled(True)
-        self.file_info.setEnabled(False)
-
-        self.canvas_size = QAction("Размер холста", self)
-        self.paste_as_layer_action = QAction("Вставить как слой", self)
-        self.selfie_action = QAction("Сделать селфи", self)
-        self.settings_action = QAction("Настройки", self)
-        self.edit_menu.addAction(self.canvas_size)
-        self.edit_menu.addAction(self.paste_as_layer_action)
-        self.edit_menu.addAction(self.selfie_action)
-        self.edit_menu.addAction(self.settings_action)
-        self.canvas_size.triggered.connect(self.change_canvas_size)
-        self.canvas_size.setEnabled(False)
-        self.paste_as_layer_action.triggered.connect(self.import_image)
-        self.selfie_action.triggered.connect(self.take_selfie)
-        self.selfie_action.setEnabled(False)
-        self.settings_action.triggered.connect(self.open_settings)
-
-        self.sub_windows = QMenu("Окна", self)
-        self.layers_panel_viewer = QAction("Панель слоёв", self)
-        self.tool_bar_viewer = QAction("Панель инструментов", self)
-        self.scroller_viewer = QAction("Ползунок масштаба", self)
-        for action in (self.layers_panel_viewer, self.tool_bar_viewer, self.scroller_viewer):
-            action.setCheckable(True)
-        self.sub_windows.addAction(self.layers_panel_viewer)
-        self.sub_windows.addAction(self.tool_bar_viewer)
-        self.sub_windows.addAction(self.scroller_viewer)
-
-        self.theme = QMenu("Тема", self)
-        self.dark_theme = QAction("Тёмная тема", self)
-        self.white_theme = QAction("Светлая тема", self)
-        self.theme.addAction(self.dark_theme)
-        self.theme.addAction(self.white_theme)
-
-        self.langague = QMenu("Язык", self)
-        self.ru = QAction("Русский", self)
-        self.en = QAction("English", self)
-        self.ru.setCheckable(True)
-        self.en.setCheckable(True)
-        self.langague.addAction(self.ru)
-        self.langague.addAction(self.en)
-        self.ru.triggered.connect(lambda checked=False: self._set_language("ru"))
-        self.en.triggered.connect(lambda checked=False: self._set_language("en"))
-        self.start_window_view_button = QAction("Показывать окно приветствия при запуске", self)
-        self.start_window_view_button.setCheckable(True)
-        self.view_menu.addMenu(self.sub_windows)
-        self.view_menu.addMenu(self.theme)
-        self.view_menu.addMenu(self.langague)
-        self.view_menu.addAction(self.start_window_view_button)
-
-        self.layers_panel_viewer.toggled.connect(self._on_layer_panel_visibility_changed)
-        self.tool_bar_viewer.toggled.connect(self._on_toolbar_visibility_changed)
-        self.scroller_viewer.toggled.connect(self._on_zoom_visibility_changed)
-        self.dark_theme.triggered.connect(lambda: self._set_theme("dark"))
-        self.white_theme.triggered.connect(lambda: self._set_theme("light"))
-        self.start_window_view_button.toggled.connect(self._on_welcome_preference_changed)
-
-        self.tutorial_action = QAction("Обучение", self)
-        self.about_action = QAction("О программе", self)
-        self.help_menu.addAction(self.tutorial_action)
-        self.help_menu.addAction(self.about_action)
-        self.about_action.triggered.connect(lambda: show_about(self))
+        self.menu_controller = MenuController(self)
+        self.menu_controller.build()
 
         self.tool_bar = ToolBar(self)
         saved_language = self.settings_data.get("language", "ru")
