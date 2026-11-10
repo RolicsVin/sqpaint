@@ -292,6 +292,7 @@ class RecentProjectWindow(QWidget):
     def apply_theme(self, theme: str) -> None:
         """Переключает оформление стартового окна и строк проектов."""
         dark = theme != "light"
+        self._theme = "dark" if dark else "light"
         colors = {
             "#1e1e1e": "#1e1e1e" if dark else "#f4f4f4",
             "#e6e6e6": "#e6e6e6" if dark else "#202020",
@@ -339,6 +340,10 @@ class RecentProjectWindow(QWidget):
 
         for name, path, date in projects:
             row = ProjectRow(name, path, datetime_to_str(date))
+            if getattr(self, "_theme", "dark") == "light":
+                row.color_normal = "#ffffff"
+                row.color_hover = "#e8e8e8"
+                row.set_color(row.color_normal)
             row.clicked.connect(lambda r=row: self._project_change(r))
             self.project_rows.append(row)
             self.Vlayout.addWidget(row)
