@@ -27,10 +27,11 @@ class ToolBar(QWidget):
         self.color_btn.clicked.connect(self.choose_color)
 
         self.tools_combo = QComboBox(self)
-        self.tools_combo.addItem("🖌", "brush")
-        self.tools_combo.addItem("🧽", "eraser")
-        self.tools_combo.addItem("🪣", "fill")
-        for index, name in enumerate(("Кисть", "Ластик", "Заливка")):
+        self.tools_combo.addItem("🖌 Кисть", "brush")
+        self.tools_combo.addItem("🧽 Ластик", "eraser")
+        self.tools_combo.addItem("🪣 Заливка", "fill")
+        self.tools_combo.addItem("✂️ Кадрирование", "crop")
+        for index, name in enumerate(("Кисть", "Ластик", "Заливка", "Кадрирование")):
             self.tools_combo.setItemData(index, name, Qt.ItemDataRole.ToolTipRole)
         self.tools_combo.currentIndexChanged.connect(self.on_tool_changed)
 
