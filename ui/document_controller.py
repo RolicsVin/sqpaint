@@ -11,7 +11,6 @@ from PyQt6.QtGui import QImage
 from PyQt6.QtWidgets import QDialog, QMessageBox
 
 from core.exporter import Exporter
-from services import recent_projects
 from ui.selfie_dialog import SelfieDialog
 from ui.dialogs import (
     ask_new_project, ask_save_project_path, ask_open_project_path,
@@ -145,7 +144,7 @@ class DocumentController:
         panel.select_layer(index)
 
     def remove_layer(self, layer) -> None:
-        project, canvas, panel = self.w.project, self.w.canvas, self.w.layer_panel
+        project, canvas = self.w.project, self.w.canvas
         if project is None or canvas is None or layer not in project.get_layers():
             return
         if len(project.get_layers()) <= 1:
