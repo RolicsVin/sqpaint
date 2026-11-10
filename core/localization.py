@@ -83,6 +83,9 @@ class LocalizationManager:
     def register(self, widget, translations: dict[str, str]):
         """Register a Qt widget/action/menu. Returns the same object for convenience."""
         translations = dict(translations)
+        if isinstance(widget, (LocalizedLabel, LocalizedButton)):
+            for language, text in translations.items():
+                widget.add_localization(language, text)
         self._widgets.append((widget, translations))
         self._apply_one(widget, translations)
         return widget
