@@ -58,21 +58,24 @@ class DocumentController:
         if not path:
             return
         try:
-            project = self.w.database.load(path)
-        except (OSError, sqlite3.Error, ValueError, TypeError) as error:
+            with OperationDialog(self.w, "Файл открывается...", "Opening file..."):
+                project = self.w.database.load(path)
+                self.w.set_project(project)
+        except (OSError, sqlite3.Error, ValueError, TypeError, RuntimeError) as error:
             show_open_error(self.w, error)
             return
-        self.w.set_project(project)
 
     def save(self) -> None:
         if self.w.project is None:
             return
         self.w._commit_pending_transform()
         try:
-            self.w.database.save(
-                self.w.project, self.w.history_controller.export_for_save()
-            )
-        except (OSError, sqlite3.Error, RuntimeError, ValueError) as error:
+            with OperationDialog(self.w, "Файл сохраняется...", "Saving file..."):
+                self.w.database.save(
+                    self.w.project, self.w.history_controller.export_for_save()
+                )
+            self.w.history_controller.mark_saved()
+        except (OSError, sqlite3.Error, RuntimeError, ValueError, MemoryError) as error:
             show_save_error(self.w, error)
 
     def save_as(self) -> None:
@@ -86,11 +89,12 @@ class DocumentController:
             show_file_exists(self.w)
             return
         try:
-            project = self.w.database.save_as(
-                path, self.w.project, self.w.history_controller.export_for_save()
-            )
-            self.w.set_project(project)
-        except (OSError, sqlite3.Error, ValueError, RuntimeError) as error:
+            with OperationDialog(self.w, "Файл сохраняется...", "Saving file..."):
+                project = self.w.database.save_as(
+                    path, self.w.project, self.w.history_controller.export_for_save()
+                )
+                self.w.set_project(project)
+        except (OSError, sqlite3.Error, ValueError, RuntimeError, MemoryError) as error:
             show_save_error(self.w, error)
 
     def change_canvas_size(self) -> None:
