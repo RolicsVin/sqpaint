@@ -455,8 +455,8 @@ class FileInfoDialog(QDialog):
                 connection.close()
         except sqlite3.Error as error:
             QMessageBox.critical(
-                self, "Ошибка чтения файла",
-                f"Не удалось прочитать содержимое SQLite-файла.\\n\\n{error}",
+                self, _tr(parent, "Ошибка чтения файла", "File read error"),
+                _tr(parent, f"Не удалось прочитать содержимое SQLite-файла.\\n\\n{error}", f"Could not read the SQLite file contents.\\n\\n{error}"),
             )
 
     @staticmethod
