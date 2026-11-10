@@ -37,10 +37,18 @@ class HistoryManager:
             self.limit = max(1, int(saved_history.get("limit", self.limit)))
             records = saved_history.get("records", [])
             if records:
-                self._states.append(self._decode_state(records[0]["before_state"]))
+                self._states.append(self._decode_state(
+                    records[0]["before_state"],
+                    project.supports_transparency,
+                    project.max_undo_steps,
+                ))
                 for record in records:
                     self._labels.append(record["command_type"])
-                    self._states.append(self._decode_state(record["after_state"]))
+                    self._states.append(self._decode_state(
+                        record["after_state"],
+                        project.supports_transparency,
+                        project.max_undo_steps,
+                    ))
                 self._cursor = max(0, min(int(saved_history.get("cursor", len(records))), len(records)))
                 self.mark_saved()
                 return
@@ -183,7 +191,9 @@ class HistoryManager:
         return zlib.compress(raw, level=6)
 
     @staticmethod
-    def _decode_state(payload: bytes) -> dict:
+    def _decode_state(
+        payload: bytes, fallback_transparency: bool = True, fallback_limit: int = 10
+    ) -> dict:
         from PyQt6.QtCore import QByteArray
         state = json.loads(zlib.decompress(payload).decode("utf-8"))
         layers = []
@@ -203,8 +213,8 @@ class HistoryManager:
             "width": int(state["width"]),
             "height": int(state["height"]),
             "created_at": datetime.fromisoformat(state["created_at"]),
-            "supports_transparency": bool(state.get("supports_transparency", True)),
-            "max_undo_steps": max(1, int(state.get("max_undo_steps", 10))),
+            "supports_transparency": bool(state.get("supports_transparency", fallback_transparency)),
+            "max_undo_steps": max(1, int(state.get("max_undo_steps", fallback_limit))),
             "layers": layers,
         }
 
