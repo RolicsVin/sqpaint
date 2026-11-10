@@ -178,6 +178,23 @@ class Project:
         self.width = width
         self.height = height
 
+    def crop(self, x: int, y: int, width: int, height: int) -> None:
+        """Обрезает документ и все слои по заданной области."""
+        x, y, width, height = int(x), int(y), int(width), int(height)
+        if width <= 0 or height <= 0:
+            raise ValueError("Размер области кадрирования должен быть положительным.")
+        if x < 0 or y < 0 or x + width > self.width or y + height > self.height:
+            raise ValueError("Область кадрирования выходит за границы холста.")
+
+        cropped_images = [
+            layer.image.copy(x, y, width, height)
+            for layer in self.layers
+        ]
+        for layer, image in zip(self.layers, cropped_images):
+            layer.image = image
+        self.width = width
+        self.height = height
+
     def _normalize_layer_order(self) -> None:
         """Поддерживает непрерывный z_order в порядке списка слоёв."""
         for z_order, layer in enumerate(self.layers):
