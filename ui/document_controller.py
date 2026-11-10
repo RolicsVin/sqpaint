@@ -12,13 +12,7 @@ from PyQt6.QtWidgets import QDialog, QMessageBox
 
 from core.exporter import Exporter
 from ui.selfie_dialog import SelfieDialog
-from ui.dialogs import (
-    ask_new_project, ask_save_project_path, ask_open_project_path,
-    ask_canvas_size, ask_save_as_path, ask_import_image_path,
-    ask_export_image_path, show_file_exists, show_create_error,
-    show_open_error, show_save_error, show_last_layer_info,
-    confirm_delete_layer, show_file_info,
-)
+from ui.dialogs import *
 
 
 class DocumentController:
