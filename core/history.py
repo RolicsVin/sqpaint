@@ -17,7 +17,7 @@ from core.models import Layer
 class HistoryManager:
     """Хранит ограниченную линейную историю состояний документа в RAM."""
 
-    def __init__(self, database=None, limit: int = 20):
+    def __init__(self, database=None, limit: int = 10):
         self.database = database  # Оставлено для совместимости конструктора контроллера.
         self.project = None
         self.limit = max(1, int(limit))
@@ -28,6 +28,7 @@ class HistoryManager:
 
     def set_project(self, project, saved_history=None) -> None:
         self.project = project
+        self.limit = max(1, int(getattr(project, "max_undo_steps", 10)))
         self._states = []
         self._labels = []
         self._cursor = 0
@@ -36,16 +37,33 @@ class HistoryManager:
             self.limit = max(1, int(saved_history.get("limit", self.limit)))
             records = saved_history.get("records", [])
             if records:
-                self._states.append(self._decode_state(records[0]["before_state"]))
+                self._states.append(self._decode_state(
+                    records[0]["before_state"],
+                    project.supports_transparency,
+                    project.max_undo_steps,
+                ))
                 for record in records:
                     self._labels.append(record["command_type"])
-                    self._states.append(self._decode_state(record["after_state"]))
+                    self._states.append(self._decode_state(
+                        record["after_state"],
+                        project.supports_transparency,
+                        project.max_undo_steps,
+                    ))
                 self._cursor = max(0, min(int(saved_history.get("cursor", len(records))), len(records)))
                 self.mark_saved()
                 return
 
         self._states = [self.capture()]
         self.mark_saved()
+
+    def set_limit(self, limit: int) -> None:
+        """Изменяет лимит истории и удаляет самые старые действия при необходимости."""
+        self.limit = max(1, int(limit))
+        overflow = max(0, len(self._labels) - self.limit)
+        if overflow:
+            del self._labels[:overflow]
+            del self._states[:overflow]
+            self._cursor = max(0, self._cursor - overflow)
 
     def capture(self) -> dict:
         if self.project is None:
@@ -55,6 +73,8 @@ class HistoryManager:
             "width": self.project.width,
             "height": self.project.height,
             "created_at": self.project.created_at,
+            "supports_transparency": self.project.supports_transparency,
+            "max_undo_steps": self.project.max_undo_steps,
             "layers": [
                 {
                     "name": layer.name,
@@ -74,6 +94,8 @@ class HistoryManager:
             or left["width"] != right["width"]
             or left["height"] != right["height"]
             or left["created_at"] != right["created_at"]
+            or left.get("supports_transparency", True) != right.get("supports_transparency", True)
+            or left.get("max_undo_steps", 10) != right.get("max_undo_steps", 10)
             or len(left["layers"]) != len(right["layers"])
         ):
             return False
@@ -127,6 +149,9 @@ class HistoryManager:
         self.project.width = state["width"]
         self.project.height = state["height"]
         self.project.created_at = state["created_at"]
+        self.project.supports_transparency = bool(state.get("supports_transparency", True))
+        self.project.max_undo_steps = max(1, int(state.get("max_undo_steps", 10)))
+        self.limit = self.project.max_undo_steps
         self.project.layers = [
             Layer(
                 item["name"],
@@ -144,6 +169,8 @@ class HistoryManager:
             "width": state["width"],
             "height": state["height"],
             "created_at": state["created_at"].isoformat(),
+            "supports_transparency": bool(state.get("supports_transparency", True)),
+            "max_undo_steps": int(state.get("max_undo_steps", 10)),
             "layers": [],
         }
         for layer in state["layers"]:
@@ -164,7 +191,9 @@ class HistoryManager:
         return zlib.compress(raw, level=6)
 
     @staticmethod
-    def _decode_state(payload: bytes) -> dict:
+    def _decode_state(
+        payload: bytes, fallback_transparency: bool = True, fallback_limit: int = 10
+    ) -> dict:
         from PyQt6.QtCore import QByteArray
         state = json.loads(zlib.decompress(payload).decode("utf-8"))
         layers = []
@@ -184,6 +213,8 @@ class HistoryManager:
             "width": int(state["width"]),
             "height": int(state["height"]),
             "created_at": datetime.fromisoformat(state["created_at"]),
+            "supports_transparency": bool(state.get("supports_transparency", fallback_transparency)),
+            "max_undo_steps": max(1, int(state.get("max_undo_steps", fallback_limit))),
             "layers": layers,
         }
 
