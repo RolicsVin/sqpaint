@@ -4,3 +4,7 @@
 /core/__pycache__
 dump.rar
 /ui/__pycache__
+
+# Локальные данные пользователя
+recent_projects.csv
+settings.json
