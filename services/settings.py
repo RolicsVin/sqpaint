@@ -1,6 +1,7 @@
 """JSON-хранилище пользовательских настроек SQPaint."""
 import json
 import os
+import shutil
 from pathlib import Path
 
 SETTINGS_FILE = "settings.json"
@@ -17,13 +18,23 @@ DEFAULT_SETTINGS = {
 
 
 def get_settings_path() -> str:
+    """Путь к JSON в корне проекта; старые настройки переносятся автоматически."""
+    root = Path(__file__).resolve().parent.parent
+    path = root / SETTINGS_FILE
+
     if os.name == "nt":
         base = os.getenv("LOCALAPPDATA") or str(Path.home() / "AppData" / "Local")
     else:
         base = os.getenv("XDG_CONFIG_HOME") or str(Path.home() / ".config")
-    folder = os.path.join(base, SETTINGS_FILE_FOLDER)
-    os.makedirs(folder, exist_ok=True)
-    return os.path.join(folder, SETTINGS_FILE)
+    legacy_path = Path(base) / SETTINGS_FILE_FOLDER / SETTINGS_FILE
+
+    if not path.exists() and legacy_path.is_file():
+        try:
+            shutil.copy2(legacy_path, path)
+        except OSError:
+            pass
+
+    return str(path)
 
 
 def normalize(path: str) -> str:
