@@ -103,7 +103,7 @@ class HistoryController:
         try:
             if self.history.redo():
                 self._refresh_document()
-        except (OSError, sqlite3.Error, RuntimeError, ValueError) as error:
+        except (RuntimeError, ValueError, MemoryError) as error:
             self._show_error("Повтор действия", "Redo action", error)
 
     def _show_error(self, ru: str, en: str, error) -> None:
