@@ -83,10 +83,10 @@ class DomainWindow(QMainWindow):
         self.file_info.setEnabled(False)
 
         self.undo_action = QAction("Отменить", self)
-        self.undo_action.setShortcut(QKeySequence.StandardKey.Undo)
+        self.undo_action.setShortcut(QKeySequence(QKeySequence.StandardKey.Undo))
         self.undo_action.triggered.connect(self.undo)
         self.redo_action = QAction("Повторить", self)
-        self.redo_action.setShortcut(QKeySequence.StandardKey.Redo)
+        self.redo_action.setShortcut(QKeySequence(QKeySequence.StandardKey.Redo))
         self.redo_action.triggered.connect(self.redo)
         self.edit_menu.addAction(self.undo_action)
         self.edit_menu.addAction(self.redo_action)
@@ -415,7 +415,7 @@ class DomainWindow(QMainWindow):
             self.canvas.set_document_size(rect.width(), rect.height())
             self.canvas.update()
             self.canvas_view.viewport().update()
-        except (ValueError, MemoryError, RuntimeError) as error:
+        except (ValueError, MemoryError, RuntimeError, sqlite3.Error) as error:
             QMessageBox.warning(
                 self, self._tr("Кадрирование", "Crop"),
                 self._tr(f"Не удалось кадрировать холст:\n{error}", f"Could not crop the canvas:\n{error}")
@@ -441,7 +441,7 @@ class DomainWindow(QMainWindow):
             self.history_manager.commit(before, "ResizeCanvas")
             self._refresh_history_actions()
             self.canvas.set_document_size(width, height)
-        except (MemoryError, ValueError, RuntimeError) as error:
+        except (MemoryError, ValueError, RuntimeError, sqlite3.Error) as error:
             QMessageBox.critical(
                 self, self._tr("Размер холста", "Canvas size"),
                 self._tr(f"Не удалось изменить размер холста.\\n\\n{error}", f"Could not resize the canvas.\\n\\n{error}")
