@@ -23,8 +23,8 @@ class Shapes:
         if shape == cls.RECTANGLE:
             painter.drawRect(rect)
         elif shape == cls.CIRCLE:
-            side = min(rect.width(), rect.height())
-            painter.drawEllipse(QRectF(rect.left(), rect.top(), side, side))
+            # Свободное соотношение сторон: фигура может быть кругом или эллипсом.
+            painter.drawEllipse(rect)
         elif shape == cls.STAR:
             cls._draw_star(painter, rect)
         painter.restore()
