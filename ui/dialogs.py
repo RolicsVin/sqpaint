@@ -405,6 +405,9 @@ class FileInfoDialog(QDialog):
         layout = QVBoxLayout(self)
         self.tabs = QTabWidget(self)
         layout.addWidget(self.tabs)
+        manager = getattr(parent, "localization", None)
+        if manager is not None:
+            manager.register(self, {"ru": "О файле проекта", "en": "Project file information"})
 
         try:
             connection = sqlite3.connect(
@@ -521,6 +524,14 @@ class AboutDialog(QDialog):
         buttons.button(QDialogButtonBox.StandardButton.Ok).setText("Закрыть")
         buttons.accepted.connect(self.accept)
         layout.addWidget(buttons)
+
+        manager = getattr(parent, "localization", None)
+        if manager is not None:
+            manager.register(self, {"ru": "О программе SQPaint", "en": "About SQPaint"})
+            manager.register(description, {"ru": "Растровый графический редактор с поддержкой слоёв. Проекты сохраняются в формате SQLite (.sqlite).", "en": "A raster graphics editor with layer support. Projects are saved in SQLite (.sqlite) format."})
+            manager.register(technology, {"ru": "Создано на Python и PyQt6", "en": "Created with Python and PyQt6"})
+            manager.register(project_link, {"ru": "Исходный код на GitHub", "en": "Source code on GitHub"})
+            manager.register(buttons.button(QDialogButtonBox.StandardButton.Ok), {"ru": "Закрыть", "en": "Close"})
 
 
 def show_about(parent: QWidget | None = None) -> None:
