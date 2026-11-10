@@ -16,14 +16,7 @@ from ui.tool_bar import ToolBar
 from ui.layers_panel import LayerPanel
 from ui.view_manager import ViewManager
 from ui.selfie_dialog import SelfieDialog
-from ui.dialogs import (
-    SettingsDialog,
-    ask_new_project, ask_open_project_path, ask_save_project_path,
-    confirm_delete_layer, show_create_error, show_file_exists,
-    show_last_layer_info, show_open_error, show_save_error,
-    ask_save_as_path, ask_import_image_path, ask_export_image_path,
-    show_file_info, ask_canvas_size, show_about,
-)
+from ui.dialogs import *
 
 
 class DomainWindow(QMainWindow):
