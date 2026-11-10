@@ -97,6 +97,8 @@ class SettingsDialog(QDialog):
         manager = getattr(parent, "localization", None)
         if manager is not None:
             manager.register(self, {"ru": "Настройки", "en": "Settings"})
+            manager.register(view_form.itemAt(0, QFormLayout.ItemRole.LabelRole).widget(), {"ru": "Тема:", "en": "Theme:"})
+            self.tabs.setTabText(0, "View" if manager.language == "en" else "Вид")
             manager.register(self.cancel_button, {"ru": "Отмена", "en": "Cancel"})
             manager.register(self.apply_button, {"ru": "Применить", "en": "Apply"})
             manager.register(self.exit_button, {"ru": "Выход", "en": "Close"})
@@ -222,6 +224,7 @@ class CanvasSizeDialog(QDialog):
             manager.register(form.itemAt(1, QFormLayout.ItemRole.LabelRole).widget(), {"ru": "Высота:", "en": "Height:"})
             manager.register(buttons.button(QDialogButtonBox.StandardButton.Ok), {"ru": "Применить", "en": "Apply"})
             manager.register(buttons.button(QDialogButtonBox.StandardButton.Cancel), {"ru": "Отмена", "en": "Cancel"})
+            manager.register(form.itemAt(2).widget(), {"ru": "При уменьшении холста содержимое за его границами будет обрезано.", "en": "Content outside the canvas will be cropped when its size is reduced."})
 
     def get_size(self) -> tuple[int, int]:
         return self.width_spin.value(), self.height_spin.value()
@@ -298,7 +301,7 @@ def ask_save_project_path(parent: QWidget | None, name: str) -> str:
     """Выбор пути для нового проекта. Пустая строка — пользователь отменил."""
     path, _ = QFileDialog.getSaveFileName(
         parent,
-        "Создать проект",
+        _tr(parent, "Создать проект", "Create project"),
         f"{name}{PROJECT_EXTENSION}",
         PROJECT_FILTER,
     )
@@ -311,7 +314,7 @@ def ask_open_project_path(parent: QWidget | None = None) -> str:
     """Выбор существующего проекта. Пустая строка — пользователь отменил."""
     path, _ = QFileDialog.getOpenFileName(
         parent,
-        "Открыть проект",
+        _tr(parent, "Открыть проект", "Open project"),
         "",
         f"{PROJECT_FILTER};;Все файлы (*)",
     )
@@ -381,7 +384,7 @@ def show_last_layer_info(parent: QWidget | None = None) -> None:
 
 def ask_save_as_path(parent: QWidget | None = None, name: str = "Проект") -> str:
     path, _ = QFileDialog.getSaveFileName(
-        parent, "Сохранить проект как", f"{name}.sqlite",
+        parent, _tr(parent, "Сохранить проект как", "Save project as"), f"{name}.sqlite",
         f"{PROJECT_FILTER};;Все файлы (*)",
     )
     if path and not path.lower().endswith(PROJECT_EXTENSION):
@@ -391,7 +394,7 @@ def ask_save_as_path(parent: QWidget | None = None, name: str = "Проект") 
 
 def ask_import_image_path(parent: QWidget | None = None) -> str:
     path, _ = QFileDialog.getOpenFileName(
-        parent, "Импортировать изображение",
+        parent, _tr(parent, "Импортировать изображение", "Import image"),
         "", "Изображения (*.png *.jpg *.jpeg *.bmp *.webp);;Все файлы (*)",
     )
     return path
@@ -400,7 +403,7 @@ def ask_import_image_path(parent: QWidget | None = None) -> str:
 def ask_export_image_path(parent: QWidget | None, image_format: str) -> str:
     ext = image_format.lower()
     path, _ = QFileDialog.getSaveFileName(
-        parent, f"Экспортировать {ext.upper()}",
+        parent, _tr(parent, f"Экспортировать {ext.upper()}", f"Export {ext.upper()}"),
         f"Изображение.{ext}",
         f"{ext.upper()} (*.{ext})",
     )
