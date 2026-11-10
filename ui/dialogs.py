@@ -88,6 +88,17 @@ class SettingsDialog(QDialog):
         self.apply_button.clicked.connect(self._apply)
         self.exit_button.clicked.connect(self._apply_and_close)
 
+        manager = getattr(parent, "localization", None)
+        if manager is not None:
+            manager.register(self, {"ru": "Настройки", "en": "Settings"})
+            manager.register(self.cancel_button, {"ru": "Отмена", "en": "Cancel"})
+            manager.register(self.apply_button, {"ru": "Применить", "en": "Apply"})
+            manager.register(self.exit_button, {"ru": "Выход", "en": "Close"})
+            manager.register(self.layer_panel_check, {"ru": "Показывать панель слоёв", "en": "Show layers panel"})
+            manager.register(self.toolbar_check, {"ru": "Показывать панель инструментов", "en": "Show tools panel"})
+            manager.register(self.zoom_check, {"ru": "Показывать управление масштабом", "en": "Show zoom control"})
+            manager.register(self.welcome_check, {"ru": "Показывать окно приветствия при запуске", "en": "Show welcome window on startup"})
+
     def _collect_settings(self) -> dict:
         """Собирает значения всех вкладок в структуру настроек."""
         view = self._settings.setdefault("view", {})
@@ -142,6 +153,12 @@ class NewProjectDialog(QDialog):
         buttons.rejected.connect(self.reject)
         form.addRow(buttons)
 
+        manager = getattr(parent, "localization", None)
+        if manager is not None:
+            manager.register(self, {"ru": "Новый проект", "en": "New project"})
+            manager.register(buttons.button(QDialogButtonBox.StandardButton.Ok), {"ru": "ОК", "en": "OK"})
+            manager.register(buttons.button(QDialogButtonBox.StandardButton.Cancel), {"ru": "Отмена", "en": "Cancel"})
+
     def get_values(self) -> tuple[str, int, int]:
         return (
             self.name_edit.text().strip(),
@@ -185,6 +202,12 @@ class CanvasSizeDialog(QDialog):
         buttons.accepted.connect(self.accept)
         buttons.rejected.connect(self.reject)
         form.addRow(buttons)
+
+        manager = getattr(parent, "localization", None)
+        if manager is not None:
+            manager.register(self, {"ru": "Размер холста", "en": "Canvas size"})
+            manager.register(buttons.button(QDialogButtonBox.StandardButton.Ok), {"ru": "Применить", "en": "Apply"})
+            manager.register(buttons.button(QDialogButtonBox.StandardButton.Cancel), {"ru": "Отмена", "en": "Cancel"})
 
     def get_size(self) -> tuple[int, int]:
         return self.width_spin.value(), self.height_spin.value()
