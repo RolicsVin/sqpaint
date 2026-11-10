@@ -60,7 +60,7 @@ class HistoryManager:
                     "name": layer.name,
                     "z_order": layer.z_order,
                     "visible": layer.visible,
-                    "image": layer.image.copy(),
+                    "image": QImage(layer.image),
                     "cache_key": layer.image.cacheKey(),
                 }
                 for layer in self.project.layers
@@ -132,7 +132,7 @@ class HistoryManager:
                 item["name"],
                 int(item["z_order"]),
                 bool(item["visible"]),
-                item["image"].copy(),
+                QImage(item["image"]),
             )
             for item in state["layers"]
         ]
@@ -202,14 +202,17 @@ class HistoryManager:
         return {"records": records, "cursor": self._cursor, "limit": self.limit}
 
     def mark_saved(self) -> None:
-        """Запоминает состояние документа, соответствующее последнему Save."""
-        self._saved_state = self.capture() if self.project is not None else None
+        """Запоминает снимок истории, соответствующий последнему Save."""
+        self._saved_state = (
+            self._states[self._cursor]
+            if self._states and self.project is not None else None
+        )
 
     def is_dirty(self) -> bool:
-        """Проверяет отличие текущего документа от последнего сохранённого состояния."""
+        """Проверяет, находится ли курсор на сохранённом состоянии документа."""
         if self.project is None or self._saved_state is None:
             return False
-        return not self._same_state(self._saved_state, self.capture())
+        return self._states[self._cursor] is not self._saved_state
 
     def status(self) -> tuple[bool, bool]:
         return self._cursor > 0, self._cursor < len(self._states) - 1
