@@ -1,15 +1,17 @@
 from qtools.brush import Brush
 from qtools.eraser import Eraser
 from qtools.fill import Fill
-from PyQt6.QtCore import Qt, QPoint, QPointF, QRectF
+from PyQt6.QtCore import Qt, QPoint, QPointF, QRect, QRectF, pyqtSignal
 from PyQt6.QtGui import QPainter, QColor, QImage, QPen
 from PyQt6.QtWidgets import QWidget
 
 
 class Canvas(QWidget):
+    crop_requested = pyqtSignal(QRect)
     BRUSH = "brush"
     ERASER = "eraser"
     FILL = "fill"
+    CROP = "crop"
 
     MIN_ZOOM = 0.1
     MAX_ZOOM = 4.0
@@ -36,6 +38,8 @@ class Canvas(QWidget):
         self.transform_drag = None
         self.transform_start = None
         self._transform_mouse_start = None
+        self.crop_start = None
+        self.crop_rect = None
         self.setMouseTracking(True)
         self.setFocusPolicy(Qt.FocusPolicy.StrongFocus)
 
@@ -83,10 +87,14 @@ class Canvas(QWidget):
         self.update()
 
     def set_tool(self, tool_name: str) -> None:
-        if tool_name not in (self.BRUSH, self.ERASER, self.FILL):
+        if tool_name not in (self.BRUSH, self.ERASER, self.FILL, self.CROP):
             return
         self.active_tool = tool_name
         self.last = None
+        if tool_name != self.CROP:
+            self.crop_start = None
+            self.crop_rect = None
+        self.update()
 
     def _document_pos(self, event) -> QPoint:
         """Преобразует экранную позицию мыши в координаты документа."""
@@ -169,6 +177,23 @@ class Canvas(QWidget):
                 self.commit_image_transform()
                 event.accept()
                 return
+        if self.active_tool == self.CROP and self.crop_rect is not None:
+            if event.key() in (Qt.Key.Key_Return, Qt.Key.Key_Enter):
+                rect = self.crop_rect.normalized().toAlignedRect()
+                rect = rect.intersected(QRect(0, 0, self.document_width, self.document_height))
+                if rect.width() > 0 and rect.height() > 0:
+                    self.crop_requested.emit(rect)
+                self.crop_start = None
+                self.crop_rect = None
+                self.update()
+                event.accept()
+                return
+            if event.key() == Qt.Key.Key_Escape:
+                self.crop_start = None
+                self.crop_rect = None
+                self.update()
+                event.accept()
+                return
         super().keyPressEvent(event)
 
     def get_image(self):
@@ -194,6 +219,18 @@ class Canvas(QWidget):
         for index, layer in enumerate(self.layers):
             if layer.visible and not (self.transform_image is not None and index == self.active):
                 painter.drawImage(0, 0, layer.image)
+
+        if self.active_tool == self.CROP and self.crop_rect is not None:
+            crop = self.crop_rect.normalized()
+            painter.setPen(QPen(QColor("#ffb74d"), 1.5 / self.zoom, Qt.PenStyle.DashLine))
+            painter.setBrush(Qt.BrushStyle.NoBrush)
+            painter.drawRect(crop)
+            shade = QColor(0, 0, 0, 95)
+            full = QRectF(0, 0, self.document_width, self.document_height)
+            painter.fillRect(QRectF(0, 0, full.width(), max(0, crop.top())), shade)
+            painter.fillRect(QRectF(0, crop.bottom(), full.width(), max(0, full.bottom() - crop.bottom())), shade)
+            painter.fillRect(QRectF(0, crop.top(), max(0, crop.left()), crop.height()), shade)
+            painter.fillRect(QRectF(crop.right(), crop.top(), max(0, full.right() - crop.right()), crop.height()), shade)
 
         if self.transform_image is not None and self.transform_rect is not None:
             painter.drawImage(self.transform_rect, self.transform_image)
@@ -229,6 +266,15 @@ class Canvas(QWidget):
                 return
             self._transform_mouse_start = point
             e.accept()
+            return
+        if self.active_tool == self.CROP:
+            point = QPointF(e.position().x() / self.zoom, e.position().y() / self.zoom)
+            point.setX(max(0, min(self.document_width, point.x())))
+            point.setY(max(0, min(self.document_height, point.y())))
+            self.crop_start = point
+            self.crop_rect = QRectF(point, point)
+            self.setFocus()
+            self.update()
             return
         if not self.layers or not (0 <= self.active < len(self.layers)):
             return
@@ -266,6 +312,13 @@ class Canvas(QWidget):
             self.setCursor(Qt.CursorShape.SizeAllCursor if self.transform_rect.contains(point)
                            else Qt.CursorShape.ArrowCursor)
             return
+        if self.active_tool == self.CROP and self.crop_start is not None:
+            point = QPointF(e.position().x() / self.zoom, e.position().y() / self.zoom)
+            point.setX(max(0, min(self.document_width, point.x())))
+            point.setY(max(0, min(self.document_height, point.y())))
+            self.crop_rect = QRectF(self.crop_start, point).normalized()
+            self.update()
+            return
         if self.last is None:
             return
         if not self.layers or not (0 <= self.active < len(self.layers)):
@@ -290,6 +343,8 @@ class Canvas(QWidget):
 
     def mouseReleaseEvent(self, e):
         self.last = None
+        if self.active_tool == self.CROP and self.crop_start is not None:
+            self.crop_start = None
         if self.transform_drag is not None:
             self.transform_drag = None
             self.transform_start = None
