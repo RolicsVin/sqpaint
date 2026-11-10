@@ -54,4 +54,19 @@ class PreferencesController:
     def apply_settings(self, values: dict) -> None:
         view = values.get("view", {})
         self.window.view_manager.apply(view)
+
+        project_values = values.get("project")
+        project = self.window.project
+        if project is not None and isinstance(project_values, dict):
+            project.supports_transparency = bool(
+                project_values.get("supports_transparency", project.supports_transparency)
+            )
+            project.max_undo_steps = max(
+                1, int(project_values.get("max_undo_steps", project.max_undo_steps))
+            )
+            if self.window.canvas is not None:
+                self.window.canvas.supports_transparency = project.supports_transparency
+                self.window.canvas.update()
+            self.window.history_controller.set_limit(project.max_undo_steps)
+            self.window.history_controller._refresh_title()
         self.save()
