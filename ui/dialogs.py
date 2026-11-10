@@ -46,6 +46,8 @@ class SettingsDialog(QDialog):
         self.resize(460, 300)
         self._settings = deepcopy(settings if isinstance(settings, dict) else {})
         view = self._settings.setdefault("view", {})
+        project = getattr(parent, "project", None)
+        self._project_available = project is not None
 
         root = QVBoxLayout(self)
         self.tabs = QTabWidget(self)
@@ -83,6 +85,24 @@ class SettingsDialog(QDialog):
 
         self.tabs.addTab(view_page, "Вид")
 
+        # Вкладка параметров открытого проекта.
+        project_page = QWidget(self)
+        project_form = QFormLayout(project_page)
+        self.project_transparency_combo = LocalizedComboBox(project_page)
+        self.project_transparency_combo.add_localized_item({"ru": "Да", "en": "Yes"}, True)
+        self.project_transparency_combo.add_localized_item({"ru": "Нет", "en": "No"}, False)
+        transparency = bool(getattr(project, "supports_transparency", True))
+        self.project_transparency_combo.setCurrentIndex(max(0, self.project_transparency_combo.findData(transparency)))
+        self.project_history_spin = QSpinBox(project_page)
+        self.project_history_spin.setRange(1, 1000)
+        self.project_history_spin.setValue(max(1, int(getattr(project, "max_undo_steps", 10))))
+        project_form.addRow("Поддержка прозрачности:", self.project_transparency_combo)
+        project_form.addRow("Размер истории действий:", self.project_history_spin)
+        if not self._project_available:
+            self.project_transparency_combo.setEnabled(False)
+            self.project_history_spin.setEnabled(False)
+        self.tabs.addTab(project_page, "Проект")
+
         buttons_layout = QHBoxLayout()
         buttons_layout.addStretch()
         self.cancel_button = QPushButton("Отмена", self)
@@ -102,6 +122,11 @@ class SettingsDialog(QDialog):
             manager.register(self, {"ru": "Настройки", "en": "Settings"})
             manager.register(view_form.itemAt(0, QFormLayout.ItemRole.LabelRole).widget(), {"ru": "Тема:", "en": "Theme:"})
             self.tabs.setTabText(0, "View" if manager.language == "en" else "Вид")
+            self.tabs.setTabText(1, "Project" if manager.language == "en" else "Проект")
+            manager.register(project_form.itemAt(0, QFormLayout.ItemRole.LabelRole).widget(), {"ru": "Поддержка прозрачности:", "en": "Transparency support:"})
+            manager.register(project_form.itemAt(1, QFormLayout.ItemRole.LabelRole).widget(), {"ru": "Размер истории действий:", "en": "Action history size:"})
+            manager.register(self.project_transparency_combo, {})
+            self.project_transparency_combo.set_language(manager.language)
             manager.register(self.cancel_button, {"ru": "Отмена", "en": "Cancel"})
             manager.register(self.apply_button, {"ru": "Применить", "en": "Apply"})
             manager.register(self.exit_button, {"ru": "Выход", "en": "Close"})
@@ -123,6 +148,11 @@ class SettingsDialog(QDialog):
             "zoom_control_visible": self.zoom_check.isChecked(),
             "show_welcome": self.welcome_check.isChecked(),
         })
+        if self._project_available:
+            self._settings["project"] = {
+                "supports_transparency": bool(self.project_transparency_combo.currentData()),
+                "max_undo_steps": self.project_history_spin.value(),
+            }
         return self._settings
 
     def _apply(self) -> None:
@@ -153,10 +183,20 @@ class NewProjectDialog(QDialog):
         self.height_spin.setValue(1080)
         self.height_spin.setSuffix(" px")
 
+        self.transparency_combo = LocalizedComboBox(self)
+        self.transparency_combo.add_localized_item({"ru": "Да", "en": "Yes"}, True)
+        self.transparency_combo.add_localized_item({"ru": "Нет", "en": "No"}, False)
+        self.transparency_combo.setCurrentIndex(0)
+        self.history_spin = QSpinBox(self)
+        self.history_spin.setRange(1, 1000)
+        self.history_spin.setValue(10)
+
         form = QFormLayout(self)
         form.addRow("Название:", self.name_edit)
         form.addRow("Ширина:", self.width_spin)
         form.addRow("Высота:", self.height_spin)
+        form.addRow("Поддержка прозрачности:", self.transparency_combo)
+        form.addRow("Размер истории действий:", self.history_spin)
 
         buttons = QDialogButtonBox(
             QDialogButtonBox.StandardButton.Ok
@@ -174,15 +214,21 @@ class NewProjectDialog(QDialog):
             manager.register(form.itemAt(0, QFormLayout.ItemRole.LabelRole).widget(), {"ru": "Название:", "en": "Name:"})
             manager.register(form.itemAt(1, QFormLayout.ItemRole.LabelRole).widget(), {"ru": "Ширина:", "en": "Width:"})
             manager.register(form.itemAt(2, QFormLayout.ItemRole.LabelRole).widget(), {"ru": "Высота:", "en": "Height:"})
+            manager.register(form.itemAt(3, QFormLayout.ItemRole.LabelRole).widget(), {"ru": "Поддержка прозрачности:", "en": "Transparency support:"})
+            manager.register(form.itemAt(4, QFormLayout.ItemRole.LabelRole).widget(), {"ru": "Размер истории действий:", "en": "Action history size:"})
+            manager.register(self.transparency_combo, {})
+            self.transparency_combo.set_language(manager.language)
             manager.register(buttons.button(QDialogButtonBox.StandardButton.Ok), {"ru": "ОК", "en": "OK"})
             manager.register(buttons.button(QDialogButtonBox.StandardButton.Cancel), {"ru": "Отмена", "en": "Cancel"})
             manager.set_language(manager.language)
 
-    def get_values(self) -> tuple[str, int, int]:
+    def get_values(self) -> tuple[str, int, int, bool, int]:
         return (
             self.name_edit.text().strip(),
             self.width_spin.value(),
             self.height_spin.value(),
+            bool(self.transparency_combo.currentData()),
+            self.history_spin.value(),
         )
 
 
@@ -292,7 +338,7 @@ def ask_new_project(parent: QWidget | None = None) -> tuple[str, int, int] | Non
     if dialog.exec() != QDialog.DialogCode.Accepted:
         return None
 
-    name, width, height = dialog.get_values()
+    name, width, height, supports_transparency, max_undo_steps = dialog.get_values()
     if not name:
         QMessageBox.warning(
             parent,
@@ -301,7 +347,7 @@ def ask_new_project(parent: QWidget | None = None) -> tuple[str, int, int] | Non
         )
         return None
 
-    return name, width, height
+    return name, width, height, supports_transparency, max_undo_steps
 
 
 def ask_save_project_path(parent: QWidget | None, name: str) -> str:
