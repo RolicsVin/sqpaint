@@ -39,8 +39,17 @@ class ViewManager:
         self.dark_theme_action.setCheckable(True)
         self.light_theme_action.setCheckable(True)
 
-    def apply(self, values: dict | None = None) -> None:
-        """Применяет настройки, не вызывая обработчики QAction повторно."""
+    def apply(
+        self,
+        values: dict | None = None,
+        apply_welcome: bool = True,
+    ) -> None:
+        """Применяет настройки интерфейса.
+
+        apply_welcome=False обновляет состояние QAction, но не меняет
+        видимость стартового окна. Это нужно для настроек, действующих
+        только при следующем запуске приложения.
+        """
         if values is not None:
             self.settings.update(values)
 
@@ -64,7 +73,8 @@ class ViewManager:
         self.layer_panel.setVisible(self.layer_panel_action.isChecked())
         self.tool_bar.setVisible(self.toolbar_action.isChecked())
         self._set_zoom_visible(self.zoom_action.isChecked())
-        self._set_welcome_visible(self.welcome_action.isChecked())
+        if apply_welcome:
+            self._set_welcome_visible(self.welcome_action.isChecked())
         self._set_theme(self.settings.get("theme", "dark"))
         self.layout_callback()
 
