@@ -117,8 +117,8 @@ class DomainWindow(QMainWindow):
         self.en.setCheckable(True)
         self.langague.addAction(self.ru)
         self.langague.addAction(self.en)
-        self.ru.triggered.connect(lambda: self._set_language("ru"))
-        self.en.triggered.connect(lambda: self._set_language("en"))
+        self.ru.triggered.connect(lambda checked=False: self._set_language("ru"))
+        self.en.triggered.connect(lambda checked=False: self._set_language("en"))
         self.start_window_view_button = QAction("Показывать окно приветствия при запуске", self)
         self.start_window_view_button.setCheckable(True)
         self.view_menu.addMenu(self.sub_windows)
@@ -195,7 +195,7 @@ class DomainWindow(QMainWindow):
 
         # Повторно применяем язык после полной сборки интерфейса:
         # QMenu отображается через menuAction(), поэтому синхронизируем и его текст.
-        self.localization.set_language(self.localization.language)
+        self._set_language(self.localization.language)
         self.ru.setChecked(self.localization.language == "ru")
         self.en.setChecked(self.localization.language == "en")
         self.show()
