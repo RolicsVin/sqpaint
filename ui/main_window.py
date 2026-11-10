@@ -17,6 +17,7 @@ from ui.layers_panel import LayerPanel
 from ui.view_manager import ViewManager
 from ui.document_controller import DocumentController
 from ui.localization_controller import WindowLocalizationController
+from ui.preferences_controller import PreferencesController
 from ui.dialogs import *
 
 
@@ -194,6 +195,7 @@ class DomainWindow(QMainWindow):
         )
         self.view_manager.apply()
         self.document_controller = DocumentController(self)
+        self.preferences_controller = PreferencesController(self)
 
         # Повторно применяем язык после полной сборки интерфейса:
         # QMenu отображается через menuAction(), поэтому синхронизируем и его текст.
@@ -233,48 +235,28 @@ class DomainWindow(QMainWindow):
 
 
     def _save_view_settings(self) -> None:
-        """Сохраняет уже подготовленные UI-настройки через файловый сервис."""
-        self.settings_data["view"] = self.view_settings
-        try:
-            settings_service.save_data(self.settings_data)
-        except OSError as error:
-            QMessageBox.warning(
-                self, self._tr("Настройки", "Settings"),
-                self._tr(f"Не удалось сохранить настройки: {error}", f"Could not save settings: {error}")
-            )
+        self.preferences_controller.save()
 
     def _on_layer_panel_visibility_changed(self, visible: bool) -> None:
-        self.view_manager.set_layer_panel_visible(visible)
-        self._save_view_settings()
+        self.preferences_controller.layer_panel_visibility_changed(visible)
 
     def _on_toolbar_visibility_changed(self, visible: bool) -> None:
-        self.view_manager.set_toolbar_visible(visible)
-        self._save_view_settings()
+        self.preferences_controller.toolbar_visibility_changed(visible)
 
     def _on_zoom_visibility_changed(self, visible: bool) -> None:
-        self.view_manager.set_zoom_visible(visible)
-        self._save_view_settings()
+        self.preferences_controller.zoom_visibility_changed(visible)
 
     def _on_welcome_preference_changed(self, visible: bool) -> None:
-        self.view_manager.set_welcome_visible(visible)
-        self._save_view_settings()
+        self.preferences_controller.welcome_preference_changed(visible)
 
     def _set_theme(self, theme: str, save: bool = True) -> None:
-        self.view_manager.set_theme(theme)
-        if save:
-            self._save_view_settings()
+        self.preferences_controller.set_theme(theme, save)
 
     def open_settings(self) -> None:
-        """Открывает окно настроек с временной копией текущих значений."""
-        dialog = SettingsDialog(self.settings_data, self)
-        dialog.apply_requested.connect(self._apply_settings)
-        dialog.exec()
+        self.preferences_controller.open_settings()
 
     def _apply_settings(self, values: dict) -> None:
-        """Применяет и сохраняет настройки, переданные окном настроек."""
-        view = values.get("view", {})
-        self.view_manager.apply(view)
-        self._save_view_settings()
+        self.preferences_controller.apply_settings(values)
 
     def create_project(self) -> None:
         self.document_controller.create_project()
