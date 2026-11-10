@@ -9,6 +9,7 @@ def _tr(parent, ru: str, en: str) -> str:
 
 
 from PyQt6.QtWidgets import (
+    QApplication,
     QDialog,
     QDialogButtonBox,
     QFileDialog,
@@ -566,3 +567,54 @@ class AboutDialog(QDialog):
 def show_about(parent: QWidget | None = None) -> None:
     """Показывает окно «О программе»."""
     AboutDialog(parent).exec()
+
+class OperationDialog(QDialog):
+    """Короткое модальное окно, отображаемое во время файловой операции."""
+
+    def __init__(self, parent, message_ru: str, message_en: str):
+        super().__init__(parent)
+        self.setWindowTitle(_tr(parent, "Выполняется операция", "Working"))
+        self.setModal(True)
+        self.setFixedSize(320, 86)
+        layout = QVBoxLayout(self)
+        label = QLabel(_tr(parent, message_ru, message_en), self)
+        label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        label.setWordWrap(True)
+        layout.addWidget(label)
+
+    def __enter__(self):
+        self.show()
+        QApplication.processEvents()
+        return self
+
+    def __exit__(self, exc_type, exc_value, traceback):
+        self.close()
+        QApplication.processEvents()
+        return False
+
+
+def confirm_exit(parent, has_unsaved_changes: bool) -> bool:
+    """Запрашивает подтверждение выхода с учётом несохранённых изменений."""
+    if has_unsaved_changes:
+        title = _tr(parent, "Несохранённые изменения", "Unsaved changes")
+        message = _tr(
+            parent,
+            "Вы уверены, что хотите выйти не сохранив?",
+            "Are you sure you want to exit without saving?",
+        )
+    else:
+        title = _tr(parent, "Выход", "Exit")
+        message = _tr(
+            parent,
+            "Вы уверены, что хотите выйти?",
+            "Are you sure you want to exit?",
+        )
+    result = QMessageBox.question(
+        parent,
+        title,
+        message,
+        QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
+        QMessageBox.StandardButton.No,
+    )
+    return result == QMessageBox.StandardButton.Yes
+

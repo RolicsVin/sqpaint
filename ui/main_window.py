@@ -14,6 +14,8 @@ from ui.document_controller import DocumentController
 from ui.localization_controller import WindowLocalizationController
 from ui.preferences_controller import PreferencesController
 from ui.menu_controller import MenuController
+from ui.history_controller import HistoryController
+from ui.dialogs import confirm_exit
 
 
 class DomainWindow(QMainWindow):
@@ -34,6 +36,7 @@ class DomainWindow(QMainWindow):
 
         self.menu_controller = MenuController(self)
         self.menu_controller.build()
+        self.history_controller = HistoryController(self)
 
         self.tool_bar = ToolBar(self)
         saved_language = self.settings_data.get("language", "ru")
@@ -174,6 +177,7 @@ class DomainWindow(QMainWindow):
         self.canvas.set_layers(project.get_layers(), active=0)
         self.layer_panel.set_layers(project.get_layers())
         self.canvas_view.set_zoom(100)
+        self.history_controller.set_project(project)
         self.save_action.setEnabled(True)
         self.save_as_action.setEnabled(True)
         self.export_submenu.setEnabled(True)
@@ -252,6 +256,16 @@ class DomainWindow(QMainWindow):
         self.document_controller.open_file_info()
 
     def closeEvent(self, event) -> None:
+        self._commit_pending_transform()
+        self.history_controller.flush_pending()
+        has_unsaved_changes = (
+            self.history_controller.is_dirty() if self.project is not None else False
+        )
+        if not confirm_exit(self, has_unsaved_changes):
+            event.ignore()
+            return
+
         self._save_view_settings()
         self.database.close()
+        event.accept()
         super().closeEvent(event)

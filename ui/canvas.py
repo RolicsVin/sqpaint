@@ -9,6 +9,8 @@ from PyQt6.QtWidgets import QWidget
 
 class Canvas(QWidget):
     crop_requested = pyqtSignal(QRect)
+    history_started = pyqtSignal(str)
+    history_finished = pyqtSignal(str)
     BRUSH = "brush"
     ERASER = "eraser"
     FILL = "fill"
@@ -89,6 +91,9 @@ class Canvas(QWidget):
     def set_tool(self, tool_name: str) -> None:
         if tool_name not in (self.BRUSH, self.ERASER, self.FILL, self.CROP):
             return
+        if self.last is not None and self.active_tool in (self.BRUSH, self.ERASER):
+            label = "PaintStroke" if self.active_tool == self.BRUSH else "EraseStroke"
+            self.history_finished.emit(label)
         self.active_tool = tool_name
         self.last = None
         if tool_name != self.CROP:
@@ -130,6 +135,7 @@ class Canvas(QWidget):
         """Записывает текущее положение изображения в активный слой."""
         if self.transform_image is None or self.transform_rect is None:
             return
+        self.history_started.emit("TransformImage")
         if 0 <= self.active < len(self.layers):
             result = QImage(self.document_width, self.document_height,
                             QImage.Format.Format_ARGB32)
@@ -143,6 +149,7 @@ class Canvas(QWidget):
         self.transform_rect = None
         self.transform_drag = None
         self.update()
+        self.history_finished.emit("TransformImage")
 
     def _transform_handle(self, point: QPointF):
         if self.transform_rect is None:
@@ -274,13 +281,17 @@ class Canvas(QWidget):
             return
 
         if self.active_tool == self.FILL:
+            self.history_started.emit("FillArea")
             self.fill.press(
                 layer.image, pos, None, self.color, self.width_px
             )
+            self.history_finished.emit("FillArea")
             self.last = None
             self.update()
             return
 
+        if self.active_tool in (self.BRUSH, self.ERASER):
+            self.history_started.emit("PaintStroke" if self.active_tool == self.BRUSH else "EraseStroke")
         self.last = pos
 
     def mouseMoveEvent(self, e):
@@ -325,6 +336,8 @@ class Canvas(QWidget):
         self.update()
 
     def mouseReleaseEvent(self, e):
+        if self.last is not None and self.active_tool in (self.BRUSH, self.ERASER):
+            self.history_finished.emit("PaintStroke" if self.active_tool == self.BRUSH else "EraseStroke")
         self.last = None
         if self.active_tool == self.CROP:
             self.crop.release()

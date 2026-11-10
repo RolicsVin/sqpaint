@@ -25,6 +25,12 @@ class DocumentController:
     def w(self):
         return self.window
 
+    def _history_begin(self):
+        return self.w.history_controller.begin()
+
+    def _history_commit(self, before, label: str) -> None:
+        self.w.history_controller.commit(before, label)
+
     def create_project(self) -> None:
         values = ask_new_project(self.w)
         if values is None:
@@ -52,25 +58,32 @@ class DocumentController:
         if not path:
             return
         try:
-            project = self.w.database.load(path)
-        except (OSError, sqlite3.Error, ValueError, TypeError) as error:
+            with OperationDialog(self.w, "Файл открывается...", "Opening file..."):
+                project = self.w.database.load(path)
+                self.w.set_project(project)
+        except (OSError, sqlite3.Error, ValueError, TypeError, RuntimeError) as error:
             show_open_error(self.w, error)
             return
-        self.w.set_project(project)
 
     def save(self) -> None:
         if self.w.project is None:
             return
         self.w._commit_pending_transform()
+        self.w.history_controller.flush_pending()
         try:
-            self.w.database.save(self.w.project)
-        except (OSError, sqlite3.Error, RuntimeError) as error:
+            with OperationDialog(self.w, "Файл сохраняется...", "Saving file..."):
+                self.w.database.save(
+                    self.w.project, self.w.history_controller.export_for_save()
+                )
+            self.w.history_controller.mark_saved()
+        except (OSError, sqlite3.Error, RuntimeError, ValueError, MemoryError) as error:
             show_save_error(self.w, error)
 
     def save_as(self) -> None:
         if self.w.project is None:
             return
         self.w._commit_pending_transform()
+        self.w.history_controller.flush_pending()
         path = ask_save_as_path(self.w, self.w.project.get_name())
         if not path:
             return
@@ -78,9 +91,12 @@ class DocumentController:
             show_file_exists(self.w)
             return
         try:
-            project = self.w.database.save_as(path, self.w.project)
-            self.w.set_project(project)
-        except (OSError, sqlite3.Error, ValueError, RuntimeError) as error:
+            with OperationDialog(self.w, "Файл сохраняется...", "Saving file..."):
+                project = self.w.database.save_as(
+                    path, self.w.project, self.w.history_controller.export_for_save()
+                )
+                self.w.set_project(project)
+        except (OSError, sqlite3.Error, ValueError, RuntimeError, MemoryError) as error:
             show_save_error(self.w, error)
 
     def change_canvas_size(self) -> None:
@@ -93,9 +109,11 @@ class DocumentController:
         width, height = new_size
         if (width, height) == (project.get_width(), project.get_height()):
             return
+        before = self._history_begin()
         try:
             project.resize(width, height)
             canvas.set_document_size(width, height)
+            self._history_commit(before, "ResizeCanvas")
         except (MemoryError, ValueError, RuntimeError) as error:
             QMessageBox.critical(
                 self.w, self.w._tr("Размер холста", "Canvas size"),
@@ -113,8 +131,10 @@ class DocumentController:
         if project is None or canvas is None:
             return
         self.w._commit_pending_transform()
+        before = self._history_begin()
         try:
             project.crop(rect.x(), rect.y(), rect.width(), rect.height())
+            self._history_commit(before, "CropCanvas")
             canvas.set_document_size(rect.width(), rect.height())
             canvas.update()
             self.w.canvas_view.viewport().update()
@@ -131,7 +151,9 @@ class DocumentController:
         project, canvas, panel = self.w.project, self.w.canvas, self.w.layer_panel
         if project is None or canvas is None:
             return
+        before = self._history_begin()
         layer = project.create_layer()
+        self._history_commit(before, "AddLayer")
         index = project.get_layers().index(layer)
         canvas.set_layers(project.get_layers(), active=index)
         panel.set_layers(project.get_layers())
@@ -147,16 +169,20 @@ class DocumentController:
         if not confirm_delete_layer(self.w, layer.get_name()):
             return
         old_index = project.get_layers().index(layer)
+        before = self._history_begin()
         if not project.remove_layer(layer):
             return
+        self._history_commit(before, "DeleteLayer")
         self._sync_layers(min(old_index, len(project.get_layers()) - 1))
 
     def move_layer(self, source, target, insert_before: bool) -> None:
         project = self.w.project
         if project is None or self.w.canvas is None:
             return
+        before = self._history_begin()
         if not project.move_layer(source, target, insert_before):
             return
+        self._history_commit(before, "MoveLayer")
         selected = self.w.layer_panel.selected_layer
         index = project.get_layers().index(selected) if selected in project.get_layers() else 0
         self._sync_layers(index)
@@ -164,14 +190,18 @@ class DocumentController:
     def set_layer_visibility(self, layer, visible: bool) -> None:
         project = self.w.project
         if project is not None and self.w.canvas is not None:
+            before = self._history_begin()
             if project.set_layer_visibility(layer, visible):
+                self._history_commit(before, "SetLayerVisibility")
                 self.w.canvas.update()
 
     def rename_layer(self, layer, name: str) -> None:
         project = self.w.project
         if project is None:
             return
+        before = self._history_begin()
         if project.rename_layer(layer, name):
+            self._history_commit(before, "RenameLayer")
             self.w.layer_panel.refresh_layer_name(layer)
 
     def select_layer(self, index: int) -> None:
@@ -202,7 +232,9 @@ class DocumentController:
                 ),
             )
             return
+        before = self._history_begin()
         layer = project.create_layer("Импорт")
+        self._history_commit(before, "AddImportedLayer")
         index = project.get_layers().index(layer)
         canvas.set_layers(project.get_layers(), active=index)
         self.w.layer_panel.set_layers(project.get_layers())
@@ -261,7 +293,9 @@ class DocumentController:
         image = dialog.get_image()
         if image is None or image.isNull():
             return
+        before = self._history_begin()
         layer = project.create_layer("Селфи", image)
+        self._history_commit(before, "AddSelfieLayer")
         index = project.get_layers().index(layer)
         canvas.set_layers(project.get_layers(), active=index)
         self.w.layer_panel.set_layers(project.get_layers())
@@ -287,10 +321,5 @@ class DocumentController:
     def open_file_info(self) -> None:
         project = self.w.project
         if project is None:
-            return
-        try:
-            self.w.database.save(project)
-        except (OSError, sqlite3.Error, RuntimeError) as error:
-            show_save_error(self.w, error)
             return
         show_file_info(self.w, project.get_path())
