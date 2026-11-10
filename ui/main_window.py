@@ -447,11 +447,14 @@ class DomainWindow(QMainWindow):
             )
             return
 
-        layer = self.project.create_layer("Импорт", image)
+        # Создаём пустой слой, а изображение пока показываем в режиме
+        # трансформации. Пользователь сможет переместить его и изменить размер.
+        layer = self.project.create_layer("Импорт")
         active_index = self.project.get_layers().index(layer)
         self.canvas.set_layers(self.project.get_layers(), active=active_index)
         self.layer_panel.set_layers(self.project.get_layers())
         self.layer_panel.select_layer(active_index)
+        self.canvas.begin_image_transform(image)
 
     def create_project_from_image(self) -> None:
         """Создаёт новый SQLite-проект, используя изображение как первый слой."""
