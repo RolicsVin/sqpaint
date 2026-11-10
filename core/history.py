@@ -58,6 +58,7 @@ class HistoryManager:
                     "z_order": layer.z_order,
                     "visible": layer.visible,
                     "image": layer.image.copy(),
+                    "cache_key": layer.image.cacheKey(),
                 }
                 for layer in self.project.layers
             ],
@@ -78,7 +79,7 @@ class HistoryManager:
                 a["name"] != b["name"]
                 or a["z_order"] != b["z_order"]
                 or a["visible"] != b["visible"]
-                or a["image"] != b["image"]
+                or a["cache_key"] != b["cache_key"]
             ):
                 return False
         return True
@@ -173,6 +174,7 @@ class HistoryManager:
                 "z_order": int(item["z_order"]),
                 "visible": bool(item["visible"]),
                 "image": image,
+                "cache_key": image.cacheKey(),
             })
         return {
             "name": state["name"],
@@ -186,12 +188,13 @@ class HistoryManager:
         """Сериализует историю для записи в SQLite при явном сохранении."""
         if not self._states:
             return {"records": [], "cursor": 0, "limit": self.limit}
+        encoded_states = [self._encode_state(state) for state in self._states]
         records = []
         for index, label in enumerate(self._labels):
             records.append({
                 "command_type": label,
-                "before_state": self._encode_state(self._states[index]),
-                "after_state": self._encode_state(self._states[index + 1]),
+                "before_state": encoded_states[index],
+                "after_state": encoded_states[index + 1],
             })
         return {"records": records, "cursor": self._cursor, "limit": self.limit}
 
