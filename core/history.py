@@ -65,6 +65,8 @@ class HistoryManager:
             "width": self.project.width,
             "height": self.project.height,
             "created_at": self.project.created_at,
+            "supports_transparency": self.project.supports_transparency,
+            "max_undo_steps": self.project.max_undo_steps,
             "layers": [
                 {
                     "name": layer.name,
@@ -84,6 +86,8 @@ class HistoryManager:
             or left["width"] != right["width"]
             or left["height"] != right["height"]
             or left["created_at"] != right["created_at"]
+            or left.get("supports_transparency", True) != right.get("supports_transparency", True)
+            or left.get("max_undo_steps", 10) != right.get("max_undo_steps", 10)
             or len(left["layers"]) != len(right["layers"])
         ):
             return False
@@ -137,6 +141,9 @@ class HistoryManager:
         self.project.width = state["width"]
         self.project.height = state["height"]
         self.project.created_at = state["created_at"]
+        self.project.supports_transparency = bool(state.get("supports_transparency", True))
+        self.project.max_undo_steps = max(1, int(state.get("max_undo_steps", 10)))
+        self.limit = self.project.max_undo_steps
         self.project.layers = [
             Layer(
                 item["name"],
@@ -154,6 +161,8 @@ class HistoryManager:
             "width": state["width"],
             "height": state["height"],
             "created_at": state["created_at"].isoformat(),
+            "supports_transparency": bool(state.get("supports_transparency", True)),
+            "max_undo_steps": int(state.get("max_undo_steps", 10)),
             "layers": [],
         }
         for layer in state["layers"]:
@@ -194,6 +203,8 @@ class HistoryManager:
             "width": int(state["width"]),
             "height": int(state["height"]),
             "created_at": datetime.fromisoformat(state["created_at"]),
+            "supports_transparency": bool(state.get("supports_transparency", True)),
+            "max_undo_steps": max(1, int(state.get("max_undo_steps", 10))),
             "layers": layers,
         }
 
