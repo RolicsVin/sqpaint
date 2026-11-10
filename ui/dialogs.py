@@ -543,6 +543,236 @@ def show_file_info(parent: QWidget | None, database_path: str) -> None:
     dialog.exec()
 
 
+class TutorialDialog(QDialog):
+    """Интерактивная справка по основным возможностям SQPaint."""
+
+    TOPICS = (
+        {
+            "title": {"ru": "Начало работы", "en": "Getting started"},
+            "html": {
+                "ru": """<h2>Начало работы</h2>
+<p>SQPaint — растровый редактор, в котором изображение создаётся на холсте и организуется с помощью слоёв.</p>
+<ol>
+<li>Создайте проект через <b>Файл → Создать</b> или откройте существующий через <b>Файл → Открыть</b>.</li>
+<li>При создании укажите название, ширину и высоту холста.</li>
+<li>После открытия проекта выберите инструмент и рисуйте на холсте.</li>
+<li>Сохраняйте изменения через <b>Файл → Сохранить</b>.</li>
+</ol>
+<p>Если проект не открыт, сначала создайте его или загрузите существующий.</p>""",
+                "en": """<h2>Getting started</h2>
+<p>SQPaint is a raster editor. You draw on a canvas and organize artwork using layers.</p>
+<ol>
+<li>Create a project with <b>File → New</b> or open one with <b>File → Open</b>.</li>
+<li>When creating a project, specify its name and canvas dimensions.</li>
+<li>After opening the project, choose a tool and draw on the canvas.</li>
+<li>Save your changes with <b>File → Save</b>.</li>
+</ol>
+<p>If no project is open, create one or open an existing project first.</p>"""
+            },
+        },
+        {
+            "title": {"ru": "Холст и масштаб", "en": "Canvas and zoom"},
+            "html": {
+                "ru": """<h2>Холст и масштаб</h2>
+<p>Холст — рабочая область, на которой размещается изображение.</p>
+<ul>
+<li>Изменить размеры можно через <b>Правка → Размер холста</b>.</li>
+<li>Масштаб регулируется ползунком на панели инструментов.</li>
+<li>При уменьшении холста содержимое за его новыми границами обрезается.</li>
+</ul>
+<p>Размер холста задаётся в пикселях.</p>""",
+                "en": """<h2>Canvas and zoom</h2>
+<p>The canvas is the working area where your image is created.</p>
+<ul>
+<li>Change its dimensions using <b>Edit → Canvas size</b>.</li>
+<li>Adjust magnification with the zoom control on the tools panel.</li>
+<li>When the canvas is reduced, content outside its new bounds is cropped.</li>
+</ul>
+<p>Canvas dimensions are measured in pixels.</p>"""
+            },
+        },
+        {
+            "title": {"ru": "Инструменты рисования", "en": "Drawing tools"},
+            "html": {
+                "ru": """<h2>Инструменты рисования</h2>
+<p>Выберите инструмент на панели инструментов:</p>
+<ul>
+<li><b>Кисть</b> — рисует линии выбранным цветом.</li>
+<li><b>Ластик</b> — удаляет содержимое активного слоя.</li>
+<li><b>Заливка</b> — заполняет область цветом.</li>
+</ul>
+<p>Размер кисти задаётся параметром ширины на панели инструментов. Перед рисованием убедитесь, что выбран нужный слой.</p>""",
+                "en": """<h2>Drawing tools</h2>
+<p>Choose a tool from the tools panel:</p>
+<ul>
+<li><b>Brush</b> — draws strokes using the selected color.</li>
+<li><b>Eraser</b> — removes content from the active layer.</li>
+<li><b>Fill</b> — fills an area with color.</li>
+</ul>
+<p>Set brush width on the tools panel. Make sure the intended layer is active before drawing.</p>"""
+            },
+        },
+        {
+            "title": {"ru": "Фигуры", "en": "Shapes"},
+            "html": {
+                "ru": """<h2>Фигуры</h2>
+<p>Инструмент фигур позволяет создавать геометрические формы. После его выбора на панели инструментов появляется список типа фигуры.</p>
+<ul>
+<li><b>Прямоугольник</b></li>
+<li><b>Круг / эллипс</b> — форма определяется движением мыши, поэтому можно получить не только круг, но и эллипс.</li>
+<li><b>Звезда</b></li>
+</ul>
+<p>Зажмите левую кнопку мыши на холсте и переместите указатель, чтобы задать размер фигуры.</p>""",
+                "en": """<h2>Shapes</h2>
+<p>The Shapes tool creates geometric forms. After selecting it, choose a shape type from the additional tools-panel list.</p>
+<ul>
+<li><b>Rectangle</b></li>
+<li><b>Circle / ellipse</b> — the shape follows the mouse drag, so it can be an ellipse as well as a perfect circle.</li>
+<li><b>Star</b></li>
+</ul>
+<p>Hold the left mouse button on the canvas and drag to set the shape's dimensions.</p>"""
+            },
+        },
+        {
+            "title": {"ru": "Цвет и слои", "en": "Color and layers"},
+            "html": {
+                "ru": """<h2>Цвет и слои</h2>
+<p>Текущий цвет выбирается кнопкой цвета на панели инструментов. Он используется инструментами рисования и фигурами.</p>
+<p>Панель слоёв позволяет:</p>
+<ul>
+<li>создавать слой кнопкой <b>+</b> и удалять его кнопкой корзины;</li>
+<li>выбирать активный слой нажатием на его строку;</li>
+<li>переименовывать слой двойным нажатием на название;</li>
+<li>переключать видимость с помощью флажка;</li>
+<li>менять порядок слоёв перетаскиванием.</li>
+</ul>
+<p>Рисование выполняется на активном слое. Слои помогают редактировать части изображения независимо друг от друга.</p>""",
+                "en": """<h2>Color and layers</h2>
+<p>Choose the current color with the color button on the tools panel. Drawing tools and shapes use this color.</p>
+<p>The layers panel lets you:</p>
+<ul>
+<li>add a layer with <b>+</b> and delete it with the trash button;</li>
+<li>select the active layer by clicking its row;</li>
+<li>rename a layer by double-clicking its name;</li>
+<li>toggle visibility with its checkbox;</li>
+<li>reorder layers by dragging them.</li>
+</ul>
+<p>Drawing is performed on the active layer. Layers let you edit different parts of an image independently.</p>"""
+            },
+        },
+        {
+            "title": {"ru": "Сохранение и экспорт", "en": "Saving and export"},
+            "html": {
+                "ru": """<h2>Сохранение и экспорт</h2>
+<ul>
+<li><b>Файл → Сохранить</b> записывает проект в SQLite-файл с расширением <code>.sqlite</code>. В нём хранятся слои и данные проекта.</li>
+<li><b>Файл → Сохранить как</b> позволяет сохранить копию проекта в другом файле.</li>
+<li><b>Файл → Экспортировать → PNG / JPG</b> создаёт итоговое изображение для использования вне SQPaint.</li>
+<li><b>Правка → Вставить как слой</b> импортирует изображение в проект отдельным слоем.</li>
+</ul>
+<p>Файл проекта и экспортированное изображение — разные форматы: для продолжения редактирования сохраняйте именно проект.</p>""",
+                "en": """<h2>Saving and export</h2>
+<ul>
+<li><b>File → Save</b> stores the project in an SQLite file with the <code>.sqlite</code> extension, including its layers and project data.</li>
+<li><b>File → Save as</b> saves a copy of the project to another file.</li>
+<li><b>File → Export → PNG / JPG</b> creates a flattened image for use outside SQPaint.</li>
+<li><b>Edit → Paste as layer</b> imports an image into the project as a separate layer.</li>
+</ul>
+<p>A project file and an exported image are different formats. To continue editing later, save the project file.</p>"""
+            },
+        },
+        {
+            "title": {"ru": "Отмена действий", "en": "Undo and redo"},
+            "html": {
+                "ru": """<h2>Отмена действий</h2>
+<p>Используйте команды <b>Правка → Отменить</b> и <b>Правка → Повторить</b>, чтобы перемещаться по истории изменений.</p>
+<p>Команды также поддерживают стандартные сочетания клавиш операционной системы для отмены и повтора.</p>
+<p>Не забывайте сохранять проект: история действий не заменяет сохранение файла.</p>""",
+                "en": """<h2>Undo and redo</h2>
+<p>Use <b>Edit → Undo</b> and <b>Edit → Redo</b> to move backward and forward through the edit history.</p>
+<p>The commands also use the operating system's standard keyboard shortcuts for undo and redo.</p>
+<p>Remember to save your project: the edit history is not a substitute for saving the file.</p>"""
+            },
+        },
+    )
+
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        from PyQt6.QtWidgets import QHBoxLayout, QListWidget, QTextBrowser, QPushButton
+
+        self.setModal(True)
+        self.resize(780, 500)
+        self._language = getattr(getattr(parent, "localization", None), "language", "ru")
+
+        root = QVBoxLayout(self)
+        body = QHBoxLayout()
+        root.addLayout(body, 1)
+
+        self.topic_list = QListWidget(self)
+        self.topic_list.setMinimumWidth(190)
+        self.topic_list.setMaximumWidth(230)
+        body.addWidget(self.topic_list)
+
+        self.content = QTextBrowser(self)
+        self.content.setOpenExternalLinks(False)
+        self.content.setReadOnly(True)
+        body.addWidget(self.content, 1)
+
+        navigation = QHBoxLayout()
+        self.previous_button = QPushButton(self)
+        self.next_button = QPushButton(self)
+        self.close_button = QPushButton(self)
+        navigation.addWidget(self.previous_button)
+        navigation.addWidget(self.next_button)
+        navigation.addStretch()
+        navigation.addWidget(self.close_button)
+        root.addLayout(navigation)
+
+        self.topic_list.currentRowChanged.connect(self._show_topic)
+        self.previous_button.clicked.connect(self._previous_topic)
+        self.next_button.clicked.connect(self._next_topic)
+        self.close_button.clicked.connect(self.accept)
+
+        manager = getattr(parent, "localization", None)
+        if manager is not None:
+            manager.register(self, {})
+        self.set_language(self._language)
+        self.topic_list.setCurrentRow(0)
+
+    def set_language(self, language: str) -> None:
+        self._language = language
+        self.setWindowTitle("Обучение SQPaint" if language == "ru" else "SQPaint tutorial")
+        current = max(0, self.topic_list.currentRow()) if hasattr(self, "topic_list") else 0
+        if hasattr(self, "topic_list"):
+            self.topic_list.clear()
+            for topic in self.TOPICS:
+                self.topic_list.addItem(topic["title"][language])
+            self.topic_list.setCurrentRow(min(current, len(self.TOPICS) - 1))
+        if hasattr(self, "previous_button"):
+            self.previous_button.setText("Назад" if language == "ru" else "Previous")
+            self.next_button.setText("Далее" if language == "ru" else "Next")
+            self.close_button.setText("Закрыть" if language == "ru" else "Close")
+            self._show_topic(self.topic_list.currentRow())
+
+    def _show_topic(self, index: int) -> None:
+        if not 0 <= index < len(self.TOPICS):
+            return
+        self.content.setHtml(self.TOPICS[index]["html"][self._language])
+        self.previous_button.setEnabled(index > 0)
+        self.next_button.setEnabled(index < len(self.TOPICS) - 1)
+
+    def _previous_topic(self) -> None:
+        self.topic_list.setCurrentRow(max(0, self.topic_list.currentRow() - 1))
+
+    def _next_topic(self) -> None:
+        self.topic_list.setCurrentRow(min(len(self.TOPICS) - 1, self.topic_list.currentRow() + 1))
+
+
+def show_tutorial(parent: QWidget | None = None) -> None:
+    """Показывает интерактивную справку по работе с SQPaint."""
+    TutorialDialog(parent).exec()
+
+
 class AboutDialog(QDialog):
     """Информационное окно о программе SQPaint."""
 
