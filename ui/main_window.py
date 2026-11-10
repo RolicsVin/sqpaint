@@ -140,7 +140,10 @@ class DomainWindow(QMainWindow):
         self.about_action.triggered.connect(lambda: show_about(self))
 
         self.tool_bar = ToolBar(self)
-        self.localization = LocalizationManager(self.settings_data.get("language", "ru"))
+        saved_language = self.settings_data.get("language", "ru")
+        self.localization = LocalizationManager(
+            saved_language if saved_language in LocalizationManager.SUPPORTED_LANGUAGES else "ru"
+        )
         self._register_localized_ui()
         self.tool_bar.set_language(self.localization.language)
         self.ru.setChecked(self.localization.language == "ru")
@@ -189,6 +192,12 @@ class DomainWindow(QMainWindow):
             self.recent_projects_window,
         )
         self.view_manager.apply()
+
+        # Повторно применяем язык после полной сборки интерфейса:
+        # QMenu отображается через menuAction(), поэтому синхронизируем и его текст.
+        self.localization.set_language(self.localization.language)
+        self.ru.setChecked(self.localization.language == "ru")
+        self.en.setChecked(self.localization.language == "en")
         self.show()
 
 
@@ -196,13 +205,21 @@ class DomainWindow(QMainWindow):
         """Регистрирует подписи главного окна в менеджере локализации."""
         entries = [
             (self.file_menu, {"ru": "Файл", "en": "File"}),
+            (self.file_menu.menuAction(), {"ru": "Файл", "en": "File"}),
             (self.edit_menu, {"ru": "Правка", "en": "Edit"}),
+            (self.edit_menu.menuAction(), {"ru": "Правка", "en": "Edit"}),
             (self.view_menu, {"ru": "Вид", "en": "View"}),
+            (self.view_menu.menuAction(), {"ru": "Вид", "en": "View"}),
             (self.help_menu, {"ru": "Справка", "en": "Help"}),
+            (self.help_menu.menuAction(), {"ru": "Справка", "en": "Help"}),
             (self.export_submenu, {"ru": "Экспортировать", "en": "Export"}),
+            (self.export_submenu.menuAction(), {"ru": "Экспортировать", "en": "Export"}),
             (self.sub_windows, {"ru": "Окна", "en": "Panels"}),
+            (self.sub_windows.menuAction(), {"ru": "Окна", "en": "Panels"}),
             (self.theme, {"ru": "Тема", "en": "Theme"}),
+            (self.theme.menuAction(), {"ru": "Тема", "en": "Theme"}),
             (self.langague, {"ru": "Язык", "en": "Language"}),
+            (self.langague.menuAction(), {"ru": "Язык", "en": "Language"}),
             (self.new_action, {"ru": "Создать", "en": "New"}),
             (self.open_action, {"ru": "Открыть", "en": "Open"}),
             (self.save_action, {"ru": "Сохранить", "en": "Save"}),
