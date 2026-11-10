@@ -35,7 +35,7 @@ class DocumentController:
         values = ask_new_project(self.w)
         if values is None:
             return
-        name, width, height = values
+        name, width, height, supports_transparency, max_undo_steps = values
         path = ask_save_project_path(self.w, name)
         if not path:
             return
@@ -43,8 +43,8 @@ class DocumentController:
             show_file_exists(self.w)
             return
         try:
-            project = self.w.database.create(path, name, width, height)
-            project.create_layer(fill=0xFFFFFFFF)
+            project = self.w.database.create(path, name, width, height, supports_transparency, max_undo_steps)
+            project.create_layer(fill=0 if supports_transparency else 0xFFFFFFFF)
             self.w.database.save(project)
         except (OSError, sqlite3.Error, ValueError, RuntimeError) as error:
             show_create_error(self.w, error)
