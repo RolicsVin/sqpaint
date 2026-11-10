@@ -14,6 +14,7 @@ from ui.document_controller import DocumentController
 from ui.localization_controller import WindowLocalizationController
 from ui.preferences_controller import PreferencesController
 from ui.menu_controller import MenuController
+from ui.history_controller import HistoryController
 
 
 class DomainWindow(QMainWindow):
@@ -34,6 +35,7 @@ class DomainWindow(QMainWindow):
 
         self.menu_controller = MenuController(self)
         self.menu_controller.build()
+        self.history_controller = HistoryController(self)
 
         self.tool_bar = ToolBar(self)
         saved_language = self.settings_data.get("language", "ru")
@@ -174,6 +176,7 @@ class DomainWindow(QMainWindow):
         self.canvas.set_layers(project.get_layers(), active=0)
         self.layer_panel.set_layers(project.get_layers())
         self.canvas_view.set_zoom(100)
+        self.history_controller.set_project(project)
         self.save_action.setEnabled(True)
         self.save_as_action.setEnabled(True)
         self.export_submenu.setEnabled(True)
