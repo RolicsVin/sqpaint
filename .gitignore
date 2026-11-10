@@ -1,8 +1,7 @@
 /core/__pycache__
-/ui/__pycache__
-/core/__pycache__
 services/__pycache__
 qtools/__pycache__
+/ui/__pycache__
 
 # Локальные данные пользователя
 recent_projects.csv
