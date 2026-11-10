@@ -33,6 +33,11 @@ class ToolBar(QWidget):
         self.tools_combo.addItem("✂️ Кадрирование", "crop")
         for index, name in enumerate(("Кисть", "Ластик", "Заливка", "Кадрирование")):
             self.tools_combo.setItemData(index, name, Qt.ItemDataRole.ToolTipRole)
+        self.tools_combo.setItemData(
+            3,
+            "Кадрирование: выделите область мышью, Enter — применить, Esc — отменить",
+            Qt.ItemDataRole.ToolTipRole,
+        )
         self.tools_combo.currentIndexChanged.connect(self.on_tool_changed)
 
         self.size_label = QLabel("Размер:")
