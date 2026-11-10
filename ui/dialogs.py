@@ -350,25 +350,24 @@ def show_file_exists(parent: QWidget | None = None) -> None:
 def show_create_error(parent: QWidget | None, error: Exception) -> None:
     QMessageBox.critical(
         parent,
-        "Не удалось создать проект",
-        f"Проект не удалось создать.\n\n{error}",
+        _tr(parent, "Не удалось создать проект", "Could not create project"),
+        _tr(parent, f"Проект не удалось создать.\\n\\n{error}", f"Could not create the project.\\n\\n{error}"),
     )
 
 
 def show_open_error(parent: QWidget | None, error: Exception) -> None:
     QMessageBox.critical(
         parent,
-        "Не удалось открыть проект",
-        f"Файл не удалось загрузить. Возможно, он повреждён "
-        f"или не является проектом SQPaint.\n\n{error}",
+        _tr(parent, "Не удалось открыть проект", "Could not open project"),
+        _tr(parent, f"Файл не удалось загрузить. Возможно, он повреждён или не является проектом SQPaint.\\n\\n{error}", f"The file could not be loaded. It may be damaged or not be an SQPaint project.\\n\\n{error}"),
     )
 
 
 def show_save_error(parent: QWidget | None, error: Exception) -> None:
     QMessageBox.critical(
         parent,
-        "Ошибка сохранения",
-        f"Не удалось сохранить проект.\n\n{error}",
+        _tr(parent, "Ошибка сохранения", "Save error"),
+        _tr(parent, f"Не удалось сохранить проект.\\n\\n{error}", f"Could not save the project.\\n\\n{error}"),
     )
 
 
