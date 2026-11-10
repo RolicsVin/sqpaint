@@ -2,11 +2,12 @@ import os
 import sqlite3
 
 from PyQt6.QtCore import Qt
-from PyQt6.QtGui import QAction, QImage
+from PyQt6.QtGui import QAction, QImage, QKeySequence
 from PyQt6.QtWidgets import QApplication, QDialog, QMainWindow, QMenu, QMessageBox
 
 from core.database import ProjectDatabase
 from core.models import Project
+from core.history import HistoryManager
 from core.localization import LocalizationManager
 from core.exporter import Exporter
 from services import recent_projects, settings as settings_service
@@ -31,6 +32,8 @@ class DomainWindow(QMainWindow):
         self.view_settings = self.settings_data.setdefault("view", {})
         self.canvas: Canvas | None = None
         self.canvas_view: CanvasView | None = None
+        self.history_manager: HistoryManager | None = None
+        self._pending_history = None
 
         screen = QApplication.primaryScreen()
         if screen is not None:
@@ -78,6 +81,18 @@ class DomainWindow(QMainWindow):
         self.export_submenu.setEnabled(False)
         self.import_action.setEnabled(True)
         self.file_info.setEnabled(False)
+
+        self.undo_action = QAction("Отменить", self)
+        self.undo_action.setShortcut(QKeySequence.StandardKey.Undo)
+        self.undo_action.triggered.connect(self.undo)
+        self.redo_action = QAction("Повторить", self)
+        self.redo_action.setShortcut(QKeySequence.StandardKey.Redo)
+        self.redo_action.triggered.connect(self.redo)
+        self.edit_menu.addAction(self.undo_action)
+        self.edit_menu.addAction(self.redo_action)
+        self.edit_menu.addSeparator()
+        self.undo_action.setEnabled(False)
+        self.redo_action.setEnabled(False)
 
         self.canvas_size = QAction("Размер холста", self)
         self.paste_as_layer_action = QAction("Вставить как слой", self)
@@ -227,6 +242,8 @@ class DomainWindow(QMainWindow):
             (self.import_action, {"ru": "Импортировать", "en": "Import"}),
             (self.exit_action, {"ru": "Выход", "en": "Exit"}),
             (self.file_info, {"ru": "О файле", "en": "File information"}),
+            (self.undo_action, {"ru": "Отменить", "en": "Undo"}),
+            (self.redo_action, {"ru": "Повторить", "en": "Redo"}),
             (self.canvas_size, {"ru": "Размер холста", "en": "Canvas size"}),
             (self.paste_as_layer_action, {"ru": "Вставить как слой", "en": "Paste as layer"}),
             (self.selfie_action, {"ru": "Сделать селфи", "en": "Take a selfie"}),
@@ -360,12 +377,16 @@ class DomainWindow(QMainWindow):
 
     def set_project(self, project: Project) -> None:
         self.project = project
+        self.history_manager = HistoryManager(self.database, project)
+        self._pending_history = None
         self.canvas = Canvas(
             self.canvas_view, project.get_layers(),
             project.get_width(), project.get_height()
         )
         self.canvas.set_tool(Canvas.BRUSH)
         self.canvas.crop_requested.connect(self.crop_document)
+        self.canvas.history_started.connect(self._begin_canvas_history)
+        self.canvas.history_finished.connect(self._finish_canvas_history)
         self.canvas_view.set_canvas(self.canvas)
         self.canvas.set_layers(project.get_layers(), active=0)
         self.layer_panel.set_layers(project.get_layers())
@@ -377,6 +398,7 @@ class DomainWindow(QMainWindow):
         self.selfie_action.setEnabled(True)
         self.file_info.setEnabled(True)
         self.canvas_size.setEnabled(True)
+        self._refresh_history_actions()
         self.setWindowTitle(f"SQPaint — {project.get_name()}")
         recent_projects.add_recent_project(project)
 
@@ -386,7 +408,10 @@ class DomainWindow(QMainWindow):
             return
         self._commit_pending_transform()
         try:
+            before = self.history_manager.begin()
             self.project.crop(rect.x(), rect.y(), rect.width(), rect.height())
+            self.history_manager.commit(before, "CropCanvas")
+            self._refresh_history_actions()
             self.canvas.set_document_size(rect.width(), rect.height())
             self.canvas.update()
             self.canvas_view.viewport().update()
@@ -411,7 +436,10 @@ class DomainWindow(QMainWindow):
             return
 
         try:
+            before = self.history_manager.begin()
             self.project.resize(width, height)
+            self.history_manager.commit(before, "ResizeCanvas")
+            self._refresh_history_actions()
             self.canvas.set_document_size(width, height)
         except (MemoryError, ValueError, RuntimeError) as error:
             QMessageBox.critical(
@@ -427,7 +455,10 @@ class DomainWindow(QMainWindow):
         if self.project is None or self.canvas is None:
             return
 
+        before = self.history_manager.begin()
         layer = self.project.create_layer()
+        self.history_manager.commit(before, "AddLayer")
+        self._refresh_history_actions()
         active_index = self.project.get_layers().index(layer)
         self.canvas.set_layers(self.project.get_layers(), active=active_index)
         self.layer_panel.set_layers(self.project.get_layers())
@@ -444,10 +475,13 @@ class DomainWindow(QMainWindow):
         if not confirm_delete_layer(self, layer.get_name()):
             return
 
+        before = self.history_manager.begin()
         old_index = self.project.get_layers().index(layer)
         if not self.project.remove_layer(layer):
             return
 
+        self.history_manager.commit(before, "DeleteLayer")
+        self._refresh_history_actions()
         active_index = min(old_index, len(self.project.get_layers()) - 1)
         self.canvas.set_layers(self.project.get_layers(), active=active_index)
         self.layer_panel.set_layers(self.project.get_layers())
@@ -456,8 +490,11 @@ class DomainWindow(QMainWindow):
     def _on_layer_move_requested(self, source, target, insert_before: bool) -> None:
         if self.project is None or self.canvas is None:
             return
+        before = self.history_manager.begin()
         if not self.project.move_layer(source, target, insert_before):
             return
+        self.history_manager.commit(before, "MoveLayer")
+        self._refresh_history_actions()
 
         selected = self.layer_panel.selected_layer
         active_index = (
@@ -472,15 +509,72 @@ class DomainWindow(QMainWindow):
     def _on_layer_visibility_requested(self, layer, visible: bool) -> None:
         if self.project is None or self.canvas is None:
             return
+        before = self.history_manager.begin()
         if self.project.set_layer_visibility(layer, visible):
+            self.history_manager.commit(before, "SetLayerVisibility")
+            self._refresh_history_actions()
             self.canvas.update()
 
     def _on_layer_rename_requested(self, layer, name: str) -> None:
         if self.project is None:
             return
-        self.project.rename_layer(layer, name)
+        before = self.history_manager.begin()
+        changed = self.project.rename_layer(layer, name)
+        if changed:
+            self.history_manager.commit(before, "RenameLayer")
+            self._refresh_history_actions()
         self.layer_panel.refresh_layer_name(layer)
 
+    def _refresh_history_actions(self) -> None:
+        if self.history_manager is None:
+            self.undo_action.setEnabled(False)
+            self.redo_action.setEnabled(False)
+            return
+        can_undo, can_redo = self.history_manager.status()
+        self.undo_action.setEnabled(can_undo)
+        self.redo_action.setEnabled(can_redo)
+
+    def _begin_canvas_history(self, label: str) -> None:
+        if self.history_manager is not None and self._pending_history is None:
+            self._pending_history = (label, self.history_manager.begin())
+
+    def _finish_canvas_history(self, label: str) -> None:
+        if self.history_manager is None or self._pending_history is None:
+            return
+        command_label, before = self._pending_history
+        self._pending_history = None
+        try:
+            if self.history_manager.commit(before, command_label or label):
+                self._refresh_history_actions()
+        except (OSError, sqlite3.Error, RuntimeError, ValueError) as error:
+            QMessageBox.warning(self, self._tr('История действий', 'Action history'), str(error))
+
+    def _refresh_document_after_history(self) -> None:
+        if self.project is None or self.canvas is None: return
+        self.canvas.set_layers(self.project.get_layers(), active=0)
+        self.canvas.set_document_size(self.project.get_width(), self.project.get_height())
+        self.layer_panel.set_layers(self.project.get_layers())
+        self.layer_panel.select_layer(0)
+        self.canvas_view.viewport().update()
+        self.canvas_view.zoom_changed.emit(round(self.canvas_view.zoom * 100))
+        self.setWindowTitle(f'SQPaint — {self.project.get_name()}')
+        self._refresh_history_actions()
+
+    def undo(self) -> None:
+        if self.history_manager is None: return
+        self._commit_pending_transform()
+        try:
+            if self.history_manager.undo(): self._refresh_document_after_history()
+        except (OSError, sqlite3.Error, RuntimeError, ValueError) as error:
+            QMessageBox.warning(self, self._tr('Отмена', 'Undo'), str(error))
+
+    def redo(self) -> None:
+        if self.history_manager is None: return
+        self._commit_pending_transform()
+        try:
+            if self.history_manager.redo(): self._refresh_document_after_history()
+        except (OSError, sqlite3.Error, RuntimeError, ValueError) as error:
+            QMessageBox.warning(self, self._tr('Повтор', 'Redo'), str(error))
     def _commit_pending_transform(self) -> None:
         if self.canvas is not None and self.canvas.transform_image is not None:
             self.canvas.commit_image_transform()
