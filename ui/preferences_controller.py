@@ -54,15 +54,14 @@ class PreferencesController:
     def apply_settings(self, values: dict) -> None:
         view = values.get("view", {})
 
-        # Показывать ли стартовое окно — настройка следующего запуска.
-        # Не передаём её в ViewManager.apply(), поскольку тот немедленно
-        # показывает/скрывает окно приветствия.
+        # show_welcome — настройка следующего запуска. Обновляем её
+        # значение и QAction, но не показываем стартовое окно сейчас.
         self.window.view_settings.update(view)
         runtime_view = {
             key: value for key, value in view.items()
             if key != "show_welcome"
         }
-        self.window.view_manager.apply(runtime_view)
+        self.window.view_manager.apply(runtime_view, apply_welcome=False)
 
         project_values = values.get("project")
         project = self.window.project
