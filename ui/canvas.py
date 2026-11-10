@@ -110,7 +110,7 @@ class Canvas(QWidget):
         self.update()
 
     def set_shape(self, shape_name: str) -> None:
-        if shape_name in (Shapes.RECTANGLE, Shapes.ELLIPSE, Shapes.STAR):
+        if shape_name in (Shapes.RECTANGLE, Shapes.CIRCLE, Shapes.STAR):
             self.shape_type = shape_name
             self.update()
 
