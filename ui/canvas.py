@@ -2,6 +2,7 @@ from qtools.brush import Brush
 from qtools.eraser import Eraser
 from qtools.fill import Fill
 from qtools.crop import Crop
+from qtools.shapes import Shapes
 from PyQt6.QtCore import Qt, QPoint, QPointF, QRect, QRectF, pyqtSignal
 from PyQt6.QtGui import QPainter, QColor, QImage, QPen
 from PyQt6.QtWidgets import QWidget
@@ -14,6 +15,7 @@ class Canvas(QWidget):
     BRUSH = "brush"
     ERASER = "eraser"
     FILL = "fill"
+    SHAPES = "shapes"
     CROP = "crop"
 
     MIN_ZOOM = 0.1
@@ -36,6 +38,9 @@ class Canvas(QWidget):
         self.brush = Brush()
         self.eraser = Eraser()
         self.fill = Fill()
+        self.shape_type = Shapes.RECTANGLE
+        self.shape_start = None
+        self.shape_current = None
         self.active_tool = self.BRUSH
         self.transform_image = None
         self.transform_rect = None
@@ -90,19 +95,26 @@ class Canvas(QWidget):
         self.update()
 
     def set_tool(self, tool_name: str) -> None:
-        if tool_name not in (self.BRUSH, self.ERASER, self.FILL, self.CROP):
+        if tool_name not in (self.BRUSH, self.ERASER, self.FILL, self.SHAPES, self.CROP):
             return
         if self.last is not None and self.active_tool in (self.BRUSH, self.ERASER):
             label = "PaintStroke" if self.active_tool == self.BRUSH else "EraseStroke"
             self.history_finished.emit(label)
+        if self.shape_start is not None:
+            self.history_finished.emit("DrawShape")
+        self.shape_start = self.shape_current = None
         self.active_tool = tool_name
         self.last = None
         if tool_name != self.CROP:
             self.crop.cancel()
-            self.setCursor(Qt.CursorShape.ArrowCursor)
-        else:
-            self.setCursor(Qt.CursorShape.CrossCursor)
+        self.setCursor(Qt.CursorShape.CrossCursor if tool_name in (self.CROP, self.SHAPES)
+                       else Qt.CursorShape.ArrowCursor)
         self.update()
+
+    def set_shape(self, shape_name: str) -> None:
+        if shape_name in (Shapes.RECTANGLE, Shapes.CIRCLE, Shapes.STAR):
+            self.shape_type = shape_name
+            self.update()
 
     def _document_pos(self, event) -> QPoint:
         """Преобразует экранную позицию мыши в координаты документа."""
@@ -232,6 +244,10 @@ class Canvas(QWidget):
             if layer.visible and not (self.transform_image is not None and index == self.active):
                 painter.drawImage(0, 0, layer.image)
 
+        if self.active_tool == self.SHAPES and self.shape_start is not None:
+            Shapes.draw(painter, QRectF(self.shape_start, self.shape_current),
+                        self.shape_type, self.color, self.width_px)
+
         if self.active_tool == self.CROP:
             self.crop.paint(
                 painter, self.zoom, self.document_width, self.document_height
@@ -300,6 +316,15 @@ class Canvas(QWidget):
             self.update()
             return
 
+        if self.active_tool == self.SHAPES:
+            self.shape_start = QPointF(e.position().x() / self.zoom,
+                                       e.position().y() / self.zoom)
+            self.shape_current = QPointF(self.shape_start)
+            self.history_started.emit("DrawShape")
+            self.setFocus()
+            self.update()
+            return
+
         if self.active_tool in (self.BRUSH, self.ERASER):
             self.history_started.emit("PaintStroke" if self.active_tool == self.BRUSH else "EraseStroke")
         self.last = pos
@@ -322,6 +347,11 @@ class Canvas(QWidget):
             point = QPointF(e.position().x() / self.zoom, e.position().y() / self.zoom)
             if self.crop.move(point, self.document_width, self.document_height):
                 self.update()
+            return
+        if self.active_tool == self.SHAPES and self.shape_start is not None:
+            self.shape_current = QPointF(e.position().x() / self.zoom,
+                                         e.position().y() / self.zoom)
+            self.update()
             return
         if self.last is None:
             return
@@ -346,6 +376,20 @@ class Canvas(QWidget):
         self.update()
 
     def mouseReleaseEvent(self, e):
+        if e.button() == Qt.MouseButton.LeftButton and self.shape_start is not None:
+            self.shape_current = QPointF(e.position().x() / self.zoom,
+                                         e.position().y() / self.zoom)
+            if self.layers and 0 <= self.active < len(self.layers):
+                layer = self.layers[self.active]
+                if layer.visible and self.shape_current is not None:
+                    painter = QPainter(layer.image)
+                    Shapes.draw(painter, QRectF(self.shape_start, self.shape_current),
+                                self.shape_type, self.color, self.width_px)
+                    painter.end()
+            self.shape_start = self.shape_current = None
+            self.history_finished.emit("DrawShape")
+            self.update()
+            return
         if self.last is not None and self.active_tool in (self.BRUSH, self.ERASER):
             self.history_finished.emit("PaintStroke" if self.active_tool == self.BRUSH else "EraseStroke")
         self.last = None

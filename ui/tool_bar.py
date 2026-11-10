@@ -9,6 +9,7 @@ class ToolBar(QWidget):
     HEIGHT = 50
     color_selected = pyqtSignal(QColor)
     tool_selected = pyqtSignal(str)
+    shape_selected = pyqtSignal(str)
     width_changed = pyqtSignal(int)
     zoom_changed = pyqtSignal(int)
 
@@ -29,8 +30,17 @@ class ToolBar(QWidget):
         self.tools_combo.add_localized_item({"ru": "🖌 Кисть", "en": "🖌 Brush"}, "brush")
         self.tools_combo.add_localized_item({"ru": "🧽 Ластик", "en": "🧽 Eraser"}, "eraser")
         self.tools_combo.add_localized_item({"ru": "🪣 Заливка", "en": "🪣 Fill"}, "fill")
+        self.tools_combo.add_localized_item({"ru": "▱ Фигуры", "en": "▱ Shapes"}, "shapes")
         self.tools_combo.add_localized_item({"ru": "✂️ Кадрирование", "en": "✂️ Crop"}, "crop")
         self.tools_combo.currentIndexChanged.connect(self.on_tool_changed)
+
+        self.shapes_combo = LocalizedComboBox(self)
+        self.shapes_combo.add_localized_item({"ru": "Прямоугольник", "en": "Rectangle"}, "rectangle")
+        self.shapes_combo.add_localized_item({"ru": "Круг", "en": "Circle"}, "circle")
+        self.shapes_combo.add_localized_item({"ru": "Звезда", "en": "Star"}, "star")
+        self.shapes_combo.setFixedWidth(125)
+        self.shapes_combo.hide()
+        self.shapes_combo.currentIndexChanged.connect(self.on_shape_changed)
 
         self.size_label = LocalizedLabel("Размер:")
         self.size_label.add_localization("en", "Size:")
@@ -49,6 +59,7 @@ class ToolBar(QWidget):
 
         self.Hlayout.addWidget(self.color_btn)
         self.Hlayout.addWidget(self.tools_combo)
+        self.Hlayout.addWidget(self.shapes_combo)
         self.Hlayout.addWidget(self.size_label)
         self.Hlayout.addWidget(self.size_slider)
         self.Hlayout.addWidget(self.size_value_label)
@@ -59,6 +70,8 @@ class ToolBar(QWidget):
     def set_language(self, language: str) -> None:
         self._language = language
         self.tools_combo.set_language(language)
+        self.shapes_combo.set_language(language)
+        self.shapes_combo.setToolTip("Форма фигуры" if language == "ru" else "Shape type")
         self.size_label.set_language(language)
         self.zoom_label.set_language(language)
         self.color_btn.setToolTip("Выбрать цвет" if language == "ru" else "Choose color")
@@ -68,7 +81,14 @@ class ToolBar(QWidget):
         )
 
     def on_tool_changed(self, index: int) -> None:
-        self.tool_selected.emit(self.tools_combo.itemData(index))
+        tool = self.tools_combo.itemData(index)
+        self.shapes_combo.setVisible(tool == "shapes")
+        self.tool_selected.emit(tool)
+
+    def on_shape_changed(self, index: int) -> None:
+        shape = self.shapes_combo.itemData(index)
+        if shape:
+            self.shape_selected.emit(shape)
 
     def on_size_changed(self, value: int) -> None:
         self.size_value_label.setText(f"{value} px")
