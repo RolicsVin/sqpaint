@@ -54,10 +54,14 @@ class ProjectDatabase:
             self._ensure_history_schema(conn)
             with conn:
                 conn.execute(
-                    "INSERT INTO project (id, name, width, height, created_at) "
-                    "VALUES (1, ?, ?, ?, ?)",
-                    (project.name, project.width, project.height,
-                     datetime_to_str(project.created_at)),
+                    "INSERT INTO project "
+                    "(id, name, width, height, created_at, supports_transparency, max_undo_steps) "
+                    "VALUES (1, ?, ?, ?, ?, ?, ?)",
+                    (
+                        project.name, project.width, project.height,
+                        datetime_to_str(project.created_at),
+                        int(project.supports_transparency), project.max_undo_steps,
+                    ),
                 )
                 self._write_layers(project, conn)
         except Exception:
