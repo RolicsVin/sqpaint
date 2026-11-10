@@ -1,8 +1,8 @@
 from qtools.brush import Brush
 from qtools.eraser import Eraser
 from qtools.fill import Fill
-from PyQt6.QtCore import Qt, QPoint
-from PyQt6.QtGui import QPainter, QColor, QImage
+from PyQt6.QtCore import Qt, QPoint, QPointF, QRectF
+from PyQt6.QtGui import QPainter, QColor, QImage, QPen
 from PyQt6.QtWidgets import QWidget
 
 
@@ -31,6 +31,13 @@ class Canvas(QWidget):
         self.eraser = Eraser()
         self.fill = Fill()
         self.active_tool = self.BRUSH
+        self.transform_image = None
+        self.transform_rect = None
+        self.transform_drag = None
+        self.transform_start = None
+        self._transform_mouse_start = None
+        self.setMouseTracking(True)
+        self.setFocusPolicy(Qt.FocusPolicy.StrongFocus)
 
     def set_zoom(self, zoom: float) -> float:
         """Меняет только размер отображения, не затрагивая изображения слоёв."""
@@ -89,6 +96,83 @@ class Canvas(QWidget):
             int(position.y() / self.zoom),
         )
 
+    def begin_image_transform(self, image: QImage) -> None:
+        """Включает режим позиционирования и масштабирования изображения."""
+        if image.isNull():
+            return
+        self.transform_image = image.convertToFormat(QImage.Format.Format_ARGB32)
+        width = min(image.width(), self.document_width)
+        height = min(image.height(), self.document_height)
+        self.transform_rect = QRectF(
+            (self.document_width - width) / 2,
+            (self.document_height - height) / 2, width, height,
+        )
+        self.transform_drag = None
+        self.setFocus()
+        self.update()
+
+    def commit_image_transform(self) -> None:
+        """Записывает текущее положение изображения в активный слой."""
+        if self.transform_image is None or self.transform_rect is None:
+            return
+        if 0 <= self.active < len(self.layers):
+            result = QImage(self.document_width, self.document_height,
+                            QImage.Format.Format_ARGB32)
+            result.fill(0)
+            painter = QPainter(result)
+            painter.setRenderHint(QPainter.RenderHint.SmoothPixmapTransform, True)
+            painter.drawImage(self.transform_rect, self.transform_image)
+            painter.end()
+            self.layers[self.active].image = result
+        self.transform_image = None
+        self.transform_rect = None
+        self.transform_drag = None
+        self.update()
+
+    def _transform_handle(self, point: QPointF):
+        if self.transform_rect is None:
+            return None
+        rect = self.transform_rect
+        points = {
+            "tl": rect.topLeft(), "tm": QPointF(rect.center().x(), rect.top()),
+            "tr": rect.topRight(), "mr": QPointF(rect.right(), rect.center().y()),
+            "br": rect.bottomRight(), "bm": QPointF(rect.center().x(), rect.bottom()),
+            "bl": rect.bottomLeft(), "ml": QPointF(rect.left(), rect.center().y()),
+        }
+        radius = 8 / self.zoom
+        for name, handle in points.items():
+            if abs(point.x() - handle.x()) <= radius and abs(point.y() - handle.y()) <= radius:
+                return name
+        return None
+
+    def _resize_transform(self, point: QPointF) -> None:
+        rect = QRectF(self.transform_start)
+        handle = self.transform_drag
+        if "l" in handle:
+            rect.setLeft(point.x())
+        if "r" in handle:
+            rect.setRight(point.x())
+        if "t" in handle:
+            rect.setTop(point.y())
+        if "b" in handle:
+            rect.setBottom(point.y())
+        self.transform_rect = rect.normalized()
+
+    def keyPressEvent(self, event) -> None:
+        if self.transform_image is not None:
+            if event.key() in (Qt.Key.Key_Return, Qt.Key.Key_Enter):
+                self.commit_image_transform()
+                event.accept()
+                return
+            if event.key() == Qt.Key.Key_Escape:
+                self.transform_image = None
+                self.transform_rect = None
+                self.transform_drag = None
+                self.update()
+                event.accept()
+                return
+        super().keyPressEvent(event)
+
     def get_image(self):
         """Возвращает композицию в исходном разрешении документа."""
         image = QImage(
@@ -109,12 +193,44 @@ class Canvas(QWidget):
         painter = QPainter(self)
         painter.setRenderHint(QPainter.RenderHint.SmoothPixmapTransform, False)
         painter.scale(self.zoom, self.zoom)
-        for layer in self.layers:
-            if layer.visible:
+        for index, layer in enumerate(self.layers):
+            if layer.visible and not (self.transform_image is not None and index == self.active):
                 painter.drawImage(0, 0, layer.image)
+
+        if self.transform_image is not None and self.transform_rect is not None:
+            painter.drawImage(self.transform_rect, self.transform_image)
+            painter.setPen(QPen(QColor("#36a3ff"), 1.5 / self.zoom, Qt.PenStyle.DashLine))
+            painter.drawRect(self.transform_rect)
+            painter.setPen(QPen(QColor("#202020"), 1 / self.zoom))
+            painter.setBrush(QColor("white"))
+            radius = 4 / self.zoom
+            rect = self.transform_rect
+            handles = (
+                rect.topLeft(), QPointF(rect.center().x(), rect.top()), rect.topRight(),
+                QPointF(rect.right(), rect.center().y()), rect.bottomRight(),
+                QPointF(rect.center().x(), rect.bottom()), rect.bottomLeft(),
+                QPointF(rect.left(), rect.center().y()),
+            )
+            for point in handles:
+                painter.drawRect(QRectF(point.x()-radius, point.y()-radius, radius*2, radius*2))
 
     def mousePressEvent(self, e):
         if e.button() != Qt.MouseButton.LeftButton:
+            return
+        if self.transform_image is not None and self.transform_rect is not None:
+            point = QPointF(e.position().x() / self.zoom, e.position().y() / self.zoom)
+            handle = self._transform_handle(point)
+            if handle:
+                self.transform_drag = handle
+                self.transform_start = QRectF(self.transform_rect)
+            elif self.transform_rect.contains(point):
+                self.transform_drag = "move"
+                self.transform_start = QRectF(self.transform_rect)
+            else:
+                self.commit_image_transform()
+                return
+            self._transform_mouse_start = point
+            e.accept()
             return
         if not self.layers or not (0 <= self.active < len(self.layers)):
             return
@@ -139,6 +255,19 @@ class Canvas(QWidget):
         self.last = pos
 
     def mouseMoveEvent(self, e):
+        if self.transform_image is not None and self.transform_drag is not None:
+            point = QPointF(e.position().x() / self.zoom, e.position().y() / self.zoom)
+            if self.transform_drag == "move":
+                self.transform_rect = self.transform_start.translated(point - self._transform_mouse_start)
+            else:
+                self._resize_transform(point)
+            self.update()
+            return
+        if self.transform_image is not None and self.transform_rect is not None:
+            point = QPointF(e.position().x() / self.zoom, e.position().y() / self.zoom)
+            self.setCursor(Qt.CursorShape.SizeAllCursor if self.transform_rect.contains(point)
+                           else Qt.CursorShape.ArrowCursor)
+            return
         if self.last is None:
             return
         if not self.layers or not (0 <= self.active < len(self.layers)):
@@ -163,6 +292,10 @@ class Canvas(QWidget):
 
     def mouseReleaseEvent(self, e):
         self.last = None
+        if self.transform_drag is not None:
+            self.transform_drag = None
+            self.transform_start = None
+            self.setCursor(Qt.CursorShape.ArrowCursor)
 
     def re_draw_canvas(self) -> None:
         self.update()
