@@ -1,6 +1,4 @@
-"""UI-адаптер постоянной истории: сигналы холста, команды меню и синхронизация."""
-import sqlite3
-
+"""UI-адаптер оперативной истории: сигналы холста, команды меню и синхронизация."""
 from PyQt6.QtWidgets import QMessageBox
 
 from core.history import HistoryManager
@@ -18,7 +16,7 @@ class HistoryController:
         self._refresh_actions()
 
     def set_project(self, project) -> None:
-        self.history.set_project(project)
+        self.history.set_project(project, self.window.database.load_history())
         self._pending = None
         canvas = self.window.canvas
         canvas.history_started.connect(self._begin_canvas_action)
@@ -30,12 +28,16 @@ class HistoryController:
             return None
         return self.history.capture()
 
+    def export_for_save(self) -> dict:
+        """Подготавливает историю для записи при явном сохранении проекта."""
+        return self.history.export_for_save()
+
     def commit(self, before, label: str) -> bool:
         if before is None:
             return False
         try:
             changed = self.history.commit(before, label)
-        except (OSError, sqlite3.Error, RuntimeError, ValueError) as error:
+        except (RuntimeError, ValueError, MemoryError) as error:
             self._refresh_document()
             self._show_error("История действий", "Action history", error)
             return False
@@ -56,7 +58,7 @@ class HistoryController:
     def _refresh_actions(self) -> None:
         try:
             can_undo, can_redo = self.history.status() if self.history.project else (False, False)
-        except (sqlite3.Error, RuntimeError):
+        except (RuntimeError, ValueError):
             can_undo, can_redo = False, False
         self.window.undo_action.setEnabled(can_undo)
         self.window.redo_action.setEnabled(can_redo)
@@ -88,7 +90,7 @@ class HistoryController:
         try:
             if self.history.undo():
                 self._refresh_document()
-        except (OSError, sqlite3.Error, RuntimeError, ValueError) as error:
+        except (RuntimeError, ValueError, MemoryError) as error:
             self._show_error("Отмена действия", "Undo action", error)
 
     def redo(self) -> None:
