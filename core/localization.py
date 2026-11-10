@@ -104,7 +104,9 @@ class LocalizationManager:
         text = translations.get(self.language)
         if text is None:
             return
-        if hasattr(widget, "setTitle"):
+        if hasattr(widget, "setWindowTitle"):
+            widget.setWindowTitle(text)
+        elif hasattr(widget, "setTitle"):
             widget.setTitle(text)
         elif hasattr(widget, "setText"):
             widget.setText(text)
