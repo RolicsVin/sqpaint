@@ -67,7 +67,7 @@ class DomainWindow(QMainWindow):
         self.open_action.triggered.connect(self.open_project)
         self.save_action.triggered.connect(self.save)
         self.save_as_action.triggered.connect(self.save_as)
-        self.import_action.triggered.connect(self.import_image)
+        self.import_action.triggered.connect(self.create_project_from_image)
         self.export_png.triggered.connect(lambda: self.export_image("png"))
         self.export_jpg.triggered.connect(lambda: self.export_image("jpg"))
         self.exit_action.triggered.connect(self.close)
@@ -75,7 +75,7 @@ class DomainWindow(QMainWindow):
         self.save_action.setEnabled(False)
         self.save_as_action.setEnabled(False)
         self.export_submenu.setEnabled(False)
-        self.import_action.setEnabled(False)
+        self.import_action.setEnabled(True)
         self.file_info.setEnabled(False)
 
         self.canvas_size = QAction("Размер холста", self)
@@ -86,7 +86,6 @@ class DomainWindow(QMainWindow):
         self.edit_menu.addAction(self.paste_as_layer_action)
         self.edit_menu.addAction(self.selfie_action)
         self.edit_menu.addAction(self.settings_action)
-        # Временная заглушка: пока «Вставить как слой» использует импорт изображения.
         self.canvas_size.triggered.connect(self.change_canvas_size)
         self.canvas_size.setEnabled(False)
         self.paste_as_layer_action.triggered.connect(self.import_image)
@@ -433,6 +432,7 @@ class DomainWindow(QMainWindow):
             show_save_error(self, error)
 
     def import_image(self) -> None:
+        """Добавляет выбранное изображение в открытый проект отдельным слоем."""
         if self.project is None or self.canvas is None:
             return
         path = ask_import_image_path(self)
@@ -442,7 +442,7 @@ class DomainWindow(QMainWindow):
         image = QImage(path)
         if image.isNull():
             QMessageBox.warning(
-                self, "Импорт изображения",
+                self, "Вставить как слой",
                 "Не удалось открыть выбранное изображение."
             )
             return
@@ -452,6 +452,40 @@ class DomainWindow(QMainWindow):
         self.canvas.set_layers(self.project.get_layers(), active=active_index)
         self.layer_panel.set_layers(self.project.get_layers())
         self.layer_panel.select_layer(active_index)
+
+    def create_project_from_image(self) -> None:
+        """Создаёт новый SQLite-проект, используя изображение как первый слой."""
+        image_path = ask_import_image_path(self)
+        if not image_path:
+            return
+
+        image = QImage(image_path)
+        if image.isNull():
+            QMessageBox.warning(
+                self, "Импорт изображения",
+                "Не удалось открыть выбранное изображение."
+            )
+            return
+
+        project_name = os.path.splitext(os.path.basename(image_path))[0] or "Импорт"
+        project_path = ask_save_project_path(self, project_name)
+        if not project_path:
+            return
+        if os.path.exists(project_path):
+            show_file_exists(self)
+            return
+
+        try:
+            project = self.database.create(
+                project_path, project_name, image.width(), image.height()
+            )
+            project.create_layer("Импорт", image)
+            self.database.save(project)
+        except (OSError, sqlite3.Error, ValueError, RuntimeError) as error:
+            show_create_error(self, error)
+            return
+
+        self.set_project(project)
 
     def take_selfie(self) -> None:
         """Снимает изображение с веб-камеры и добавляет его отдельным слоем."""
