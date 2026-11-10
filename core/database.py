@@ -38,6 +38,7 @@ class ProjectDatabase:
     def __init__(self):
         self.path: str | None = None
         self.conn: sqlite3.Connection | None = None
+        self._loaded_history: dict | None = None
 
     def create(self, path: str, name: str, width: int, height: int) -> Project:
         """Создаёт новый файл проекта и возвращает Project."""
@@ -65,6 +66,7 @@ class ProjectDatabase:
 
         self.path = path
         self.conn = conn
+        self._loaded_history = None
         return project
 
     def load(self, path: str) -> Project:
@@ -76,7 +78,6 @@ class ProjectDatabase:
         # текущее соединение и открытый в интерфейсе проект остаются нетронутыми.
         conn = sqlite3.connect(path)
         try:
-            self._ensure_history_schema(conn)
             row = conn.execute(
                 "SELECT name, width, height, created_at FROM project WHERE id = 1"
             ).fetchone()
@@ -103,6 +104,43 @@ class ProjectDatabase:
                 path,
                 layers,
             )
+
+            # Читаем историю без изменения файла при открытии проекта.
+            self._loaded_history = None
+            tables = {
+                item[0] for item in conn.execute(
+                    "SELECT name FROM sqlite_master WHERE type='table'"
+                )
+            }
+            columns = {item[1] for item in conn.execute("PRAGMA table_info(project)")}
+            if "action_history" in tables and "history_cursor" in columns:
+                history_rows = conn.execute(
+                    "SELECT command_type, before_state, after_state "
+                    "FROM action_history ORDER BY id"
+                ).fetchall()
+                cursor_value = conn.execute(
+                    "SELECT history_cursor FROM project WHERE id=1"
+                ).fetchone()[0]
+                max_steps = (
+                    conn.execute("SELECT max_undo_steps FROM project WHERE id=1").fetchone()[0]
+                    if "max_undo_steps" in columns else 20
+                )
+                cursor_index = sum(
+                    1 for item in conn.execute("SELECT id FROM action_history ORDER BY id")
+                    if item[0] <= int(cursor_value)
+                )
+                self._loaded_history = {
+                    "records": [
+                        {
+                            "command_type": item[0],
+                            "before_state": bytes(item[1]),
+                            "after_state": bytes(item[2]),
+                        }
+                        for item in history_rows
+                    ],
+                    "cursor": cursor_index,
+                    "limit": int(max_steps),
+                }
         except Exception:
             conn.close()
             raise
@@ -112,24 +150,45 @@ class ProjectDatabase:
         self.conn = conn
         return project
 
-    def save(self, project: Project) -> None:
-        """Перезаписывает данные проекта в уже открытом файле."""
+    def save(self, project: Project, history_data: dict | None = None) -> None:
+        """Сохраняет документ и историю только по явной команде пользователя."""
         self._require_conn()
+        self._ensure_history_schema(self.conn)
+        history_data = history_data or {"records": [], "cursor": 0, "limit": 20}
 
         with self.conn:
             self.conn.execute(
-                "UPDATE project SET name = ?, width = ?, height = ? WHERE id = 1",
-                (project.name, project.width, project.height),
+                "UPDATE project SET name=?, width=?, height=?, history_cursor=?, max_undo_steps=? WHERE id=1",
+                (
+                    project.name, project.width, project.height,
+                    int(history_data.get("cursor", 0)),
+                    max(1, int(history_data.get("limit", 20))),
+                ),
             )
             self.conn.execute("DELETE FROM layers")
             self._write_layers(project, self.conn)
+            self.conn.execute("DELETE FROM action_history")
+            for record in history_data.get("records", []):
+                self.conn.execute(
+                    "INSERT INTO action_history(command_type,before_state,after_state) VALUES(?,?,?)",
+                    (
+                        record["command_type"],
+                        sqlite3.Binary(record["before_state"]),
+                        sqlite3.Binary(record["after_state"]),
+                    ),
+                )
+        self._loaded_history = history_data
 
-    def save_as(self, path: str, project: Project) -> Project:
+    def load_history(self) -> dict | None:
+        """Возвращает историю, прочитанную при открытии текущего проекта."""
+        return self._loaded_history
+
+    def save_as(self, path: str, project: Project, history_data: dict | None = None) -> Project:
         """Сохраняет проект в новый SQLite-файл и переключает БД на него."""
         if os.path.exists(path):
             raise FileExistsError(f"Файл уже существует: {path}")
 
-        self.save(project)
+        self.save(project, history_data)
         destination = sqlite3.connect(path)
         try:
             self._require_conn()
@@ -169,106 +228,13 @@ class ProjectDatabase:
             )
         """)
 
-    def record_history(
-        self, project: Project, before_state: bytes, after_state: bytes, command_type: str
-    ) -> None:
-        """Атомарно сохраняет состояние документа и запись истории."""
-        self._require_conn()
-        with self.conn:
-            cursor, limit = self.conn.execute(
-                "SELECT history_cursor, max_undo_steps FROM project WHERE id = 1"
-            ).fetchone()
-            self.conn.execute("DELETE FROM action_history WHERE id > ?", (cursor,))
-            self.conn.execute(
-                "UPDATE project SET name=?, width=?, height=? WHERE id=1",
-                (project.name, project.width, project.height),
-            )
-            self.conn.execute("DELETE FROM layers")
-            self._write_layers(project, self.conn)
-            self.conn.execute(
-                "INSERT INTO action_history(command_type,before_state,after_state) VALUES(?,?,?)",
-                (command_type, sqlite3.Binary(before_state), sqlite3.Binary(after_state)),
-            )
-            new_cursor = self.conn.execute("SELECT last_insert_rowid()").fetchone()[0]
-            self.conn.execute(
-                "UPDATE project SET history_cursor=? WHERE id=1", (new_cursor,)
-            )
-            self.conn.execute(
-                "DELETE FROM action_history WHERE id NOT IN "
-                "(SELECT id FROM action_history ORDER BY id DESC LIMIT ?)",
-                (max(1, int(limit)),),
-            )
-
-    def get_history_entry(self, direction: str) -> dict | None:
-        """Возвращает состояние для Undo/Redo и новую позицию курсора."""
-        self._require_conn()
-        cursor = self.conn.execute(
-            "SELECT history_cursor FROM project WHERE id=1"
-        ).fetchone()[0]
-        if direction == "undo":
-            row = self.conn.execute(
-                "SELECT id,before_state FROM action_history WHERE id=?", (cursor,)
-            ).fetchone()
-            if row is None:
-                return None
-            previous = self.conn.execute(
-                "SELECT COALESCE(MAX(id),0) FROM action_history WHERE id < ?", (cursor,)
-            ).fetchone()[0]
-            return {"state": row[1], "cursor": previous}
-        if direction == "redo":
-            row = self.conn.execute(
-                "SELECT id,after_state FROM action_history WHERE id > ? ORDER BY id LIMIT 1",
-                (cursor,),
-            ).fetchone()
-            if row is None:
-                return None
-            return {"state": row[1], "cursor": row[0]}
-        raise ValueError("direction должен быть 'undo' или 'redo'")
-
-    def restore_history_state(self, project: Project, cursor: int) -> None:
-        """Сохраняет восстановленный документ и позицию истории транзакционно."""
-        self._require_conn()
-        with self.conn:
-            self.conn.execute(
-                "UPDATE project SET name=?,width=?,height=?,history_cursor=? WHERE id=1",
-                (project.name, project.width, project.height, int(cursor)),
-            )
-            self.conn.execute("DELETE FROM layers")
-            self._write_layers(project, self.conn)
-
-    def history_status(self) -> tuple[bool, bool]:
-        self._require_conn()
-        cursor = self.conn.execute(
-            "SELECT history_cursor FROM project WHERE id=1"
-        ).fetchone()[0]
-        can_undo = self.conn.execute(
-            "SELECT 1 FROM action_history WHERE id=?", (cursor,)
-        ).fetchone() is not None
-        can_redo = self.conn.execute(
-            "SELECT 1 FROM action_history WHERE id>? LIMIT 1", (cursor,)
-        ).fetchone() is not None
-        return can_undo, can_redo
-
-    def set_history_limit(self, limit: int) -> None:
-        """Задаёт лимит количества отменяемых действий."""
-        self._require_conn()
-        limit = max(1, int(limit))
-        with self.conn:
-            self.conn.execute(
-                "UPDATE project SET max_undo_steps=? WHERE id=1", (limit,)
-            )
-            self.conn.execute(
-                "DELETE FROM action_history WHERE id NOT IN "
-                "(SELECT id FROM action_history ORDER BY id DESC LIMIT ?)",
-                (limit,),
-            )
-
     def close(self) -> None:
         """Закрывает соединение с файлом проекта."""
         if self.conn is not None:
             self.conn.close()
             self.conn = None
         self.path = None
+        self._loaded_history = None
 
     def _require_conn(self) -> None:
         if self.conn is None:
