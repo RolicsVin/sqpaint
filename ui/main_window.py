@@ -52,6 +52,7 @@ class DomainWindow(QMainWindow):
         self.tool_bar.resize(self.width(), ToolBar.HEIGHT)
         self.tool_bar.color_selected.connect(self.set_canvas_color)
         self.tool_bar.tool_selected.connect(self.set_canvas_tool)
+        self.tool_bar.shape_selected.connect(self.set_canvas_shape)
         self.tool_bar.width_changed.connect(self.set_canvas_width)
         self.tool_bar.zoom_changed.connect(self.set_canvas_zoom)
 
@@ -112,6 +113,7 @@ class DomainWindow(QMainWindow):
 
     def _set_language(self, language: str) -> None:
         self.localization_controller.set_language(language)
+        self.tool_bar.set_language(language)
 
     def _layout_child_widgets(self) -> None:
         panel_width = LayerPanel.WIDTH if not self.layer_panel.isHidden() else 0
@@ -233,6 +235,10 @@ class DomainWindow(QMainWindow):
         if self.canvas is not None:
             self._commit_pending_transform()
             self.canvas.set_tool(tool_name)
+
+    def set_canvas_shape(self, shape_name: str) -> None:
+        if self.canvas is not None:
+            self.canvas.set_shape(shape_name)
 
     def set_canvas_width(self, width: int) -> None:
         if self.canvas is not None:
