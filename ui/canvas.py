@@ -169,13 +169,6 @@ class Canvas(QWidget):
                 self.commit_image_transform()
                 event.accept()
                 return
-            if event.key() == Qt.Key.Key_Escape:
-                self.transform_image = None
-                self.transform_rect = None
-                self.transform_drag = None
-                self.update()
-                event.accept()
-                return
         super().keyPressEvent(event)
 
     def get_image(self):
