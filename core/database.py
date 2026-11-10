@@ -106,7 +106,7 @@ class ProjectDatabase:
             )
 
             # Читаем историю без изменения файла при открытии проекта.
-            self._loaded_history = None
+            loaded_history = None
             tables = {
                 item[0] for item in conn.execute(
                     "SELECT name FROM sqlite_master WHERE type='table'"
@@ -129,7 +129,7 @@ class ProjectDatabase:
                     1 for item in conn.execute("SELECT id FROM action_history ORDER BY id")
                     if item[0] <= int(cursor_value)
                 )
-                self._loaded_history = {
+                loaded_history = {
                     "records": [
                         {
                             "command_type": item[0],
@@ -148,6 +148,7 @@ class ProjectDatabase:
         self.close()
         self.path = path
         self.conn = conn
+        self._loaded_history = loaded_history
         return project
 
     def save(self, project: Project, history_data: dict | None = None) -> None:
