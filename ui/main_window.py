@@ -8,7 +8,6 @@ from PyQt6.QtWidgets import QApplication, QDialog, QMainWindow, QMenu, QMessageB
 from core.database import ProjectDatabase
 from core.models import Project
 from core.localization import LocalizationManager
-from core.exporter import Exporter
 from services import recent_projects, settings as settings_service
 from ui.start_window import RecentProjectWindow
 from ui.canvas import Canvas
@@ -17,6 +16,7 @@ from ui.tool_bar import ToolBar
 from ui.layers_panel import LayerPanel
 from ui.view_manager import ViewManager
 from ui.document_controller import DocumentController
+from ui.localization_controller import WindowLocalizationController
 from ui.dialogs import *
 
 
@@ -144,7 +144,8 @@ class DomainWindow(QMainWindow):
         self.localization = LocalizationManager(
             saved_language if saved_language in LocalizationManager.SUPPORTED_LANGUAGES else "ru"
         )
-        self._register_localized_ui()
+        self.localization_controller = WindowLocalizationController(self)
+        self.localization_controller.register_widgets()
         self.tool_bar.set_language(self.localization.language)
         self.ru.setChecked(self.localization.language == "ru")
         self.en.setChecked(self.localization.language == "en")
@@ -201,62 +202,6 @@ class DomainWindow(QMainWindow):
         self.en.setChecked(self.localization.language == "en")
         self.show()
 
-
-    def _register_localized_ui(self) -> None:
-        """Регистрирует подписи главного окна в менеджере локализации."""
-        entries = [
-            (self.file_menu, {"ru": "Файл", "en": "File"}),
-            (self.file_menu.menuAction(), {"ru": "Файл", "en": "File"}),
-            (self.edit_menu, {"ru": "Правка", "en": "Edit"}),
-            (self.edit_menu.menuAction(), {"ru": "Правка", "en": "Edit"}),
-            (self.view_menu, {"ru": "Вид", "en": "View"}),
-            (self.view_menu.menuAction(), {"ru": "Вид", "en": "View"}),
-            (self.help_menu, {"ru": "Справка", "en": "Help"}),
-            (self.help_menu.menuAction(), {"ru": "Справка", "en": "Help"}),
-            (self.export_submenu, {"ru": "Экспортировать", "en": "Export"}),
-            (self.export_submenu.menuAction(), {"ru": "Экспортировать", "en": "Export"}),
-            (self.sub_windows, {"ru": "Окна", "en": "Panels"}),
-            (self.sub_windows.menuAction(), {"ru": "Окна", "en": "Panels"}),
-            (self.theme, {"ru": "Тема", "en": "Theme"}),
-            (self.theme.menuAction(), {"ru": "Тема", "en": "Theme"}),
-            (self.langague, {"ru": "Язык", "en": "Language"}),
-            (self.langague.menuAction(), {"ru": "Язык", "en": "Language"}),
-            (self.new_action, {"ru": "Создать", "en": "New"}),
-            (self.open_action, {"ru": "Открыть", "en": "Open"}),
-            (self.save_action, {"ru": "Сохранить", "en": "Save"}),
-            (self.save_as_action, {"ru": "Сохранить как", "en": "Save as"}),
-            (self.import_action, {"ru": "Импортировать", "en": "Import"}),
-            (self.exit_action, {"ru": "Выход", "en": "Exit"}),
-            (self.file_info, {"ru": "О файле", "en": "File information"}),
-            (self.canvas_size, {"ru": "Размер холста", "en": "Canvas size"}),
-            (self.paste_as_layer_action, {"ru": "Вставить как слой", "en": "Paste as layer"}),
-            (self.selfie_action, {"ru": "Сделать селфи", "en": "Take a selfie"}),
-            (self.settings_action, {"ru": "Настройки", "en": "Settings"}),
-            (self.layers_panel_viewer, {"ru": "Панель слоёв", "en": "Layers panel"}),
-            (self.tool_bar_viewer, {"ru": "Панель инструментов", "en": "Tools panel"}),
-            (self.scroller_viewer, {"ru": "Ползунок масштаба", "en": "Zoom control"}),
-            (self.dark_theme, {"ru": "Тёмная тема", "en": "Dark theme"}),
-            (self.white_theme, {"ru": "Светлая тема", "en": "Light theme"}),
-            (self.start_window_view_button, {"ru": "Показывать окно приветствия при запуске", "en": "Show welcome window on startup"}),
-            (self.tutorial_action, {"ru": "Обучение", "en": "Tutorial"}),
-            (self.about_action, {"ru": "О программе", "en": "About"}),
-            (self.export_png, {"ru": "PNG", "en": "PNG"}),
-            (self.export_jpg, {"ru": "JPG", "en": "JPG"}),
-        ]
-        for widget, translations in entries:
-            self.localization.register(widget, translations)
-        self.localization.register(self.tool_bar, {})
-
-    def _tr(self, ru: str, en: str) -> str:
-        return en if self.localization.language == "en" else ru
-
-    def _set_language(self, language: str) -> None:
-        """Мгновенно переключает язык интерфейса и сохраняет выбор."""
-        self.localization.set_language(language)
-        self.ru.setChecked(language == "ru")
-        self.en.setChecked(language == "en")
-        self.settings_data["language"] = language
-        settings_service.save_data(self.settings_data)
 
     def _layout_child_widgets(self) -> None:
         panel_width = LayerPanel.WIDTH if not self.layer_panel.isHidden() else 0
