@@ -120,7 +120,7 @@ class LayerPanel(QWidget):
         self.main_layout.setSpacing(6)
         self.main_layout.setAlignment(Qt.AlignmentFlag.AlignTop)
 
-        self.add_layer_button = QPushButton("+")
+        self.add_layer_button = QPushButton("➕")
         self.add_layer_button.setToolTip("Добавить слой")
         self.add_layer_button.clicked.connect(self.add_layer_requested.emit)
 
