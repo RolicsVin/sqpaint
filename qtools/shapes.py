@@ -6,7 +6,7 @@ from PyQt6.QtGui import QColor, QPainter, QPen, QPolygonF
 
 class Shapes:
     RECTANGLE = "rectangle"
-    ELLIPSE = "ellipse"
+    CIRCLE = "circle"
     STAR = "star"
 
     @classmethod
@@ -22,8 +22,9 @@ class Shapes:
         painter.setBrush(Qt.BrushStyle.NoBrush)
         if shape == cls.RECTANGLE:
             painter.drawRect(rect)
-        elif shape == cls.ELLIPSE:
-            painter.drawEllipse(rect)
+        elif shape == cls.CIRCLE:
+            side = min(rect.width(), rect.height())
+            painter.drawEllipse(QRectF(rect.left(), rect.top(), side, side))
         elif shape == cls.STAR:
             cls._draw_star(painter, rect)
         painter.restore()
