@@ -388,13 +388,19 @@ class DomainWindow(QMainWindow):
         self.project.rename_layer(layer, name)
         self.layer_panel.refresh_layer_name(layer)
 
+    def _commit_pending_transform(self) -> None:
+        if self.canvas is not None and self.canvas.transform_image is not None:
+            self.canvas.commit_image_transform()
+
     def select_layer(self, index: int) -> None:
+        self._commit_pending_transform()
         if self.canvas is not None:
             self.canvas.set_active_layer(index)
 
     def save(self) -> None:
         if self.project is None:
             return
+        self._commit_pending_transform()
         try:
             self.database.save(self.project)
         except (OSError, sqlite3.Error, RuntimeError) as error:
@@ -419,6 +425,7 @@ class DomainWindow(QMainWindow):
     def save_as(self) -> None:
         if self.project is None:
             return
+        self._commit_pending_transform()
         path = ask_save_as_path(self, self.project.get_name())
         if not path:
             return
@@ -520,6 +527,7 @@ class DomainWindow(QMainWindow):
     def export_image(self, image_format: str) -> None:
         if self.canvas is None:
             return
+        self._commit_pending_transform()
         path = ask_export_image_path(self, image_format)
         if not path:
             return
