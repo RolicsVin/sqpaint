@@ -148,6 +148,8 @@ class ProjectRow(RoundedWidget):
     def __init__(self, name: str, path: str, date_text: str, parent=None):
         super().__init__(parent, color=self.COLOR_NORMAL, radius=10)
         self.project_path = path
+        self.color_normal = self.COLOR_NORMAL
+        self.color_hover = self.COLOR_HOVER
         self.setFixedHeight(66)
 
         layout = QHBoxLayout(self)
@@ -176,11 +178,11 @@ class ProjectRow(RoundedWidget):
         layout.addWidget(date_label, 0)
 
     def enterEvent(self, event) -> None:
-        self.set_color(self.COLOR_HOVER)
+        self.set_color(self.color_hover)
         super().enterEvent(event)
 
     def leaveEvent(self, event) -> None:
-        self.set_color(self.COLOR_NORMAL)
+        self.set_color(self.color_normal)
         super().leaveEvent(event)
 
 
@@ -196,7 +198,8 @@ class RecentProjectWindow(QWidget):
         self.localization = localization
         self.setObjectName("startWindow")
         self.setAttribute(Qt.WidgetAttribute.WA_StyledBackground, True)
-        self.setStyleSheet(STYLE)
+        self.project_rows = []
+        self.apply_theme("dark")
         self.setWindowTitle("Недавние проекты")
         self.setFixedSize(720, 560)
 
@@ -286,6 +289,31 @@ class RecentProjectWindow(QWidget):
         if self.localization is not None:
             self.localization.set_language(self.localization.language)
 
+    def apply_theme(self, theme: str) -> None:
+        """Переключает оформление стартового окна и строк проектов."""
+        dark = theme != "light"
+        colors = {
+            "#1e1e1e": "#1e1e1e" if dark else "#f4f4f4",
+            "#e6e6e6": "#e6e6e6" if dark else "#202020",
+            "#8a8a8a": "#8a8a8a" if dark else "#666666",
+            "#6f6f6f": "#6f6f6f" if dark else "#777777",
+            "#2b2b2b": "#2b2b2b" if dark else "#ffffff",
+            "#3d3d3d": "#3d3d3d" if dark else "#d0d0d0",
+            "#353535": "#353535" if dark else "#e8e8e8",
+            "#262626": "#262626" if dark else "#dddddd",
+            "#4d4d4d": "#4d4d4d" if dark else "#bdbdbd",
+        }
+        style = STYLE
+        for old, new in colors.items():
+            style = style.replace(old, new)
+        self.setStyleSheet(style)
+        normal = "#2b2b2b" if dark else "#ffffff"
+        hover = "#353535" if dark else "#e8e8e8"
+        for row in self.project_rows:
+            row.color_normal = normal
+            row.color_hover = hover
+            row.set_color(normal)
+
     def open(self):
         self.open_project.emit()
         self.hide()
@@ -312,6 +340,7 @@ class RecentProjectWindow(QWidget):
         for name, path, date in projects:
             row = ProjectRow(name, path, datetime_to_str(date))
             row.clicked.connect(lambda r=row: self._project_change(r))
+            self.project_rows.append(row)
             self.Vlayout.addWidget(row)
 
         self.Vlayout.addStretch(1)   # чтобы строки не растягивались по высоте
