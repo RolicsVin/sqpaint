@@ -101,8 +101,13 @@ class Canvas(QWidget):
         if image.isNull():
             return
         self.transform_image = image.convertToFormat(QImage.Format.Format_ARGB32)
-        width = min(image.width(), self.document_width)
-        height = min(image.height(), self.document_height)
+        scale = min(
+            1.0,
+            self.document_width / image.width(),
+            self.document_height / image.height(),
+        )
+        width = image.width() * scale
+        height = image.height() * scale
         self.transform_rect = QRectF(
             (self.document_width - width) / 2,
             (self.document_height - height) / 2, width, height,
