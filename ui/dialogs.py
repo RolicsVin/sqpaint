@@ -255,7 +255,7 @@ class DeleteLayerDialog(QDialog):
         manager = getattr(parent, "localization", None)
         if manager is not None:
             manager.register(self, {"ru": "Удаление слоя", "en": "Delete layer"})
-            manager.register(layout.itemAt(0, QFormLayout.ItemRole.FieldRole).widget(), {
+            manager.register(layout.itemAt(0).widget(), {
                 "ru": f'Вы действительно хотите удалить слой «{layer_name}»?',
                 "en": f'Do you really want to delete layer “{layer_name}”?'
             })
