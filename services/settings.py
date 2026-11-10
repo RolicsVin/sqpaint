@@ -7,6 +7,7 @@ from pathlib import Path
 SETTINGS_FILE = "settings.json"
 SETTINGS_FILE_FOLDER = "sqpaint"
 DEFAULT_SETTINGS = {
+    "language": "ru",
     "view": {
         "theme": "dark",
         "layer_panel_visible": True,

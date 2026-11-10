@@ -7,6 +7,7 @@ from PyQt6.QtWidgets import QApplication, QDialog, QMainWindow, QMenu, QMessageB
 
 from core.database import ProjectDatabase
 from core.models import Project
+from core.localization import LocalizationManager
 from core import image_utils
 from services import recent_projects, settings as settings_service
 from ui.start_window import RecentProjectWindow
@@ -112,8 +113,12 @@ class DomainWindow(QMainWindow):
         self.langague = QMenu("Язык", self)
         self.ru = QAction("Русский", self)
         self.en = QAction("English", self)
+        self.ru.setCheckable(True)
+        self.en.setCheckable(True)
         self.langague.addAction(self.ru)
         self.langague.addAction(self.en)
+        self.ru.triggered.connect(lambda checked=False: self._set_language("ru"))
+        self.en.triggered.connect(lambda checked=False: self._set_language("en"))
         self.start_window_view_button = QAction("Показывать окно приветствия при запуске", self)
         self.start_window_view_button.setCheckable(True)
         self.view_menu.addMenu(self.sub_windows)
@@ -135,6 +140,14 @@ class DomainWindow(QMainWindow):
         self.about_action.triggered.connect(lambda: show_about(self))
 
         self.tool_bar = ToolBar(self)
+        saved_language = self.settings_data.get("language", "ru")
+        self.localization = LocalizationManager(
+            saved_language if saved_language in LocalizationManager.SUPPORTED_LANGUAGES else "ru"
+        )
+        self._register_localized_ui()
+        self.tool_bar.set_language(self.localization.language)
+        self.ru.setChecked(self.localization.language == "ru")
+        self.en.setChecked(self.localization.language == "en")
         self.tool_bar.move(0, self.HEADERS_HEIGHT)
         self.tool_bar.resize(self.width(), ToolBar.HEIGHT)
         self.tool_bar.color_selected.connect(self.set_canvas_color)
@@ -161,7 +174,7 @@ class DomainWindow(QMainWindow):
             self.set_project(project)
 
         self.setWindowTitle("SQPaint")
-        self.recent_projects_window = RecentProjectWindow()
+        self.recent_projects_window = RecentProjectWindow(self.localization)
         self.recent_projects_window.project_select.connect(self.open_project_path)
         self.recent_projects_window.create_project.connect(self.create_project)
         self.recent_projects_window.open_project.connect(self.open_project)
@@ -179,7 +192,70 @@ class DomainWindow(QMainWindow):
             self.recent_projects_window,
         )
         self.view_manager.apply()
+
+        # Повторно применяем язык после полной сборки интерфейса:
+        # QMenu отображается через menuAction(), поэтому синхронизируем и его текст.
+        self._set_language(self.localization.language)
+        self.ru.setChecked(self.localization.language == "ru")
+        self.en.setChecked(self.localization.language == "en")
         self.show()
+
+
+    def _register_localized_ui(self) -> None:
+        """Регистрирует подписи главного окна в менеджере локализации."""
+        entries = [
+            (self.file_menu, {"ru": "Файл", "en": "File"}),
+            (self.file_menu.menuAction(), {"ru": "Файл", "en": "File"}),
+            (self.edit_menu, {"ru": "Правка", "en": "Edit"}),
+            (self.edit_menu.menuAction(), {"ru": "Правка", "en": "Edit"}),
+            (self.view_menu, {"ru": "Вид", "en": "View"}),
+            (self.view_menu.menuAction(), {"ru": "Вид", "en": "View"}),
+            (self.help_menu, {"ru": "Справка", "en": "Help"}),
+            (self.help_menu.menuAction(), {"ru": "Справка", "en": "Help"}),
+            (self.export_submenu, {"ru": "Экспортировать", "en": "Export"}),
+            (self.export_submenu.menuAction(), {"ru": "Экспортировать", "en": "Export"}),
+            (self.sub_windows, {"ru": "Окна", "en": "Panels"}),
+            (self.sub_windows.menuAction(), {"ru": "Окна", "en": "Panels"}),
+            (self.theme, {"ru": "Тема", "en": "Theme"}),
+            (self.theme.menuAction(), {"ru": "Тема", "en": "Theme"}),
+            (self.langague, {"ru": "Язык", "en": "Language"}),
+            (self.langague.menuAction(), {"ru": "Язык", "en": "Language"}),
+            (self.new_action, {"ru": "Создать", "en": "New"}),
+            (self.open_action, {"ru": "Открыть", "en": "Open"}),
+            (self.save_action, {"ru": "Сохранить", "en": "Save"}),
+            (self.save_as_action, {"ru": "Сохранить как", "en": "Save as"}),
+            (self.import_action, {"ru": "Импортировать", "en": "Import"}),
+            (self.exit_action, {"ru": "Выход", "en": "Exit"}),
+            (self.file_info, {"ru": "О файле", "en": "File information"}),
+            (self.canvas_size, {"ru": "Размер холста", "en": "Canvas size"}),
+            (self.paste_as_layer_action, {"ru": "Вставить как слой", "en": "Paste as layer"}),
+            (self.selfie_action, {"ru": "Сделать селфи", "en": "Take a selfie"}),
+            (self.settings_action, {"ru": "Настройки", "en": "Settings"}),
+            (self.layers_panel_viewer, {"ru": "Панель слоёв", "en": "Layers panel"}),
+            (self.tool_bar_viewer, {"ru": "Панель инструментов", "en": "Tools panel"}),
+            (self.scroller_viewer, {"ru": "Ползунок масштаба", "en": "Zoom control"}),
+            (self.dark_theme, {"ru": "Тёмная тема", "en": "Dark theme"}),
+            (self.white_theme, {"ru": "Светлая тема", "en": "Light theme"}),
+            (self.start_window_view_button, {"ru": "Показывать окно приветствия при запуске", "en": "Show welcome window on startup"}),
+            (self.tutorial_action, {"ru": "Обучение", "en": "Tutorial"}),
+            (self.about_action, {"ru": "О программе", "en": "About"}),
+            (self.export_png, {"ru": "PNG", "en": "PNG"}),
+            (self.export_jpg, {"ru": "JPG", "en": "JPG"}),
+        ]
+        for widget, translations in entries:
+            self.localization.register(widget, translations)
+        self.localization.register(self.tool_bar, {})
+
+    def _tr(self, ru: str, en: str) -> str:
+        return en if self.localization.language == "en" else ru
+
+    def _set_language(self, language: str) -> None:
+        """Мгновенно переключает язык интерфейса и сохраняет выбор."""
+        self.localization.set_language(language)
+        self.ru.setChecked(language == "ru")
+        self.en.setChecked(language == "en")
+        self.settings_data["language"] = language
+        settings_service.save_data(self.settings_data)
 
     def _layout_child_widgets(self) -> None:
         panel_width = LayerPanel.WIDTH if not self.layer_panel.isHidden() else 0
@@ -211,8 +287,8 @@ class DomainWindow(QMainWindow):
             settings_service.save_data(self.settings_data)
         except OSError as error:
             QMessageBox.warning(
-                self, "Настройки",
-                f"Не удалось сохранить настройки: {error}"
+                self, self._tr("Настройки", "Settings"),
+                self._tr(f"Не удалось сохранить настройки: {error}", f"Could not save settings: {error}")
             )
 
     def _on_layer_panel_visibility_changed(self, visible: bool) -> None:
@@ -316,8 +392,8 @@ class DomainWindow(QMainWindow):
             self.canvas_view.viewport().update()
         except (ValueError, MemoryError, RuntimeError) as error:
             QMessageBox.warning(
-                self, "Кадрирование",
-                f"Не удалось кадрировать холст:\n{error}"
+                self, self._tr("Кадрирование", "Crop"),
+                self._tr(f"Не удалось кадрировать холст:\n{error}", f"Could not crop the canvas:\n{error}")
             )
 
     def change_canvas_size(self) -> None:
@@ -339,8 +415,8 @@ class DomainWindow(QMainWindow):
             self.canvas.set_document_size(width, height)
         except (MemoryError, ValueError, RuntimeError) as error:
             QMessageBox.critical(
-                self, "Размер холста",
-                f"Не удалось изменить размер холста.\\n\\n{error}"
+                self, self._tr("Размер холста", "Canvas size"),
+                self._tr(f"Не удалось изменить размер холста.\\n\\n{error}", f"Could not resize the canvas.\\n\\n{error}")
             )
             return
 
@@ -467,8 +543,8 @@ class DomainWindow(QMainWindow):
         image = QImage(path)
         if image.isNull():
             QMessageBox.warning(
-                self, "Вставить как слой",
-                "Не удалось открыть выбранное изображение."
+                self, self._tr("Вставить как слой", "Paste as layer"),
+                self._tr("Не удалось открыть выбранное изображение.", "Could not open the selected image.")
             )
             return
 
@@ -490,8 +566,8 @@ class DomainWindow(QMainWindow):
         image = QImage(image_path)
         if image.isNull():
             QMessageBox.warning(
-                self, "Импорт изображения",
-                "Не удалось открыть выбранное изображение."
+                self, self._tr("Импорт изображения", "Import image"),
+                self._tr("Не удалось открыть выбранное изображение.", "Could not open the selected image.")
             )
             return
 
@@ -524,8 +600,8 @@ class DomainWindow(QMainWindow):
             dialog = SelfieDialog(self)
         except Exception as error:
             QMessageBox.warning(
-                self, "Веб-камера",
-                f"Не удалось запустить камеру. Проверьте подключение и разрешения.\n\n{error}"
+                self, self._tr("Веб-камера", "Webcam"),
+                self._tr(f"Не удалось запустить камеру. Проверьте подключение и разрешения.\n\n{error}", f"Could not start the camera. Check the connection and permissions.\n\n{error}")
             )
             return
 
@@ -552,8 +628,8 @@ class DomainWindow(QMainWindow):
         output = self.canvas.get_image()
         if not image_utils.save_image(output, path, image_format):
             QMessageBox.critical(
-                self, "Экспорт изображения",
-                f"Не удалось сохранить изображение:\n{path}"
+                self, self._tr("Экспорт изображения", "Export image"),
+                self._tr(f"Не удалось сохранить изображение:\n{path}", f"Could not save the image:\n{path}")
             )
 
     def open_file_info(self) -> None:

@@ -2,6 +2,12 @@ from pathlib import Path
 
 from PyQt6.QtCore import Qt, pyqtSignal
 from PyQt6.QtGui import QPixmap
+from core.localization import LocalizedComboBox
+def _tr(parent, ru: str, en: str) -> str:
+    manager = getattr(parent, "localization", None)
+    return en if manager is not None and manager.language == "en" else ru
+
+
 from PyQt6.QtWidgets import (
     QDialog,
     QDialogButtonBox,
@@ -47,9 +53,9 @@ class SettingsDialog(QDialog):
         view_page = QWidget(self)
         view_form = QFormLayout(view_page)
 
-        self.theme_combo = QComboBox(view_page)
-        self.theme_combo.addItem("Тёмная", "dark")
-        self.theme_combo.addItem("Светлая", "light")
+        self.theme_combo = LocalizedComboBox(view_page)
+        self.theme_combo.add_localized_item({"ru": "Тёмная", "en": "Dark"}, "dark")
+        self.theme_combo.add_localized_item({"ru": "Светлая", "en": "Light"}, "light")
         theme_index = self.theme_combo.findData(view.get("theme", "dark"))
         self.theme_combo.setCurrentIndex(max(0, theme_index))
         view_form.addRow("Тема:", self.theme_combo)
@@ -87,6 +93,22 @@ class SettingsDialog(QDialog):
         self.cancel_button.clicked.connect(self.reject)
         self.apply_button.clicked.connect(self._apply)
         self.exit_button.clicked.connect(self._apply_and_close)
+
+        manager = getattr(parent, "localization", None)
+        if manager is not None:
+            manager.register(self, {"ru": "Настройки", "en": "Settings"})
+            manager.register(view_form.itemAt(0, QFormLayout.ItemRole.LabelRole).widget(), {"ru": "Тема:", "en": "Theme:"})
+            self.tabs.setTabText(0, "View" if manager.language == "en" else "Вид")
+            manager.register(self.cancel_button, {"ru": "Отмена", "en": "Cancel"})
+            manager.register(self.apply_button, {"ru": "Применить", "en": "Apply"})
+            manager.register(self.exit_button, {"ru": "Выход", "en": "Close"})
+            manager.register(self.layer_panel_check, {"ru": "Показывать панель слоёв", "en": "Show layers panel"})
+            manager.register(self.toolbar_check, {"ru": "Показывать панель инструментов", "en": "Show tools panel"})
+            manager.register(self.zoom_check, {"ru": "Показывать управление масштабом", "en": "Show zoom control"})
+            manager.register(self.welcome_check, {"ru": "Показывать окно приветствия при запуске", "en": "Show welcome window on startup"})
+            manager.register(self.theme_combo, {})
+            self.theme_combo.set_language(manager.language)
+            self.tabs.setTabText(0, "View" if manager.language == "en" else "Вид")
 
     def _collect_settings(self) -> dict:
         """Собирает значения всех вкладок в структуру настроек."""
@@ -142,6 +164,17 @@ class NewProjectDialog(QDialog):
         buttons.rejected.connect(self.reject)
         form.addRow(buttons)
 
+        manager = getattr(parent, "localization", None)
+        if manager is not None:
+            manager.register(self, {"ru": "Новый проект", "en": "New project"})
+            manager.register(self.name_edit, {"ru": "Новый проект", "en": "New project"})
+            manager.register(form.itemAt(0, QFormLayout.ItemRole.LabelRole).widget(), {"ru": "Название:", "en": "Name:"})
+            manager.register(form.itemAt(1, QFormLayout.ItemRole.LabelRole).widget(), {"ru": "Ширина:", "en": "Width:"})
+            manager.register(form.itemAt(2, QFormLayout.ItemRole.LabelRole).widget(), {"ru": "Высота:", "en": "Height:"})
+            manager.register(buttons.button(QDialogButtonBox.StandardButton.Ok), {"ru": "ОК", "en": "OK"})
+            manager.register(buttons.button(QDialogButtonBox.StandardButton.Cancel), {"ru": "Отмена", "en": "Cancel"})
+            manager.set_language(manager.language)
+
     def get_values(self) -> tuple[str, int, int]:
         return (
             self.name_edit.text().strip(),
@@ -186,6 +219,16 @@ class CanvasSizeDialog(QDialog):
         buttons.rejected.connect(self.reject)
         form.addRow(buttons)
 
+        manager = getattr(parent, "localization", None)
+        if manager is not None:
+            manager.register(self, {"ru": "Размер холста", "en": "Canvas size"})
+            manager.register(form.itemAt(0, QFormLayout.ItemRole.LabelRole).widget(), {"ru": "Ширина:", "en": "Width:"})
+            manager.register(form.itemAt(1, QFormLayout.ItemRole.LabelRole).widget(), {"ru": "Высота:", "en": "Height:"})
+            manager.register(buttons.button(QDialogButtonBox.StandardButton.Ok), {"ru": "Применить", "en": "Apply"})
+            manager.register(buttons.button(QDialogButtonBox.StandardButton.Cancel), {"ru": "Отмена", "en": "Cancel"})
+            manager.register(form.itemAt(2, QFormLayout.ItemRole.SpanningRole).widget(), {"ru": "При уменьшении холста содержимое за его границами будет обрезано.", "en": "Content outside the canvas will be cropped when its size is reduced."})
+            manager.set_language(manager.language)
+
     def get_size(self) -> tuple[int, int]:
         return self.width_spin.value(), self.height_spin.value()
 
@@ -215,6 +258,17 @@ class DeleteLayerDialog(QDialog):
         buttons.rejected.connect(self.reject)
         layout.addRow(buttons)
 
+        manager = getattr(parent, "localization", None)
+        if manager is not None:
+            manager.register(self, {"ru": "Удаление слоя", "en": "Delete layer"})
+            manager.register(layout.itemAt(0).widget(), {
+                "ru": f'Вы уверены, что хотите удалить этот слой «{layer_name}»?',
+                "en": f'Are you sure you want to delete this layer “{layer_name}”?'
+            })
+            manager.register(buttons.button(QDialogButtonBox.StandardButton.Yes), {"ru": "Удалить", "en": "Delete"})
+            manager.register(buttons.button(QDialogButtonBox.StandardButton.No), {"ru": "Отмена", "en": "Cancel"})
+            manager.set_language(manager.language)
+
 # ---------------------------------------------------------------------------
 # Функции-обёртки: всё, что окно показывает пользователю, живёт здесь.
 # ---------------------------------------------------------------------------
@@ -239,8 +293,8 @@ def ask_new_project(parent: QWidget | None = None) -> tuple[str, int, int] | Non
     if not name:
         QMessageBox.warning(
             parent,
-            "Некорректное название",
-            "Введите название проекта.",
+            _tr(parent, "Некорректное название", "Invalid name"),
+            _tr(parent, "Введите название проекта.", "Enter a project name."),
         )
         return None
 
@@ -251,7 +305,7 @@ def ask_save_project_path(parent: QWidget | None, name: str) -> str:
     """Выбор пути для нового проекта. Пустая строка — пользователь отменил."""
     path, _ = QFileDialog.getSaveFileName(
         parent,
-        "Создать проект",
+        _tr(parent, "Создать проект", "Create project"),
         f"{name}{PROJECT_EXTENSION}",
         PROJECT_FILTER,
     )
@@ -264,9 +318,9 @@ def ask_open_project_path(parent: QWidget | None = None) -> str:
     """Выбор существующего проекта. Пустая строка — пользователь отменил."""
     path, _ = QFileDialog.getOpenFileName(
         parent,
-        "Открыть проект",
+        _tr(parent, "Открыть проект", "Open project"),
         "",
-        f"{PROJECT_FILTER};;Все файлы (*)",
+        f"{_tr(parent, 'Проекты SQPaint (*.sqlite)', 'SQPaint projects (*.sqlite)')};;{_tr(parent, 'Все файлы (*)', 'All files (*)')}",
     )
     return path
 
@@ -292,42 +346,40 @@ def confirm_delete_layer(parent: QWidget | None, layer_name: str) -> bool:
 def show_file_exists(parent: QWidget | None = None) -> None:
     QMessageBox.warning(
         parent,
-        "Файл уже существует",
-        "Выберите другое имя или другое расположение файла. "
-        "Существующие файлы не перезаписываются.",
+        _tr(parent, "Файл уже существует", "File already exists"),
+        _tr(parent, "Выберите другое имя или другое расположение файла. Существующие файлы не перезаписываются.", "Choose another name or location. Existing files are not overwritten."),
     )
 
 
 def show_create_error(parent: QWidget | None, error: Exception) -> None:
     QMessageBox.critical(
         parent,
-        "Не удалось создать проект",
-        f"Проект не удалось создать.\n\n{error}",
+        _tr(parent, "Не удалось создать проект", "Could not create project"),
+        _tr(parent, f"Проект не удалось создать.\n\n{error}", f"Could not create the project.\n\n{error}"),
     )
 
 
 def show_open_error(parent: QWidget | None, error: Exception) -> None:
     QMessageBox.critical(
         parent,
-        "Не удалось открыть проект",
-        f"Файл не удалось загрузить. Возможно, он повреждён "
-        f"или не является проектом SQPaint.\n\n{error}",
+        _tr(parent, "Не удалось открыть проект", "Could not open project"),
+        _tr(parent, f"Файл не удалось загрузить. Возможно, он повреждён или не является проектом SQPaint.\n\n{error}", f"The file could not be loaded. It may be damaged or not be an SQPaint project.\n\n{error}"),
     )
 
 
 def show_save_error(parent: QWidget | None, error: Exception) -> None:
     QMessageBox.critical(
         parent,
-        "Ошибка сохранения",
-        f"Не удалось сохранить проект.\n\n{error}",
+        _tr(parent, "Ошибка сохранения", "Save error"),
+        _tr(parent, f"Не удалось сохранить проект.\n\n{error}", f"Could not save the project.\n\n{error}"),
     )
 
 
 def show_last_layer_info(parent: QWidget | None = None) -> None:
     QMessageBox.information(
         parent,
-        "Удаление слоя",
-        "В проекте должен остаться хотя бы один слой.",
+        _tr(parent, "Удаление слоя", "Delete layer"),
+        _tr(parent, "В проекте должен остаться хотя бы один слой.", "A project must contain at least one layer."),
     )
 
 
@@ -335,8 +387,8 @@ def show_last_layer_info(parent: QWidget | None = None) -> None:
 
 def ask_save_as_path(parent: QWidget | None = None, name: str = "Проект") -> str:
     path, _ = QFileDialog.getSaveFileName(
-        parent, "Сохранить проект как", f"{name}.sqlite",
-        f"{PROJECT_FILTER};;Все файлы (*)",
+        parent, _tr(parent, "Сохранить проект как", "Save project as"), f"{name}.sqlite",
+        f"{_tr(parent, 'Проекты SQPaint (*.sqlite)', 'SQPaint projects (*.sqlite)')};;{_tr(parent, 'Все файлы (*)', 'All files (*)')}",
     )
     if path and not path.lower().endswith(PROJECT_EXTENSION):
         path += PROJECT_EXTENSION
@@ -345,8 +397,8 @@ def ask_save_as_path(parent: QWidget | None = None, name: str = "Проект") 
 
 def ask_import_image_path(parent: QWidget | None = None) -> str:
     path, _ = QFileDialog.getOpenFileName(
-        parent, "Импортировать изображение",
-        "", "Изображения (*.png *.jpg *.jpeg *.bmp *.webp);;Все файлы (*)",
+        parent, _tr(parent, "Импортировать изображение", "Import image"),
+        "", f"{_tr(parent, 'Изображения', 'Images')} (*.png *.jpg *.jpeg *.bmp *.webp);;{_tr(parent, 'Все файлы (*)', 'All files (*)')}",
     )
     return path
 
@@ -354,7 +406,7 @@ def ask_import_image_path(parent: QWidget | None = None) -> str:
 def ask_export_image_path(parent: QWidget | None, image_format: str) -> str:
     ext = image_format.lower()
     path, _ = QFileDialog.getSaveFileName(
-        parent, f"Экспортировать {ext.upper()}",
+        parent, _tr(parent, f"Экспортировать {ext.upper()}", f"Export {ext.upper()}"),
         f"Изображение.{ext}",
         f"{ext.upper()} (*.{ext})",
     )
@@ -382,6 +434,9 @@ class FileInfoDialog(QDialog):
         layout = QVBoxLayout(self)
         self.tabs = QTabWidget(self)
         layout.addWidget(self.tabs)
+        manager = getattr(parent, "localization", None)
+        if manager is not None:
+            manager.register(self, {"ru": "О файле проекта", "en": "Project file information"})
 
         try:
             connection = sqlite3.connect(
@@ -403,8 +458,8 @@ class FileInfoDialog(QDialog):
                 connection.close()
         except sqlite3.Error as error:
             QMessageBox.critical(
-                self, "Ошибка чтения файла",
-                f"Не удалось прочитать содержимое SQLite-файла.\\n\\n{error}",
+                self, _tr(parent, "Ошибка чтения файла", "File read error"),
+                _tr(parent, f"Не удалось прочитать содержимое SQLite-файла.\n\n{error}", f"Could not read the SQLite file contents.\n\n{error}"),
             )
 
     @staticmethod
@@ -498,6 +553,14 @@ class AboutDialog(QDialog):
         buttons.button(QDialogButtonBox.StandardButton.Ok).setText("Закрыть")
         buttons.accepted.connect(self.accept)
         layout.addWidget(buttons)
+
+        manager = getattr(parent, "localization", None)
+        if manager is not None:
+            manager.register(self, {"ru": "О программе SQPaint", "en": "About SQPaint"})
+            manager.register(description, {"ru": "Растровый графический редактор с поддержкой слоёв. Проекты сохраняются в формате SQLite (.sqlite).", "en": "A raster graphics editor with layer support. Projects are saved in SQLite (.sqlite) format."})
+            manager.register(technology, {"ru": "Создано на Python и PyQt6", "en": "Created with Python and PyQt6"})
+            manager.register(project_link, {"ru": "Исходный код на GitHub", "en": "Source code on GitHub"})
+            manager.register(buttons.button(QDialogButtonBox.StandardButton.Ok), {"ru": "Закрыть", "en": "Close"})
 
 
 def show_about(parent: QWidget | None = None) -> None:
