@@ -167,6 +167,7 @@ class NewProjectDialog(QDialog):
         manager = getattr(parent, "localization", None)
         if manager is not None:
             manager.register(self, {"ru": "Новый проект", "en": "New project"})
+            manager.register(self.name_edit, {"ru": "Новый проект", "en": "New project"})
             manager.register(form.itemAt(0, QFormLayout.ItemRole.LabelRole).widget(), {"ru": "Название:", "en": "Name:"})
             manager.register(form.itemAt(1, QFormLayout.ItemRole.LabelRole).widget(), {"ru": "Ширина:", "en": "Width:"})
             manager.register(form.itemAt(2, QFormLayout.ItemRole.LabelRole).widget(), {"ru": "Высота:", "en": "Height:"})
