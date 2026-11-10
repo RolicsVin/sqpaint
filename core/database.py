@@ -169,10 +169,11 @@ class ProjectDatabase:
             self.conn.execute("DELETE FROM layers")
             self._write_layers(project, self.conn)
             self.conn.execute("DELETE FROM action_history")
-            for record in history_data.get("records", []):
+            for index, record in enumerate(history_data.get("records", []), start=1):
                 self.conn.execute(
-                    "INSERT INTO action_history(command_type,before_state,after_state) VALUES(?,?,?)",
+                    "INSERT INTO action_history(id,command_type,before_state,after_state) VALUES(?,?,?,?)",
                     (
+                        index,
                         record["command_type"],
                         sqlite3.Binary(record["before_state"]),
                         sqlite3.Binary(record["after_state"]),
