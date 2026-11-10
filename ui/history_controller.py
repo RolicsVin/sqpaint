@@ -24,6 +24,13 @@ class HistoryController:
         self._refresh_actions()
         self._refresh_title()
 
+    def set_limit(self, limit: int) -> None:
+        self.history.set_limit(limit)
+        if self.window.project is not None:
+            self.window.project.max_undo_steps = self.history.limit
+        self._refresh_actions()
+        self._refresh_title()
+
     def begin(self):
         if self.history.project is None:
             return None
