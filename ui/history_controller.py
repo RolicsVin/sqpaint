@@ -81,6 +81,8 @@ class HistoryController:
     def undo(self) -> None:
         if self.history.project is None:
             return
+        if self.window.canvas is not None and self.window.canvas.transform_image is not None:
+            self.window.canvas.commit_image_transform()
         if self._pending is not None:
             self._finish_canvas_action("")
         try:
@@ -92,6 +94,8 @@ class HistoryController:
     def redo(self) -> None:
         if self.history.project is None:
             return
+        if self.window.canvas is not None and self.window.canvas.transform_image is not None:
+            self.window.canvas.commit_image_transform()
         if self._pending is not None:
             self._finish_canvas_action("")
         try:
