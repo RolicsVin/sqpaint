@@ -644,7 +644,10 @@ class DomainWindow(QMainWindow):
 
         # Создаём пустой слой, а изображение пока показываем в режиме
         # трансформации. Пользователь сможет переместить его и изменить размер.
+        before = self.history_manager.begin()
         layer = self.project.create_layer("Импорт")
+        self.history_manager.commit(before, "AddImportedLayer")
+        self._refresh_history_actions()
         active_index = self.project.get_layers().index(layer)
         self.canvas.set_layers(self.project.get_layers(), active=active_index)
         self.layer_panel.set_layers(self.project.get_layers())
@@ -706,7 +709,10 @@ class DomainWindow(QMainWindow):
         if image is None or image.isNull():
             return
 
+        before = self.history_manager.begin()
         layer = self.project.create_layer("Селфи", image)
+        self.history_manager.commit(before, "AddSelfieLayer")
+        self._refresh_history_actions()
         active_index = self.project.get_layers().index(layer)
         self.canvas.set_layers(self.project.get_layers(), active=active_index)
         self.layer_panel.set_layers(self.project.get_layers())
