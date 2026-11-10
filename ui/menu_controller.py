@@ -1,5 +1,5 @@
 """Создание меню и QAction главного окна."""
-from PyQt6.QtGui import QAction
+from PyQt6.QtGui import QAction, QKeySequence
 from PyQt6.QtWidgets import QMenu
 
 from ui.dialogs import show_about
@@ -60,6 +60,15 @@ class MenuController:
         w.paste_as_layer_action = QAction("Вставить как слой", w)
         w.selfie_action = QAction("Сделать селфи", w)
         w.settings_action = QAction("Настройки", w)
+        w.undo_action = QAction("Отменить", w)
+        w.undo_action.setShortcut(QKeySequence(QKeySequence.StandardKey.Undo))
+        w.redo_action = QAction("Повторить", w)
+        w.redo_action.setShortcut(QKeySequence(QKeySequence.StandardKey.Redo))
+        w.edit_menu.addAction(w.undo_action)
+        w.edit_menu.addAction(w.redo_action)
+        w.edit_menu.addSeparator()
+        w.undo_action.setEnabled(False)
+        w.redo_action.setEnabled(False)
         w.edit_menu.addAction(w.canvas_size)
         w.edit_menu.addAction(w.paste_as_layer_action)
         w.edit_menu.addAction(w.selfie_action)
