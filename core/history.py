@@ -24,6 +24,7 @@ class HistoryManager:
         self._states: list[dict] = []
         self._labels: list[str] = []
         self._cursor = 0
+        self._saved_state = None
 
     def set_project(self, project, saved_history=None) -> None:
         self.project = project
@@ -40,9 +41,11 @@ class HistoryManager:
                     self._labels.append(record["command_type"])
                     self._states.append(self._decode_state(record["after_state"]))
                 self._cursor = max(0, min(int(saved_history.get("cursor", len(records))), len(records)))
+                self.mark_saved()
                 return
 
         self._states = [self.capture()]
+        self.mark_saved()
 
     def capture(self) -> dict:
         if self.project is None:
@@ -197,6 +200,16 @@ class HistoryManager:
                 "after_state": encoded_states[index + 1],
             })
         return {"records": records, "cursor": self._cursor, "limit": self.limit}
+
+    def mark_saved(self) -> None:
+        """Запоминает состояние документа, соответствующее последнему Save."""
+        self._saved_state = self.capture() if self.project is not None else None
+
+    def is_dirty(self) -> bool:
+        """Проверяет отличие текущего документа от последнего сохранённого состояния."""
+        if self.project is None or self._saved_state is None:
+            return False
+        return not self._same_state(self._saved_state, self.capture())
 
     def status(self) -> tuple[bool, bool]:
         return self._cursor > 0, self._cursor < len(self._states) - 1
