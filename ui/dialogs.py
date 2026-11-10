@@ -9,6 +9,7 @@ def _tr(parent, ru: str, en: str) -> str:
 
 
 from PyQt6.QtWidgets import (
+    QApplication,
     QDialog,
     QDialogButtonBox,
     QFileDialog,
