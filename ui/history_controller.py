@@ -66,10 +66,6 @@ class HistoryController:
             return False
         self._refresh_actions()
         self._refresh_title()
-        if changed:
-            logger = getattr(self.window, "logger", None)
-            if logger is not None:
-                logger.log("Изменение документа", label)
         return changed
 
     def _begin_canvas_action(self, label: str) -> None:
@@ -81,7 +77,25 @@ class HistoryController:
             return
         pending_label, before = self._pending
         self._pending = None
-        self.commit(before, pending_label or label)
+        action_label = pending_label or label
+        if self.commit(before, action_label):
+            descriptions = {
+                "PaintStroke": "Закрашена область кистью",
+                "EraseStroke": "Выполнено стирание",
+                "FillArea": "Выполнена заливка",
+                "DrawShape": "Нарисована фигура",
+                "TransformImage": "Изображение размещено на холсте",
+            }
+            canvas = self.window.canvas
+            layer_name = (
+                canvas.layers[canvas.active].get_name()
+                if canvas is not None and 0 <= canvas.active < len(canvas.layers)
+                else "неизвестный слой"
+            )
+            self.window.logger.log(
+                descriptions.get(action_label, "Изменение изображения"),
+                f"Слой: {layer_name}; действие: {action_label}",
+            )
 
     def flush_pending(self) -> None:
         """Фиксирует незавершённое действие перед сохранением или закрытием."""
