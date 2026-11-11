@@ -55,6 +55,7 @@ class AutoSaveController(QObject):
                 project, window.history_controller.export_for_save()
             )
             autosave.create_backup(project.get_path())
+            window.logger.log("Создана резервная копия проекта", project.get_path())
             window.history_controller.mark_saved()
         except (OSError, sqlite3.Error, RuntimeError, ValueError, MemoryError):
             # Ошибка автосохранения не должна прерывать работу редактора.
