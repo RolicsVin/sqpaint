@@ -29,7 +29,6 @@ class PreferencesController:
         self.window.view_manager.set_layer_panel_visible(visible)
         self.window.logger.log("Изменена видимость панели слоёв", str(visible))
         self.save()
-        self.window.logger.log("Настройки применены")
 
     def toolbar_visibility_changed(self, visible: bool) -> None:
         self.window.view_manager.set_toolbar_visible(visible)
@@ -90,4 +89,6 @@ class PreferencesController:
                 self.window.canvas.supports_transparency = project.supports_transparency
                 self.window.canvas.update()
             self.window.history_controller._refresh_title()
+            self.window.logger.log("Изменены настройки проекта")
         self.save()
+        self.window.logger.log("Настройки применены")
