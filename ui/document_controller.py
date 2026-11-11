@@ -62,7 +62,6 @@ class DocumentController:
             with OperationDialog(self.w, "Файл открывается...", "Opening file..."):
                 project = self.w.database.load(path)
                 self.w.set_project(project)
-            self.w.logger.log("Открыт проект", project.get_path())
         except (OSError, sqlite3.Error, ValueError, TypeError, RuntimeError) as error:
             show_open_error(self.w, error)
             return
@@ -217,8 +216,11 @@ class DocumentController:
 
     def select_layer(self, index: int) -> None:
         self.w._commit_pending_transform()
-        if self.w.canvas is not None:
-            self.w.canvas.set_active_layer(index)
+        if self.w.canvas is not None and self.w.canvas.set_active_layer(index):
+            if 0 <= index < len(self.w.project.get_layers()):
+                self.w.logger.log(
+                    "Выбран слой", self.w.project.get_layers()[index].get_name()
+                )
 
     def _sync_layers(self, active_index: int) -> None:
         layers = self.w.project.get_layers()
