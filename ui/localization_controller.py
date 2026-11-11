@@ -36,6 +36,7 @@ class WindowLocalizationController:
             (w.file_info, {"ru": "О файле", "en": "File information"}),
             (w.undo_action, {"ru": "Отменить", "en": "Undo"}),
             (w.redo_action, {"ru": "Повторить", "en": "Redo"}),
+            (w.add_layer_action, {"ru": "Новый слой", "en": "New layer"}),
             (w.canvas_size, {"ru": "Размер холста", "en": "Canvas size"}),
             (w.paste_as_layer_action, {"ru": "Вставить как слой", "en": "Paste as layer"}),
             (w.selfie_action, {"ru": "Сделать селфи", "en": "Take a selfie"}),
