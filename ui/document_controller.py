@@ -50,6 +50,7 @@ class DocumentController:
             show_create_error(self.w, error)
             return
         self.w.set_project(project)
+        self.w.logger.log("Создан проект", f"{name} ({width}x{height})")
 
     def open_project(self) -> None:
         self.open_project_path(ask_open_project_path(self.w))
@@ -61,6 +62,7 @@ class DocumentController:
             with OperationDialog(self.w, "Файл открывается...", "Opening file..."):
                 project = self.w.database.load(path)
                 self.w.set_project(project)
+            self.w.logger.log("Открыт проект", project.get_path())
         except (OSError, sqlite3.Error, ValueError, TypeError, RuntimeError) as error:
             show_open_error(self.w, error)
             return
@@ -76,6 +78,7 @@ class DocumentController:
                     self.w.project, self.w.history_controller.export_for_save()
                 )
             self.w.history_controller.mark_saved()
+            self.w.logger.log("Проект сохранён", self.w.project.get_path())
         except (OSError, sqlite3.Error, RuntimeError, ValueError, MemoryError) as error:
             show_save_error(self.w, error)
 
@@ -96,6 +99,7 @@ class DocumentController:
                     path, self.w.project, self.w.history_controller.export_for_save()
                 )
                 self.w.set_project(project)
+                self.w.logger.log("Проект сохранён как", path)
         except (OSError, sqlite3.Error, ValueError, RuntimeError, MemoryError) as error:
             show_save_error(self.w, error)
 
@@ -125,6 +129,7 @@ class DocumentController:
             return
         self.w.canvas_view.viewport().update()
         self.w.canvas_view.zoom_changed.emit(round(self.w.canvas_view.zoom * 100))
+        self.w.logger.log("Изменён размер холста", f"{width}x{height}")
 
     def crop_document(self, rect) -> None:
         project, canvas = self.w.project, self.w.canvas
@@ -138,6 +143,7 @@ class DocumentController:
             canvas.set_document_size(rect.width(), rect.height())
             canvas.update()
             self.w.canvas_view.viewport().update()
+            self.w.logger.log("Кадрирован холст", f"{rect.width()}x{rect.height()}")
         except (ValueError, MemoryError, RuntimeError) as error:
             QMessageBox.warning(
                 self.w, self.w._tr("Кадрирование", "Crop"),
@@ -158,6 +164,7 @@ class DocumentController:
         canvas.set_layers(project.get_layers(), active=index)
         panel.set_layers(project.get_layers())
         panel.select_layer(index)
+        self.w.logger.log("Создан слой", layer.get_name())
 
     def remove_layer(self, layer) -> None:
         project, canvas = self.w.project, self.w.canvas
@@ -174,6 +181,7 @@ class DocumentController:
             return
         self._history_commit(before, "DeleteLayer")
         self._sync_layers(min(old_index, len(project.get_layers()) - 1))
+        self.w.logger.log("Удалён слой", layer.get_name())
 
     def move_layer(self, source, target, insert_before: bool) -> None:
         project = self.w.project
@@ -186,6 +194,7 @@ class DocumentController:
         selected = self.w.layer_panel.selected_layer
         index = project.get_layers().index(selected) if selected in project.get_layers() else 0
         self._sync_layers(index)
+        self.w.logger.log("Изменён порядок слоёв", f"{source.get_name()} → {target.get_name()}")
 
     def set_layer_visibility(self, layer, visible: bool) -> None:
         project = self.w.project
@@ -194,6 +203,7 @@ class DocumentController:
             if project.set_layer_visibility(layer, visible):
                 self._history_commit(before, "SetLayerVisibility")
                 self.w.canvas.update()
+                self.w.logger.log("Изменена видимость слоя", f"{layer.get_name()}: {'видим' if visible else 'скрыт'}")
 
     def rename_layer(self, layer, name: str) -> None:
         project = self.w.project
@@ -203,6 +213,7 @@ class DocumentController:
         if project.rename_layer(layer, name):
             self._history_commit(before, "RenameLayer")
             self.w.layer_panel.refresh_layer_name(layer)
+            self.w.logger.log("Переименован слой", name)
 
     def select_layer(self, index: int) -> None:
         self.w._commit_pending_transform()
@@ -240,6 +251,7 @@ class DocumentController:
         self.w.layer_panel.set_layers(project.get_layers())
         self.w.layer_panel.select_layer(index)
         canvas.begin_image_transform(image)
+        self.w.logger.log("Импортировано изображение как слой", os.path.basename(path))
 
     def create_project_from_image(self) -> None:
         image_path = ask_import_image_path(self.w)
@@ -270,6 +282,7 @@ class DocumentController:
             show_create_error(self.w, error)
             return
         self.w.set_project(project)
+        self.w.logger.log("Создан проект из изображения", image_path)
 
     def take_selfie(self) -> None:
         project, canvas = self.w.project, self.w.canvas
@@ -300,6 +313,7 @@ class DocumentController:
         canvas.set_layers(project.get_layers(), active=index)
         self.w.layer_panel.set_layers(project.get_layers())
         self.w.layer_panel.select_layer(index)
+        self.w.logger.log("Создан слой с фотографией", layer.get_name())
 
     def export_image(self, image_format: str) -> None:
         if self.w.canvas is None:
@@ -317,6 +331,8 @@ class DocumentController:
                     f"Could not save the image:\\n{path}",
                 ),
             )
+        else:
+            self.w.logger.log("Экспортировано изображение", f"{path} ({image_format})")
 
     def open_file_info(self) -> None:
         project = self.w.project
