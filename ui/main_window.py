@@ -106,7 +106,6 @@ class DomainWindow(QMainWindow):
         self._set_language(self.localization.language)
         self.ru.setChecked(self.localization.language == "ru")
         self.en.setChecked(self.localization.language == "en")
-        self.setWindowIcon(QIcon('icon.ico'))
         self.showMaximized()
         # Стартовое окно должно оставаться поверх главного при запуске.
         if self.recent_projects_window.isVisible():
