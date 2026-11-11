@@ -53,6 +53,11 @@ class PreferencesController:
 
     def apply_settings(self, values: dict) -> None:
         view = values.get("view", {})
+        autosave = values.get("autosave", {})
+        if isinstance(autosave, dict):
+            interval = min(120, max(1, int(autosave.get("interval_minutes", 5))))
+            self.window.settings_data.setdefault("autosave", {})["interval_minutes"] = interval
+            self.window.autosave_controller.set_interval(interval)
 
         # show_welcome — настройка следующего запуска. Обновляем её
         # значение и QAction, но не показываем стартовое окно сейчас.
