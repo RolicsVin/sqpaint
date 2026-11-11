@@ -27,14 +27,18 @@ class PreferencesController:
 
     def layer_panel_visibility_changed(self, visible: bool) -> None:
         self.window.view_manager.set_layer_panel_visible(visible)
+        self.window.logger.log("Изменена видимость панели слоёв", str(visible))
         self.save()
+        self.window.logger.log("Настройки применены")
 
     def toolbar_visibility_changed(self, visible: bool) -> None:
         self.window.view_manager.set_toolbar_visible(visible)
+        self.window.logger.log("Изменена видимость панели инструментов", str(visible))
         self.save()
 
     def zoom_visibility_changed(self, visible: bool) -> None:
         self.window.view_manager.set_zoom_visible(visible)
+        self.window.logger.log("Изменена видимость масштаба", str(visible))
         self.save()
 
     def welcome_preference_changed(self, visible: bool) -> None:
@@ -43,10 +47,12 @@ class PreferencesController:
 
     def set_theme(self, theme: str, save: bool = True) -> None:
         self.window.view_manager.set_theme(theme)
+        self.window.logger.log("Изменена тема", theme)
         if save:
             self.save()
 
     def open_settings(self) -> None:
+        self.window.logger.log("Открыты настройки")
         dialog = SettingsDialog(self.window.settings_data, self.window)
         dialog.apply_requested.connect(self.apply_settings)
         dialog.exec()
