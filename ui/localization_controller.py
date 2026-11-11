@@ -66,3 +66,4 @@ class WindowLocalizationController:
         w.en.setChecked(language == "en")
         w.settings_data["language"] = language
         settings_service.save_data(w.settings_data)
+        w.logger.log("Изменён язык интерфейса", language)
