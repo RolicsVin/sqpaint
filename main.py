@@ -12,6 +12,7 @@
 '''
 import sys
 
+from PyQt6.QtGui import QIcon
 from PyQt6.QtWidgets import QApplication
 
 from core.database import ProjectDatabase
@@ -21,6 +22,7 @@ from services import settings
 
 
 app = QApplication(sys.argv)
+app.setWindowIcon(QIcon("icon.ico"))
 
 database = ProjectDatabase()
 window = DomainWindow(None, database, settings.load_data())
