@@ -9,14 +9,20 @@ from services import autosave
 class AutoSaveController(QObject):
     """Оркестратор автосохранения; управление копиями делегирует services.autosave."""
 
-    INTERVAL_MS = 5 * 60 * 1000
+    DEFAULT_INTERVAL_MINUTES = 5
 
     def __init__(self, window):
         super().__init__(window)
         self.window = window
         self.timer = QTimer(self)
-        self.timer.setInterval(self.INTERVAL_MS)
+        self.interval_minutes = self.DEFAULT_INTERVAL_MINUTES
+        self.timer.setInterval(self.interval_minutes * 60 * 1000)
         self.timer.timeout.connect(self.create_backup)
+
+    def set_interval(self, minutes: int) -> None:
+        """Обновляет период таймера без вмешательства в логику резервных копий."""
+        self.interval_minutes = min(120, max(1, int(minutes)))
+        self.timer.setInterval(self.interval_minutes * 60 * 1000)
 
     def start(self) -> None:
         if not self.timer.isActive():
