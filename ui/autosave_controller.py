@@ -15,7 +15,13 @@ class AutoSaveController(QObject):
         super().__init__(window)
         self.window = window
         self.timer = QTimer(self)
-        self.interval_minutes = self.DEFAULT_INTERVAL_MINUTES
+        saved_interval = window.settings_data.get("autosave", {}).get(
+            "interval_minutes", self.DEFAULT_INTERVAL_MINUTES
+        )
+        try:
+            self.interval_minutes = min(120, max(1, int(saved_interval)))
+        except (TypeError, ValueError):
+            self.interval_minutes = self.DEFAULT_INTERVAL_MINUTES
         self.timer.setInterval(self.interval_minutes * 60 * 1000)
         self.timer.timeout.connect(self.create_backup)
 
