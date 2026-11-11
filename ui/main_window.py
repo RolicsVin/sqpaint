@@ -252,12 +252,10 @@ class DomainWindow(QMainWindow):
     def set_canvas_width(self, width: int) -> None:
         if self.canvas is not None:
             self.canvas.width_px = width
-            self.logger.log("Изменён размер инструмента", f"{width} px")
 
     def set_canvas_zoom(self, percent: int) -> None:
         if self.canvas_view is not None:
             self.canvas_view.set_zoom(percent)
-            self.logger.log("Изменён масштаб", f"{percent}%")
 
     def save_as(self) -> None:
         self.document_controller.save_as()
@@ -288,6 +286,8 @@ class DomainWindow(QMainWindow):
             return
 
         self.autosave_controller.stop()
+        if self.project is not None:
+            self.logger.log("Проект закрывается", self.project.get_name())
         self._save_view_settings()
         # Явно закрываем отдельное стартовое окно при закрытии главного.
         self.recent_projects_window.close()
