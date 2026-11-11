@@ -66,6 +66,10 @@ class HistoryController:
             return False
         self._refresh_actions()
         self._refresh_title()
+        if changed:
+            logger = getattr(self.window, "logger", None)
+            if logger is not None:
+                logger.log("Изменение документа", label)
         return changed
 
     def _begin_canvas_action(self, label: str) -> None:
@@ -120,6 +124,7 @@ class HistoryController:
         try:
             if self.history.undo():
                 self._refresh_document()
+                self.window.logger.log("Отмена действия")
         except (RuntimeError, ValueError, MemoryError) as error:
             self._show_error("Отмена действия", "Undo action", error)
 
@@ -133,6 +138,7 @@ class HistoryController:
         try:
             if self.history.redo():
                 self._refresh_document()
+                self.window.logger.log("Повтор действия")
         except (RuntimeError, ValueError, MemoryError) as error:
             self._show_error("Повтор действия", "Redo action", error)
 
