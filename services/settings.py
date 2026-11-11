@@ -8,6 +8,7 @@ SETTINGS_FILE = "settings.json"
 SETTINGS_FILE_FOLDER = "sqpaint"
 DEFAULT_SETTINGS = {
     "language": "ru",
+    "autosave": {"interval_minutes": 5},
     "view": {
         "theme": "dark",
         "layer_panel_visible": True,
@@ -57,6 +58,11 @@ def load_data() -> dict:
             result[key].update(value)
         else:
             result[key] = value
+    try:
+        interval = int(result["autosave"].get("interval_minutes", 5))
+    except (TypeError, ValueError):
+        interval = 5
+    result["autosave"]["interval_minutes"] = min(120, max(1, interval))
     return result
 
 
