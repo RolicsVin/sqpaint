@@ -1,6 +1,7 @@
 from PyQt6.QtWidgets import QApplication, QMainWindow
 
 from core.database import ProjectDatabase
+from services.logger import AppLogger
 from core.models import Project
 from core.localization import LocalizationManager
 from services import recent_projects, settings as settings_service
@@ -26,6 +27,7 @@ class DomainWindow(QMainWindow):
         super().__init__()
         self.project = None
         self.database = database
+        self.logger = AppLogger(database)
         self.settings_data = settings if isinstance(settings, dict) else settings_service.load_data()
         self.view_settings = self.settings_data.setdefault("view", {})
         self.canvas: Canvas | None = None
@@ -176,6 +178,7 @@ class DomainWindow(QMainWindow):
     def set_project(self, project: Project) -> None:
         self.project = project
         self.autosave_controller.start()
+        self.logger.log("Проект открыт", project.get_name())
         self.canvas = Canvas(
             self.canvas_view, project.get_layers(),
             project.get_width(), project.get_height(),
@@ -233,23 +236,28 @@ class DomainWindow(QMainWindow):
     def set_canvas_color(self, color) -> None:
         if self.canvas is not None:
             self.canvas.color = color
+            self.logger.log("Выбран цвет", color.name())
 
     def set_canvas_tool(self, tool_name: str) -> None:
         if self.canvas is not None:
             self._commit_pending_transform()
             self.canvas.set_tool(tool_name)
+            self.logger.log("Выбран инструмент", tool_name)
 
     def set_canvas_shape(self, shape_name: str) -> None:
         if self.canvas is not None:
             self.canvas.set_shape(shape_name)
+            self.logger.log("Выбрана фигура", shape_name)
 
     def set_canvas_width(self, width: int) -> None:
         if self.canvas is not None:
             self.canvas.width_px = width
+            self.logger.log("Изменён размер инструмента", f"{width} px")
 
     def set_canvas_zoom(self, percent: int) -> None:
         if self.canvas_view is not None:
             self.canvas_view.set_zoom(percent)
+            self.logger.log("Изменён масштаб", f"{percent}%")
 
     def save_as(self) -> None:
         self.document_controller.save_as()
