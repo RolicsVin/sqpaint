@@ -15,6 +15,7 @@ from ui.localization_controller import WindowLocalizationController
 from ui.preferences_controller import PreferencesController
 from ui.menu_controller import MenuController
 from ui.history_controller import HistoryController
+from ui.autosave_controller import AutoSaveController
 from ui.dialogs import confirm_exit
 
 
@@ -37,6 +38,7 @@ class DomainWindow(QMainWindow):
         self.menu_controller = MenuController(self)
         self.menu_controller.build()
         self.history_controller = HistoryController(self)
+        self.autosave_controller = AutoSaveController(self)
 
         self.tool_bar = ToolBar(self)
         saved_language = self.settings_data.get("language", "ru")
@@ -173,6 +175,7 @@ class DomainWindow(QMainWindow):
 
     def set_project(self, project: Project) -> None:
         self.project = project
+        self.autosave_controller.start()
         self.canvas = Canvas(
             self.canvas_view, project.get_layers(),
             project.get_width(), project.get_height(),
@@ -276,6 +279,7 @@ class DomainWindow(QMainWindow):
             event.ignore()
             return
 
+        self.autosave_controller.stop()
         self._save_view_settings()
         # Явно закрываем отдельное стартовое окно при закрытии главного.
         self.recent_projects_window.close()
