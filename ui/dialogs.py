@@ -85,6 +85,19 @@ class SettingsDialog(QDialog):
 
         self.tabs.addTab(view_page, "Вид")
 
+        # Глобальные параметры резервного копирования проектов.
+        autosave = self._settings.setdefault("autosave", {})
+        autosave_page = QWidget(self)
+        autosave_form = QFormLayout(autosave_page)
+        self.autosave_interval_spin = QSpinBox(autosave_page)
+        self.autosave_interval_spin.setRange(1, 120)
+        self.autosave_interval_spin.setSuffix(" мин")
+        self.autosave_interval_spin.setValue(
+            min(120, max(1, int(autosave.get("interval_minutes", 5))))
+        )
+        autosave_form.addRow("Интервал автосохранения:", self.autosave_interval_spin)
+        self.tabs.addTab(autosave_page, "Автосохранение")
+
         # Вкладка параметров открытого проекта.
         project_page = QWidget(self)
         project_form = QFormLayout(project_page)
@@ -122,7 +135,9 @@ class SettingsDialog(QDialog):
             manager.register(self, {"ru": "Настройки", "en": "Settings"})
             manager.register(view_form.itemAt(0, QFormLayout.ItemRole.LabelRole).widget(), {"ru": "Тема:", "en": "Theme:"})
             self.tabs.setTabText(0, "View" if manager.language == "en" else "Вид")
-            self.tabs.setTabText(1, "Project" if manager.language == "en" else "Проект")
+            self.tabs.setTabText(1, "Autosave" if manager.language == "en" else "Автосохранение")
+            self.tabs.setTabText(2, "Project" if manager.language == "en" else "Проект")
+            manager.register(autosave_form.itemAt(0, QFormLayout.ItemRole.LabelRole).widget(), {"ru": "Интервал автосохранения:", "en": "Autosave interval:"})
             manager.register(project_form.itemAt(0, QFormLayout.ItemRole.LabelRole).widget(), {"ru": "Поддержка прозрачности:", "en": "Transparency support:"})
             manager.register(project_form.itemAt(1, QFormLayout.ItemRole.LabelRole).widget(), {"ru": "Размер истории действий:", "en": "Action history size:"})
             manager.register(self.project_transparency_combo, {})
@@ -137,6 +152,8 @@ class SettingsDialog(QDialog):
             manager.register(self.theme_combo, {})
             self.theme_combo.set_language(manager.language)
             self.tabs.setTabText(0, "View" if manager.language == "en" else "Вид")
+            self.tabs.setTabText(1, "Autosave" if manager.language == "en" else "Автосохранение")
+            self.tabs.setTabText(2, "Project" if manager.language == "en" else "Проект")
 
     def _collect_settings(self) -> dict:
         """Собирает значения всех вкладок в структуру настроек."""
@@ -148,6 +165,9 @@ class SettingsDialog(QDialog):
             "zoom_control_visible": self.zoom_check.isChecked(),
             "show_welcome": self.welcome_check.isChecked(),
         })
+        self._settings.setdefault("autosave", {})["interval_minutes"] = (
+            self.autosave_interval_spin.value()
+        )
         if self._project_available:
             self._settings["project"] = {
                 "supports_transparency": bool(self.project_transparency_combo.currentData()),
