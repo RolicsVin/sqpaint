@@ -152,6 +152,7 @@ class ProjectDatabase:
         self.path = path
         self.conn = conn
         self._loaded_history = loaded_history
+        self._ensure_logs_schema(conn)
         return project
 
     def save(self, project: Project, history_data: dict | None = None) -> None:
@@ -184,6 +185,28 @@ class ProjectDatabase:
                     ),
                 )
         self._loaded_history = history_data
+
+    @staticmethod
+    def _ensure_logs_schema(conn: sqlite3.Connection) -> None:
+        """Создаёт таблицу журналирования в старых проектах."""
+        conn.execute("""
+            CREATE TABLE IF NOT EXISTS logs (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                log TEXT NOT NULL,
+                created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+            )
+        """)
+        conn.commit()
+
+    def add_log(self, message: str) -> None:
+        """Добавляет запись в журнал открытого проекта."""
+        self._require_conn()
+        self._ensure_logs_schema(self.conn)
+        with self.conn:
+            self.conn.execute(
+                "INSERT INTO logs (log) VALUES (?)",
+                (str(message),),
+            )
 
     def load_history(self) -> dict | None:
         """Возвращает историю, прочитанную при открытии текущего проекта."""
