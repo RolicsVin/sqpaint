@@ -42,6 +42,7 @@ class PreferencesController:
 
     def welcome_preference_changed(self, visible: bool) -> None:
         self.window.view_manager.set_welcome_visible(visible)
+        self.window.logger.log("Изменена настройка окна приветствия", str(visible))
         self.save()
 
     def set_theme(self, theme: str, save: bool = True) -> None:
