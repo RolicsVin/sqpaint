@@ -2,6 +2,24 @@ from pathlib import Path
 
 from PyQt6.QtCore import Qt, pyqtSignal
 from PyQt6.QtGui import QPixmap
+from PyQt6.QtWidgets import (
+    QApplication,
+    QDialog,
+    QDialogButtonBox,
+    QFileDialog,
+    QFormLayout,
+    QHeaderView,
+    QLabel,
+    QLineEdit,
+    QMessageBox,
+    QSpinBox,
+    QTabWidget,
+    QTableWidget,
+    QTableWidgetItem,
+    QVBoxLayout,
+    QWidget,
+)
+
 from core.localization import LocalizedComboBox
 
 
@@ -9,25 +27,6 @@ def _tr(parent, ru: str, en: str) -> str:
     """Возвращает перевод с учётом языка интерфейса родительского окна."""
     manager = getattr(parent, "localization", None)
     return en if manager is not None and manager.language == "en" else ru
-
-
-from PyQt6.QtWidgets import (
-    QApplication,
-    QDialog,
-    QDialogButtonBox,
-    QFileDialog,
-    QFormLayout,
-    QLabel,
-    QLineEdit,
-    QMessageBox,
-    QSpinBox,
-    QWidget,
-    QTabWidget,
-    QTableWidget,
-    QTableWidgetItem,
-    QHeaderView,
-    QVBoxLayout,
-)
 
 
 class SettingsDialog(QDialog):
