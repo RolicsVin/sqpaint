@@ -1,20 +1,24 @@
-# Стартовое окно
+"""Стартовое окно и список недавно открытых проектов."""
 from pathlib import Path
-
-from core.time_utils import *
-from ui.rounded_widget import RoundedWidget
-from services import recent_projects
 
 from PyQt6.QtCore import Qt, pyqtSignal
 from PyQt6.QtGui import QPixmap
 from PyQt6.QtWidgets import (
-    QWidget, QHBoxLayout, QVBoxLayout, QLabel, QPushButton,
-    QScrollArea, QSizePolicy,
+    QHBoxLayout,
+    QLabel,
+    QPushButton,
+    QScrollArea,
+    QSizePolicy,
+    QVBoxLayout,
+    QWidget,
 )
 
+from core.time_utils import datetime_to_str
+from services import recent_projects
+from ui.rounded_widget import RoundedWidget
 
-# Единый стиль окна. Задан явно, поэтому выглядит одинаково
-# и при светлой, и при тёмной теме Windows.
+
+# Единый стиль окна для светлой и тёмной тем Windows.
 STYLE = """
 #startWindow {
     background-color: #1e1e1e;
@@ -114,27 +118,43 @@ QToolTip {
 
 
 class ElidedLabel(QLabel):
-    """QLabel, который обрезает длинный текст многоточием вместо растягивания окна.
-    Полный текст доступен через full_text() и во всплывающей подсказке."""
+    """QLabel, который сокращает длинный текст многоточием вместо растягивания окна.
 
-    def __init__(self, text: str = "", mode=Qt.TextElideMode.ElideRight, parent=None):
+    Полный текст доступен через full_text() и во всплывающей подсказке.
+    """
+
+    def __init__(
+        self,
+        text: str = "",
+        mode=Qt.TextElideMode.ElideRight,
+        parent=None,
+    ):
+        """Создаёт подпись с режимом сокращения текста."""
         super().__init__(parent)
         self._full_text = text
         self._mode = mode
         self.setToolTip(text)
-        self.setSizePolicy(QSizePolicy.Policy.Ignored, QSizePolicy.Policy.Preferred)
+        self.setSizePolicy(
+            QSizePolicy.Policy.Ignored,
+            QSizePolicy.Policy.Preferred,
+        )
         self._update_text()
 
     def full_text(self) -> str:
+        """Возвращает исходный текст без сокращения."""
         return self._full_text
 
     def resizeEvent(self, event) -> None:
+        """Пересчитывает сокращённую подпись после изменения размера виджета."""
         super().resizeEvent(event)
         self._update_text()
 
     def _update_text(self) -> None:
+        """Обновляет отображаемую строку с учётом текущей ширины виджета."""
         elided = self.fontMetrics().elidedText(
-            self._full_text, self._mode, max(self.width(), 0)
+            self._full_text,
+            self._mode,
+            max(self.width(), 0),
         )
         super().setText(elided)
 
@@ -145,7 +165,14 @@ class ProjectRow(RoundedWidget):
     COLOR_NORMAL = "#2b2b2b"
     COLOR_HOVER = "#353535"
 
-    def __init__(self, name: str, path: str, date_text: str, parent=None):
+    def __init__(
+        self,
+        name: str,
+        path: str,
+        date_text: str,
+        parent=None,
+    ):
+        """Создаёт строку с названием, путём и датой последнего открытия проекта."""
         super().__init__(parent, color=self.COLOR_NORMAL, radius=10)
         self.project_path = path
         self.color_normal = self.COLOR_NORMAL
@@ -156,7 +183,7 @@ class ProjectRow(RoundedWidget):
         layout.setContentsMargins(16, 10, 16, 10)
         layout.setSpacing(16)
 
-        # Левая часть: название и путь друг под другом
+        # Левая часть: название и путь друг под другом.
         texts = QVBoxLayout()
         texts.setSpacing(2)
 
@@ -169,7 +196,7 @@ class ProjectRow(RoundedWidget):
         texts.addWidget(path_label)
         layout.addLayout(texts, 1)
 
-        # Правая часть: дата
+        # Правая часть: дата последнего открытия.
         date_label = QLabel(date_text)
         date_label.setObjectName("projectDate")
         date_label.setAlignment(
@@ -178,20 +205,25 @@ class ProjectRow(RoundedWidget):
         layout.addWidget(date_label, 0)
 
     def enterEvent(self, event) -> None:
+        """Подсвечивает строку при наведении курсора."""
         self.set_color(self.color_hover)
         super().enterEvent(event)
 
     def leaveEvent(self, event) -> None:
+        """Возвращает обычный цвет строки после ухода курсора."""
         self.set_color(self.color_normal)
         super().leaveEvent(event)
 
 
 class RecentProjectWindow(QWidget):
+    """Стартовое окно для создания проекта и открытия недавних документов."""
+
     project_select = pyqtSignal(str)
     open_project = pyqtSignal()
     create_project = pyqtSignal()
 
     def __init__(self, localization=None, parent=None):
+        """Создаёт отдельное стартовое окно и заполняет список проектов."""
         # Отдельное окно, принадлежащее главному окну: закрывается вместе с ним.
         super().__init__(parent)
         self.setWindowFlag(Qt.WindowType.Window, True)
@@ -207,7 +239,7 @@ class RecentProjectWindow(QWidget):
         root.setContentsMargins(32, 28, 32, 28)
         root.setSpacing(0)
 
-        # --- Логотип приложения ---
+        # Логотип приложения.
         logo_label = QLabel()
         logo_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
         logo_path = Path(__file__).resolve().parent.parent / "logo.png"
@@ -215,15 +247,17 @@ class RecentProjectWindow(QWidget):
         if not logo.isNull():
             logo_label.setPixmap(
                 logo.scaled(
-                    224, 224,
+                    224,
+                    224,
                     Qt.AspectRatioMode.KeepAspectRatio,
                     Qt.TransformationMode.SmoothTransformation,
                 )
             )
+
         root.addWidget(logo_label)
         root.addSpacing(12)
 
-        # --- Заголовок ---
+        # Заголовок.
         title = QLabel("Добро пожаловать в SQPaint!")
         title.setObjectName("title")
         subtitle = QLabel("Растровый редактор, проекты хранятся в .sqlite")
@@ -233,7 +267,7 @@ class RecentProjectWindow(QWidget):
         root.addWidget(subtitle)
         root.addSpacing(22)
 
-        # --- Кнопки ---
+        # Кнопки создания и открытия проекта.
         buttons = QHBoxLayout()
         buttons.setSpacing(12)
 
@@ -253,31 +287,57 @@ class RecentProjectWindow(QWidget):
         root.addLayout(buttons)
         root.addSpacing(28)
 
-        # --- Список недавних проектов ---
+        # Список недавних проектов.
         section = QLabel("НЕДАВНИЕ ПРОЕКТЫ")
         section.setObjectName("sectionLabel")
         root.addWidget(section)
         root.addSpacing(10)
 
         if self.localization is not None:
-            self.localization.register(self, {"ru": "Недавние проекты", "en": "Recent projects"})
-            self.localization.register(title, {"ru": "Добро пожаловать в SQPaint!", "en": "Welcome to SQPaint!"})
-            self.localization.register(subtitle, {"ru": "Растровый редактор, проекты хранятся в .sqlite", "en": "Raster editor; projects are stored in .sqlite"})
-            self.localization.register(self.create_button, {"ru": "Создать проект", "en": "Create project"})
-            self.localization.register(self.open_button, {"ru": "Открыть проект…", "en": "Open project…"})
-            self.localization.register(section, {"ru": "НЕДАВНИЕ ПРОЕКТЫ", "en": "RECENT PROJECTS"})
+            self.localization.register(
+                self,
+                {"ru": "Недавние проекты", "en": "Recent projects"},
+            )
+            self.localization.register(
+                title,
+                {
+                    "ru": "Добро пожаловать в SQPaint!",
+                    "en": "Welcome to SQPaint!",
+                },
+            )
+            self.localization.register(
+                subtitle,
+                {
+                    "ru": "Растровый редактор, проекты хранятся в .sqlite",
+                    "en": "Raster editor; projects are stored in .sqlite",
+                },
+            )
+            self.localization.register(
+                self.create_button,
+                {"ru": "Создать проект", "en": "Create project"},
+            )
+            self.localization.register(
+                self.open_button,
+                {"ru": "Открыть проект…", "en": "Open project…"},
+            )
+            self.localization.register(
+                section,
+                {"ru": "НЕДАВНИЕ ПРОЕКТЫ", "en": "RECENT PROJECTS"},
+            )
 
         scroll = QScrollArea()
         scroll.setObjectName("projectsScroll")
         scroll.setWidgetResizable(True)
         scroll.setFrameShape(QScrollArea.Shape.NoFrame)
-        scroll.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
+        scroll.setHorizontalScrollBarPolicy(
+            Qt.ScrollBarPolicy.ScrollBarAlwaysOff
+        )
         scroll.viewport().setAutoFillBackground(False)
 
         container = QWidget()
         container.setAutoFillBackground(False)
         self.Vlayout = QVBoxLayout(container)
-        self.Vlayout.setContentsMargins(0, 0, 8, 0)   # справа отступ под полосу прокрутки
+        self.Vlayout.setContentsMargins(0, 0, 8, 0)
         self.Vlayout.setSpacing(8)
 
         self._fill_projects()
@@ -304,26 +364,32 @@ class RecentProjectWindow(QWidget):
             "#262626": "#262626" if dark else "#dddddd",
             "#4d4d4d": "#4d4d4d" if dark else "#bdbdbd",
         }
+
         style = STYLE
         for old, new in colors.items():
             style = style.replace(old, new)
+
         self.setStyleSheet(style)
         normal = "#2b2b2b" if dark else "#ffffff"
         hover = "#353535" if dark else "#e8e8e8"
+
         for row in self.project_rows:
             row.color_normal = normal
             row.color_hover = hover
             row.set_color(normal)
 
-    def open(self):
+    def open(self) -> None:
+        """Отправляет запрос на открытие проекта и скрывает стартовое окно."""
         self.open_project.emit()
         self.hide()
 
-    def create(self):
+    def create(self) -> None:
+        """Отправляет запрос на создание проекта и скрывает стартовое окно."""
         self.create_project.emit()
         self.hide()
 
     def _fill_projects(self) -> None:
+        """Заполняет список недавних проектов или показывает пустое состояние."""
         projects = recent_projects.get_recent_projects()
 
         if not projects:
@@ -333,8 +399,22 @@ class RecentProjectWindow(QWidget):
             )
             empty.setObjectName("emptyLabel")
             empty.setAlignment(Qt.AlignmentFlag.AlignCenter)
+
             if self.localization is not None:
-                self.localization.register(empty, {"ru": "Пока нет недавних проектов.\nСоздайте новый или откройте существующий.", "en": "No recent projects yet.\nCreate a new project or open an existing one."})
+                self.localization.register(
+                    empty,
+                    {
+                        "ru": (
+                            "Пока нет недавних проектов.\n"
+                            "Создайте новый или откройте существующий."
+                        ),
+                        "en": (
+                            "No recent projects yet.\n"
+                            "Create a new project or open an existing one."
+                        ),
+                    },
+                )
+
             self.Vlayout.addWidget(empty, 1)
             return
 
@@ -344,12 +424,14 @@ class RecentProjectWindow(QWidget):
                 row.color_normal = "#ffffff"
                 row.color_hover = "#e8e8e8"
                 row.set_color(row.color_normal)
+
             row.clicked.connect(lambda r=row: self._project_change(r))
             self.project_rows.append(row)
             self.Vlayout.addWidget(row)
 
-        self.Vlayout.addStretch(1)   # чтобы строки не растягивались по высоте
+        self.Vlayout.addStretch(1)
 
     def _project_change(self, row: ProjectRow) -> None:
+        """Отправляет путь выбранного проекта и скрывает стартовое окно."""
         self.project_select.emit(row.project_path)
         self.hide()
