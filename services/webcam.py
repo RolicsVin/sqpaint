@@ -1,13 +1,13 @@
 """Захват кадров с веб-камеры через OpenCV."""
-
 import cv2
 from PyQt6.QtGui import QImage
 
 
 class Webcam:
-    """Небольшая обёртка над cv2.VideoCapture без зависимости от UI."""
+    """Предоставляет интерфейс чтения кадров без зависимости от UI."""
 
     def __init__(self, camera_index: int = 0):
+        """Открывает камеру по индексу и проверяет доступность устройства."""
         self._capture = cv2.VideoCapture(camera_index)
         if not self._capture.isOpened():
             self._capture.release()
@@ -16,7 +16,7 @@ class Webcam:
             )
 
     def read(self) -> QImage | None:
-        """Считывает кадр и возвращает независимый RGB QImage."""
+        """Считывает кадр и возвращает независимое изображение в формате RGB."""
         success, frame = self._capture.read()
         if not success or frame is None:
             return None
@@ -33,6 +33,7 @@ class Webcam:
         return image.copy()
 
     def release(self) -> None:
+        """Освобождает ресурсы камеры и сбрасывает ссылку на устройство."""
         if self._capture is not None:
             self._capture.release()
             self._capture = None
