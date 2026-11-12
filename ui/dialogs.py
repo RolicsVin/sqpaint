@@ -331,8 +331,14 @@ class CanvasSizeDialog(QDialog):
         manager = getattr(parent, "localization", None)
         if manager is not None:
             manager.register(self, {"ru": "Размер холста", "en": "Canvas size"})
-            manager.register(form.itemAt(0, QFormLayout.ItemRole.LabelRole).widget(), {"ru": "Ширина:", "en": "Width:"})
-            manager.register(form.itemAt(1, QFormLayout.ItemRole.LabelRole).widget(), {"ru": "Высота:", "en": "Height:"})
+            manager.register(
+                form.itemAt(0, QFormLayout.ItemRole.LabelRole).widget(),
+                {"ru": "Ширина:", "en": "Width:"},
+            )
+            manager.register(
+                form.itemAt(1, QFormLayout.ItemRole.LabelRole).widget(),
+                {"ru": "Высота:", "en": "Height:"},
+            )
             manager.register(buttons.button(QDialogButtonBox.StandardButton.Ok), {"ru": "Применить", "en": "Apply"})
             manager.register(buttons.button(QDialogButtonBox.StandardButton.Cancel), {"ru": "Отмена", "en": "Cancel"})
             manager.register(
@@ -535,7 +541,10 @@ def ask_save_as_path(parent: QWidget | None = None, name: str = "Проект") 
     """Открывает диалог выбора пути для сохранения копии проекта."""
     path, _ = QFileDialog.getSaveFileName(
         parent, _tr(parent, "Сохранить проект как", "Save project as"), f"{name}.sqlite",
-        f"{_tr(parent, 'Проекты SQPaint (*.sqlite)', 'SQPaint projects (*.sqlite)')};;{_tr(parent, 'Все файлы (*)', 'All files (*)')}",
+        (
+            f"{_tr(parent, 'Проекты SQPaint (*.sqlite)', 'SQPaint projects (*.sqlite)')};;"
+            f"{_tr(parent, 'Все файлы (*)', 'All files (*)')}"
+        ),
     )
     if path and not path.lower().endswith(PROJECT_EXTENSION):
         path += PROJECT_EXTENSION
