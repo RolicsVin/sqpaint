@@ -1,14 +1,16 @@
-"""Локализация меню и действий главного окна."""
+"""Регистрация переводов и переключение языка главного окна."""
 from services import settings as settings_service
 
 
 class WindowLocalizationController:
-    """Регистрирует переводы главного окна и сохраняет выбранный язык."""
+    """Связывает менеджер локализации с элементами главного окна."""
 
     def __init__(self, window):
+        """Сохраняет ссылку на главное окно приложения."""
         self.window = window
 
     def register_widgets(self) -> None:
+        """Регистрирует переводы меню, действий и элементов интерфейса."""
         w = self.window
         entries = [
             (w.file_menu, {"ru": "Файл", "en": "File"}),
@@ -46,20 +48,30 @@ class WindowLocalizationController:
             (w.scroller_viewer, {"ru": "Ползунок масштаба", "en": "Zoom control"}),
             (w.dark_theme, {"ru": "Тёмная тема", "en": "Dark theme"}),
             (w.white_theme, {"ru": "Светлая тема", "en": "Light theme"}),
-            (w.start_window_view_button, {"ru": "Показывать окно приветствия при запуске", "en": "Show welcome window on startup"}),
+            (
+                w.start_window_view_button,
+                {
+                    "ru": "Показывать окно приветствия при запуске",
+                    "en": "Show welcome window on startup",
+                },
+            ),
             (w.tutorial_action, {"ru": "Обучение", "en": "Tutorial"}),
             (w.about_action, {"ru": "О программе", "en": "About"}),
             (w.export_png, {"ru": "PNG", "en": "PNG"}),
             (w.export_jpg, {"ru": "JPG", "en": "JPG"}),
         ]
+
         for widget, translations in entries:
             w.localization.register(widget, translations)
+
         w.localization.register(w.tool_bar, {})
 
     def translate(self, ru: str, en: str) -> str:
+        """Возвращает текст на языке, выбранном в главном окне."""
         return en if self.window.localization.language == "en" else ru
 
     def set_language(self, language: str) -> None:
+        """Применяет язык интерфейса, сохраняет настройку и записывает событие."""
         w = self.window
         w.localization.set_language(language)
         w.ru.setChecked(language == "ru")
