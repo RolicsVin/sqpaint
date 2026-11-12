@@ -1,18 +1,19 @@
-from core.models import Layer
-from ui.rounded_widget import RoundedWidget
-
-from PyQt6.QtCore import Qt, pyqtSignal, QMimeData
+"""Панель управления слоями документа."""
+from PyQt6.QtCore import QMimeData, Qt, pyqtSignal
 from PyQt6.QtGui import QColor, QDrag
 from PyQt6.QtWidgets import (
     QApplication,
-    QWidget,
-    QPushButton,
-    QLineEdit,
-    QLabel,
-    QHBoxLayout,
-    QVBoxLayout,
     QCheckBox,
+    QHBoxLayout,
+    QLabel,
+    QLineEdit,
+    QPushButton,
+    QVBoxLayout,
+    QWidget,
 )
+
+from core.models import Layer
+from ui.rounded_widget import RoundedWidget
 
 
 class LayerNameEdit(QLineEdit):
@@ -21,6 +22,7 @@ class LayerNameEdit(QLineEdit):
     focus_lost = pyqtSignal()
 
     def focusOutEvent(self, event) -> None:
+        """Передаёт событие потери фокуса после стандартной обработки Qt."""
         super().focusOutEvent(event)
         self.focus_lost.emit()
 
@@ -29,6 +31,7 @@ class LayerRow(RoundedWidget):
     """Строка слоя с поддержкой перетаскивания."""
 
     def __init__(self, panel, layer, parent=None):
+        """Создаёт строку слоя и сохраняет ссылки на панель и модель слоя."""
         super().__init__(parent, color=panel.LAYER_COLOR, radius=6)
         self.panel = panel
         self.layer = layer
@@ -37,27 +40,36 @@ class LayerRow(RoundedWidget):
         self.setCursor(Qt.CursorShape.OpenHandCursor)
 
     def mousePressEvent(self, event) -> None:
+        """Запоминает позицию нажатия для определения начала перетаскивания."""
         if event.button() == Qt.MouseButton.LeftButton:
             self._drag_start = event.position().toPoint()
         super().mousePressEvent(event)
 
     def mouseMoveEvent(self, event) -> None:
-        if self._drag_start is None or not (event.buttons() & Qt.MouseButton.LeftButton):
+        """Начинает drag-and-drop, если курсор сместился дальше системного порога."""
+        if self._drag_start is None or not (
+            event.buttons() & Qt.MouseButton.LeftButton
+        ):
             return
-        distance = (event.position().toPoint() - self._drag_start).manhattanLength()
-        if distance <  QApplication.startDragDistance():
+
+        distance = (
+            event.position().toPoint() - self._drag_start
+        ).manhattanLength()
+        if distance < QApplication.startDragDistance():
             return
 
         drag = QDrag(self)
         mime = QMimeData()
         mime.setText(str(id(self.layer)))
         drag.setMimeData(mime)
+
         self.setCursor(Qt.CursorShape.ClosedHandCursor)
         drag.exec(Qt.DropAction.MoveAction)
         self.setCursor(Qt.CursorShape.OpenHandCursor)
         self._drag_start = None
 
     def dragEnterEvent(self, event) -> None:
+        """Принимает перетаскивание строк, содержащих идентификатор слоя."""
         if event.mimeData().hasText():
             event.setDropAction(Qt.DropAction.MoveAction)
             event.accept()
@@ -65,6 +77,7 @@ class LayerRow(RoundedWidget):
             event.ignore()
 
     def dragMoveEvent(self, event) -> None:
+        """Подтверждает допустимое перемещение слоя над строкой."""
         if event.mimeData().hasText():
             event.setDropAction(Qt.DropAction.MoveAction)
             event.accept()
@@ -72,6 +85,7 @@ class LayerRow(RoundedWidget):
             event.ignore()
 
     def dropEvent(self, event) -> None:
+        """Передаёт панели запрос на перемещение слоя относительно текущей строки."""
         try:
             source_id = int(event.mimeData().text())
         except ValueError:
@@ -87,12 +101,18 @@ class LayerRow(RoundedWidget):
             return
 
         insert_before = event.position().y() < self.height() / 2
-        self.panel.layer_move_requested.emit(source, self.layer, insert_before)
+        self.panel.layer_move_requested.emit(
+            source,
+            self.layer,
+            insert_before,
+        )
         event.setDropAction(Qt.DropAction.MoveAction)
         event.accept()
 
 
 class LayerPanel(QWidget):
+    """Отображает слои и отправляет запросы на изменение их состояния."""
+
     WIDTH = 200
 
     COLOR = "#161616"
@@ -107,6 +127,7 @@ class LayerPanel(QWidget):
     layer_move_requested = pyqtSignal(object, object, bool)
 
     def __init__(self, parent, layers: list[Layer]):
+        """Создаёт панель, кнопки управления и контейнер строк слоёв."""
         super().__init__(parent=parent)
         self.layers = layers
         self.selected_layer: Layer | None = None
@@ -146,7 +167,9 @@ class LayerPanel(QWidget):
         button_hover = "#485362" if dark else "#d0d0d0"
         button_pressed = "#29313b" if dark else "#c0c0c0"
         border = "#505966" if dark else "#b8b8b8"
-        self.setStyleSheet(f"""
+
+        self.setStyleSheet(
+            f"""
             QWidget#layerPanel {{ background-color: {self.COLOR}; }}
             QWidget#layerPanel QPushButton {{
                 background-color: {button_bg}; color: {text};
@@ -161,7 +184,8 @@ class LayerPanel(QWidget):
                 border: 1px solid {border}; border-radius: 3px; padding: 3px;
             }}
             QWidget#layerPanel QLineEdit:focus {{ border: 1px solid #7898bd; }}
-        """)
+            """
+        )
         self._update_selection_colors()
 
     def change_visible_layer(self, layer: Layer, visible: bool) -> None:
@@ -169,7 +193,7 @@ class LayerPanel(QWidget):
         self.layer_visibility_requested.emit(layer, visible)
 
     def update_layers(self) -> None:
-        """Перестраивает список виджетов слоёв."""
+        """Перестраивает список виджетов в соответствии с текущей коллекцией слоёв."""
         self.clear_layout(self.layers_layout)
         self.layer_rows.clear()
 
@@ -182,6 +206,7 @@ class LayerPanel(QWidget):
         self._update_selection_colors()
 
     def create_layer_row(self, layer: Layer, index: int) -> None:
+        """Создаёт строку слоя с переключателем видимости и кнопкой удаления."""
         row = LayerRow(self, layer, self)
         row.setObjectName("layerRow")
         row.setFixedHeight(38)
@@ -209,8 +234,9 @@ class LayerPanel(QWidget):
         name_edit = LayerNameEdit(layer.get_name())
         name_edit.setPlaceholderText("Название слоя")
         name_edit.hide()
-        commit_name = lambda item=layer, editor=name_edit, label=name_label: \
+        commit_name = lambda item=layer, editor=name_edit, label=name_label: (
             self._commit_layer_name(item, editor, label)
+        )
         name_edit.focus_lost.connect(commit_name)
         name_edit.returnPressed.connect(commit_name)
 
@@ -235,10 +261,11 @@ class LayerPanel(QWidget):
         self.layers_layout.addWidget(row)
 
     def select_layer(self, index: int) -> None:
-        """Публичный интерфейс выбора слоя."""
+        """Публичный интерфейс выбора слоя по индексу."""
         self._select_layer(index)
 
     def _select_layer(self, index: int) -> None:
+        """Выбирает слой, обновляет подсветку и отправляет сигнал выбора."""
         if not 0 <= index < len(self.layers):
             return
 
@@ -247,11 +274,12 @@ class LayerPanel(QWidget):
         self.layer_selected.emit(index)
 
     def _update_selection_colors(self) -> None:
-        """Подсвечивает выбранный слой и сбрасывает цвет остальных."""
+        """Подсвечивает выбранный слой и сбрасывает цвет остальных строк."""
         for layer in self.layers:
             row = self.layer_rows.get(id(layer))
             if row is None:
                 continue
+
             color = (
                 self.SELECTED_LAYER_COLOR
                 if layer is self.selected_layer
@@ -260,6 +288,7 @@ class LayerPanel(QWidget):
             row.set_color(color)
 
     def _begin_rename(self, layer: Layer) -> None:
+        """Переключает подпись слоя в режим редактирования."""
         row = self.layer_rows.get(id(layer))
         if row is None:
             return
@@ -277,21 +306,24 @@ class LayerPanel(QWidget):
         editor: QLineEdit,
         label: QLabel,
     ) -> None:
+        """Отправляет новое название владельцу модели и возвращает обычную подпись."""
         new_name = editor.text().strip() or layer.get_name()
         self.layer_rename_requested.emit(layer, new_name)
         editor.hide()
         label.show()
 
     def refresh_layer_name(self, layer: Layer) -> None:
-        """Обновляет подпись после ответа владельца модели."""
+        """Обновляет текстовые элементы строки после переименования слоя."""
         row = self.layer_rows.get(id(layer))
         if row is None:
             return
+
         name = layer.get_name()
         row.name_label.setText(name)
         row.name_edit.setText(name)
 
     def clear_layout(self, layout) -> None:
+        """Рекурсивно удаляет дочерние виджеты и вложенные компоновки."""
         while layout.count():
             item = layout.takeAt(0)
             if item.widget():
@@ -300,6 +332,7 @@ class LayerPanel(QWidget):
                 self.clear_layout(item.layout())
 
     def set_layers(self, layers: list[Layer]) -> None:
+        """Заменяет коллекцию слоёв и перестраивает панель."""
         self.layers = layers
 
         if self.selected_layer not in layers:
