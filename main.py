@@ -3,26 +3,22 @@
 Модуль инициализирует Qt-приложение, базу данных и главное окно.
 """
 import sys
-from pathlib import Path
 
 from PyQt6.QtGui import QIcon
 from PyQt6.QtWidgets import QApplication
 
 from core.database import ProjectDatabase
+from core.path_tool import ensure_app_dirs, get_resource_path
 from services import settings
 from ui.main_window import DomainWindow
 
 
-def resource_path(relative_path: str) -> str:
-    """Возвращает абсолютный путь к ресурсу с учётом сборки PyInstaller."""
-    base_path = Path(getattr(sys, "_MEIPASS", Path(__file__).resolve().parent))
-    return str(base_path / relative_path)
-
-
 def main() -> int:
     """Создаёт приложение, запускает главный цикл и закрывает базу данных."""
+    ensure_app_dirs()
+
     app = QApplication(sys.argv)
-    app.setWindowIcon(QIcon(resource_path("icon.ico")))
+    app.setWindowIcon(QIcon(str(get_resource_path("icon.ico"))))
 
     database = ProjectDatabase()
     window = DomainWindow(None, database, settings.load_data())

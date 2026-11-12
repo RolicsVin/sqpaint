@@ -4,6 +4,8 @@ import os
 import shutil
 from pathlib import Path
 
+from core.path_tool import ensure_app_dirs, get_settings_path as _get_settings_path
+
 
 SETTINGS_FILE = "settings.json"
 SETTINGS_FILE_FOLDER = "sqpaint"
@@ -21,9 +23,9 @@ DEFAULT_SETTINGS = {
 
 
 def get_settings_path() -> str:
-    """Возвращает путь к JSON-файлу настроек и переносит старую конфигурацию."""
-    root = Path(__file__).resolve().parent.parent
-    path = root / SETTINGS_FILE
+    """Возвращает путь к настройкам и переносит старую конфигурацию при необходимости."""
+    ensure_app_dirs()
+    path = _get_settings_path()
 
     if os.name == "nt":
         base = os.getenv("LOCALAPPDATA") or str(Path.home() / "AppData" / "Local")

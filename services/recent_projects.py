@@ -6,6 +6,7 @@ from datetime import datetime
 from pathlib import Path
 
 from core.models import Project
+from core.path_tool import ensure_app_dirs, get_recent_projects_path
 from core.time_utils import datetime_to_str, str_to_datetime
 
 
@@ -14,7 +15,8 @@ RECENT_PROJECTS = "recent_projects.csv"
 
 def _get_csv_path() -> str:
     """Возвращает путь к CSV и переносит файл из старого расположения при необходимости."""
-    path = Path(__file__).resolve().parent.parent / RECENT_PROJECTS
+    ensure_app_dirs()
+    path = get_recent_projects_path()
 
     local_app_data = os.getenv("LOCALAPPDATA")
     if local_app_data:
