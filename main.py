@@ -1,38 +1,38 @@
-'''
-============================================
+"""Точка входа в приложение SQPaint.
 
-                 SQPaint
-     Автор: Овечкин Ратмир Михайлович
-
-  Растровый редактор, основанный на sqlite
-
-============================================
-
-Это главный модуль, запускающий программу.
-'''
+Модуль инициализирует Qt-приложение, базу данных и главное окно.
+"""
 import sys
-
-from core.database import ProjectDatabase
-from services import settings
-from ui.main_window import DomainWindow
-
 from pathlib import Path
 
 from PyQt6.QtGui import QIcon
 from PyQt6.QtWidgets import QApplication
 
+from core.database import ProjectDatabase
+from services import settings
+from ui.main_window import DomainWindow
+
 
 def resource_path(relative_path: str) -> str:
+    """Возвращает абсолютный путь к ресурсу с учётом сборки PyInstaller."""
     base_path = Path(getattr(sys, "_MEIPASS", Path(__file__).resolve().parent))
     return str(base_path / relative_path)
 
 
-app = QApplication(sys.argv)
-app.setWindowIcon(QIcon(resource_path("icon.ico")))
+def main() -> int:
+    """Создаёт приложение, запускает главный цикл и закрывает базу данных."""
+    app = QApplication(sys.argv)
+    app.setWindowIcon(QIcon(resource_path("icon.ico")))
 
-database = ProjectDatabase()
-window = DomainWindow(None, database, settings.load_data())
+    database = ProjectDatabase()
+    window = DomainWindow(None, database, settings.load_data())
+    window.show()
 
-exit_code = app.exec()
-database.close()
-sys.exit(exit_code)
+    try:
+        return app.exec()
+    finally:
+        database.close()
+
+
+if __name__ == "__main__":
+    sys.exit(main())
