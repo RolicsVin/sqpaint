@@ -1,11 +1,21 @@
+"""Виджет управления масштабом холста."""
 from PyQt6.QtCore import Qt, pyqtSignal
-from PyQt6.QtWidgets import QWidget, QHBoxLayout, QLabel, QPushButton, QSlider
+from PyQt6.QtWidgets import (
+    QHBoxLayout,
+    QLabel,
+    QPushButton,
+    QSlider,
+    QWidget,
+)
 
 
 class ZoomControl(QWidget):
+    """Предоставляет кнопки и ползунок для изменения масштаба документа."""
+
     zoom_changed = pyqtSignal(int)
 
     def __init__(self, parent=None):
+        """Создаёт элементы управления масштабом и подключает их сигналы."""
         super().__init__(parent)
         layout = QHBoxLayout(self)
         layout.setContentsMargins(6, 0, 6, 0)
@@ -14,6 +24,7 @@ class ZoomControl(QWidget):
         self.zoom_out_button = QPushButton("−", self)
         self.zoom_out_button.setFixedWidth(24)
         self.zoom_out_button.setToolTip("Уменьшить масштаб")
+
         self.zoom_in_button = QPushButton("+", self)
         self.zoom_in_button.setFixedWidth(24)
         self.zoom_in_button.setToolTip("Увеличить масштаб")
@@ -26,8 +37,10 @@ class ZoomControl(QWidget):
 
         self.value_label = QLabel("100%", self)
         self.value_label.setMinimumWidth(42)
-        self.value_label.setAlignment(Qt.AlignmentFlag.AlignRight |
-                                      Qt.AlignmentFlag.AlignVCenter)
+        self.value_label.setAlignment(
+            Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignVCenter
+        )
+
         self.reset_button = QPushButton("100%", self)
         self.reset_button.setToolTip("Сбросить масштаб")
         self.reset_button.setFixedWidth(48)
@@ -52,10 +65,12 @@ class ZoomControl(QWidget):
         self.reset_button.clicked.connect(lambda: self.set_value(100))
 
     def _on_slider_changed(self, value: int) -> None:
+        """Обновляет подпись и отправляет сигнал об изменении масштаба."""
         self.value_label.setText(f"{value}%")
         self.zoom_changed.emit(value)
 
     def set_value(self, value: int) -> None:
+        """Устанавливает масштаб с ограничением допустимого диапазона."""
         self.slider.setValue(max(10, min(400, int(value))))
 
     def set_zoom(self, value: int) -> None:
