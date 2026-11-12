@@ -2,6 +2,7 @@
 services/__pycache__
 qtools/__pycache__
 /ui/__pycache__
+venv/
 
 # Локальные данные пользователя
 recent_projects.csv
