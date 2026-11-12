@@ -1,13 +1,15 @@
+"""Область просмотра холста с прокруткой, масштабированием и перемещением."""
 from PyQt6.QtCore import QEvent, Qt, pyqtSignal
 from PyQt6.QtWidgets import QFrame, QScrollArea
 
 
 class CanvasView(QScrollArea):
-    """Область просмотра: прокрутка и масштабирование Canvas."""
+    """Управляет отображением Canvas внутри прокручиваемой области."""
 
     zoom_changed = pyqtSignal(int)
 
     def __init__(self, parent=None):
+        """Настраивает область прокрутки и обработку событий её viewport."""
         super().__init__(parent)
         self.setWidgetResizable(False)
         self.setAlignment(Qt.AlignmentFlag.AlignCenter)
@@ -15,19 +17,23 @@ class CanvasView(QScrollArea):
         self.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAsNeeded)
         self.setVerticalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAsNeeded)
         self.setFocusPolicy(Qt.FocusPolicy.StrongFocus)
+
         self.canvas = None
         self._zoom = 1.0
         self._panning = False
         self._pan_last_global_pos = None
+
         self.viewport().setMouseTracking(True)
         self.viewport().installEventFilter(self)
         self.viewport().setCursor(Qt.CursorShape.ArrowCursor)
 
     @property
     def zoom(self) -> float:
+        """Возвращает текущий коэффициент масштабирования."""
         return self._zoom
 
     def set_canvas(self, canvas) -> None:
+        """Заменяет отображаемый холст и сбрасывает состояние навигации."""
         old_canvas = self.takeWidget()
         if old_canvas is not None:
             old_canvas.hide()
@@ -37,6 +43,7 @@ class CanvasView(QScrollArea):
         self._zoom = 1.0
         self._panning = False
         self._pan_last_global_pos = None
+
         if canvas is not None:
             canvas.set_zoom(self._zoom)
             canvas.setCursor(Qt.CursorShape.ArrowCursor)
@@ -45,6 +52,7 @@ class CanvasView(QScrollArea):
             canvas.show()
 
     def set_zoom(self, percent: int, anchor=None) -> None:
+        """Меняет масштаб, по возможности сохраняя точку документа под курсором."""
         if self.canvas is None:
             return
 
@@ -58,8 +66,7 @@ class CanvasView(QScrollArea):
         if anchor is None:
             anchor = viewport.rect().center()
 
-        # mapTo() уже учитывает текущую прокрутку, поэтому добавлять
-        # значение scrollbar к координате документа нельзя.
+        # mapTo() уже учитывает текущую прокрутку.
         old_origin = self.canvas.mapTo(viewport, self.canvas.rect().topLeft())
         document_x = (anchor.x() - old_origin.x()) / self._zoom
         document_y = (anchor.y() - old_origin.y()) / self._zoom
@@ -71,8 +78,7 @@ class CanvasView(QScrollArea):
         target_origin_x = anchor.x() - document_x * new_zoom
         target_origin_y = anchor.y() - document_y * new_zoom
 
-        # Сдвигаем полосы прокрутки так, чтобы прежняя точка документа
-        # осталась под курсором (если диапазон прокрутки это позволяет).
+        # Сохраняем положение выбранной точки в пределах диапазона прокрутки.
         hbar = self.horizontalScrollBar()
         vbar = self.verticalScrollBar()
         hbar.setValue(round(hbar.value() + new_origin.x() - target_origin_x))
@@ -80,8 +86,7 @@ class CanvasView(QScrollArea):
         self.zoom_changed.emit(percent)
 
     def eventFilter(self, watched, event):
-        # Навигация по холсту принадлежит CanvasView: Canvas не должен
-        # получать среднюю кнопку как команду рисования.
+        """Перехватывает события средней кнопки мыши для перемещения холста."""
         event_type = event.type()
 
         if event_type == QEvent.Type.MouseButtonPress:
@@ -105,6 +110,7 @@ class CanvasView(QScrollArea):
                 self.verticalScrollBar().setValue(
                     self.verticalScrollBar().value() - delta.y()
                 )
+
             self._pan_last_global_pos = current_pos
             event.accept()
             return True
@@ -123,7 +129,9 @@ class CanvasView(QScrollArea):
         return super().eventFilter(watched, event)
 
     def wheelEvent(self, event) -> None:
+        """Обрабатывает Ctrl+колесо для масштаба и Shift+колесо для прокрутки."""
         delta = event.angleDelta().y()
+
         if event.modifiers() & Qt.KeyboardModifier.ControlModifier:
             if delta:
                 factor = 1.15 ** (delta / 120.0)
@@ -132,6 +140,7 @@ class CanvasView(QScrollArea):
                     self, event.position().toPoint()
                 )
                 self.set_zoom(percent, anchor)
+
             event.accept()
             return
 
