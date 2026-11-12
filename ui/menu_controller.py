@@ -1,4 +1,4 @@
-"""Создание меню и QAction главного окна."""
+"""Создание меню, команд и сочетаний клавиш главного окна."""
 from PyQt6.QtGui import QAction, QKeySequence
 from PyQt6.QtWidgets import QMenu
 
@@ -9,9 +9,11 @@ class MenuController:
     """Создаёт меню приложения и связывает действия с методами окна."""
 
     def __init__(self, window):
+        """Сохраняет ссылку на окно, для которого создаётся меню."""
         self.window = window
 
     def build(self) -> None:
+        """Создаёт меню приложения, регистрирует действия и подключает обработчики."""
         w = self.window
         w.menu_bar = w.menuBar()
         w.file_menu = w.menu_bar.addMenu("Файл")
@@ -36,9 +38,14 @@ class MenuController:
         w.export_png = w.export_submenu.addAction("PNG")
         w.export_jpg = w.export_submenu.addAction("JPG")
 
-        for action in (w.new_action, w.open_action, w.save_action, w.save_as_action):
+        for action in (
+            w.new_action,
+            w.open_action,
+            w.save_action,
+            w.save_as_action,
+        ):
             w.file_menu.addAction(action)
-        
+
         w.file_menu.addSeparator()
         w.file_menu.addMenu(w.export_submenu)
         w.file_menu.addAction(w.import_action)
@@ -69,13 +76,16 @@ class MenuController:
         w.undo_action = QAction("Отменить", w)
         w.undo_action.setShortcuts([QKeySequence(QKeySequence.StandardKey.Undo)])
         w.redo_action = QAction("Повторить", w)
-        w.redo_action.setShortcuts([
-            QKeySequence(QKeySequence.StandardKey.Redo),
-            QKeySequence("Ctrl+Shift+Z"),
-        ])
+        w.redo_action.setShortcuts(
+            [
+                QKeySequence(QKeySequence.StandardKey.Redo),
+                QKeySequence("Ctrl+Shift+Z"),
+            ]
+        )
         w.edit_menu.addAction(w.undo_action)
         w.edit_menu.addAction(w.redo_action)
         w.edit_menu.addSeparator()
+
         w.add_layer_action = QAction("Новый слой", w)
         w.add_layer_action.setShortcut("Ctrl+Shift+N")
         w.add_layer_action.triggered.connect(w.add_layer)
@@ -97,8 +107,13 @@ class MenuController:
         w.layers_panel_viewer = QAction("Панель слоёв", w)
         w.tool_bar_viewer = QAction("Панель инструментов", w)
         w.scroller_viewer = QAction("Ползунок масштаба", w)
-        for action in (w.layers_panel_viewer, w.tool_bar_viewer, w.scroller_viewer):
+        for action in (
+            w.layers_panel_viewer,
+            w.tool_bar_viewer,
+            w.scroller_viewer,
+        ):
             action.setCheckable(True)
+
         w.sub_windows.addAction(w.layers_panel_viewer)
         w.sub_windows.addAction(w.tool_bar_viewer)
         w.sub_windows.addAction(w.scroller_viewer)
@@ -118,19 +133,27 @@ class MenuController:
         w.langague.addAction(w.en)
         w.ru.triggered.connect(lambda checked=False: w._set_language("ru"))
         w.en.triggered.connect(lambda checked=False: w._set_language("en"))
-        w.start_window_view_button = QAction("Показывать окно приветствия при запуске", w)
+
+        w.start_window_view_button = QAction(
+            "Показывать окно приветствия при запуске",
+            w,
+        )
         w.start_window_view_button.setCheckable(True)
         w.view_menu.addMenu(w.sub_windows)
         w.view_menu.addMenu(w.theme)
         w.view_menu.addMenu(w.langague)
         w.view_menu.addAction(w.start_window_view_button)
 
-        w.layers_panel_viewer.toggled.connect(w._on_layer_panel_visibility_changed)
+        w.layers_panel_viewer.toggled.connect(
+            w._on_layer_panel_visibility_changed
+        )
         w.tool_bar_viewer.toggled.connect(w._on_toolbar_visibility_changed)
         w.scroller_viewer.toggled.connect(w._on_zoom_visibility_changed)
         w.dark_theme.triggered.connect(lambda: w._set_theme("dark"))
         w.white_theme.triggered.connect(lambda: w._set_theme("light"))
-        w.start_window_view_button.toggled.connect(w._on_welcome_preference_changed)
+        w.start_window_view_button.toggled.connect(
+            w._on_welcome_preference_changed
+        )
 
         w.tutorial_action = QAction("Обучение", w)
         w.about_action = QAction("О программе", w)
@@ -138,4 +161,3 @@ class MenuController:
         w.help_menu.addAction(w.about_action)
         w.tutorial_action.triggered.connect(lambda: show_tutorial(w))
         w.about_action.triggered.connect(lambda: show_about(w))
-
