@@ -7,39 +7,47 @@ from services import autosave
 
 
 class AutoSaveController(QObject):
-    """Оркестратор автосохранения; управление копиями делегирует services.autosave."""
+    """Управляет таймером резервного копирования и делегирует работу сервису."""
 
     DEFAULT_INTERVAL_MINUTES = 5
 
     def __init__(self, window):
+        """Создаёт таймер и восстанавливает интервал из настроек приложения."""
         super().__init__(window)
         self.window = window
         self.timer = QTimer(self)
+
         saved_interval = window.settings_data.get("autosave", {}).get(
-            "interval_minutes", self.DEFAULT_INTERVAL_MINUTES
+            "interval_minutes",
+            self.DEFAULT_INTERVAL_MINUTES,
         )
         try:
             self.interval_minutes = min(120, max(1, int(saved_interval)))
         except (TypeError, ValueError):
             self.interval_minutes = self.DEFAULT_INTERVAL_MINUTES
+
         self.timer.setInterval(self.interval_minutes * 60 * 1000)
         self.timer.timeout.connect(self.create_backup)
 
     def set_interval(self, minutes: int) -> None:
-        """Обновляет период таймера без вмешательства в логику резервных копий."""
+        """Изменяет период таймера в диапазоне от одной до 120 минут."""
         self.interval_minutes = min(120, max(1, int(minutes)))
         self.timer.setInterval(self.interval_minutes * 60 * 1000)
 
     def start(self) -> None:
+        """Запускает таймер, если он ещё не активен."""
         if not self.timer.isActive():
             self.timer.start()
 
     def stop(self) -> None:
+        """Останавливает таймер резервного копирования."""
         self.timer.stop()
 
     def create_backup(self) -> None:
+        """Сохраняет изменённый проект и создаёт его резервную копию."""
         window = self.window
         project = window.project
+
         if project is None or window.database.conn is None:
             return
 
@@ -49,10 +57,10 @@ class AutoSaveController(QObject):
             return
 
         try:
-            # Сначала фиксируем актуальное состояние документа в основном SQLite,
-            # затем копируем уже согласованный файл.
+            # Сначала записываем актуальное состояние, затем копируем SQLite-файл.
             window.database.save(
-                project, window.history_controller.export_for_save()
+                project,
+                window.history_controller.export_for_save(),
             )
             autosave.create_backup(project.get_path())
             window.logger.log("Создана резервная копия проекта", project.get_path())
