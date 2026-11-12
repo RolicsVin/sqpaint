@@ -1,5 +1,17 @@
+"""Базовый интерфейс инструментов редактирования изображений."""
+
+
 class Tool:
-    """Базовый класс инструмента"""
-    def press(self, image, pos, last_pos, color, size): ...
-    def move(self, image, pos, last_pos, color, size): ...
-    def release(self, image, pos, last_pos, color, size): ...
+    """Определяет общий интерфейс взаимодействия инструмента с холстом."""
+
+    def press(self, image, pos, last_pos, color, size) -> None:
+        """Обрабатывает нажатие кнопки мыши на изображении."""
+        ...
+
+    def move(self, image, pos, last_pos, color, size) -> None:
+        """Обрабатывает перемещение мыши с зажатой кнопкой."""
+        ...
+
+    def release(self, image, pos, last_pos, color, size) -> None:
+        """Обрабатывает отпускание кнопки мыши."""
+        ...
