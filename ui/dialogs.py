@@ -6,6 +6,7 @@ from core.localization import LocalizedComboBox
 
 
 def _tr(parent, ru: str, en: str) -> str:
+    """Возвращает перевод с учётом языка интерфейса родительского окна."""
     manager = getattr(parent, "localization", None)
     return en if manager is not None and manager.language == "en" else ru
 
@@ -35,6 +36,7 @@ class SettingsDialog(QDialog):
     apply_requested = pyqtSignal(dict)
 
     def __init__(self, settings: dict, parent=None):
+        """Создаёт диалог редактирования глобальных настроек и параметров проекта."""
         super().__init__(parent)
         from copy import deepcopy
         from PyQt6.QtWidgets import (
@@ -176,9 +178,11 @@ class SettingsDialog(QDialog):
         return self._settings
 
     def _apply(self) -> None:
+        """Отправляет сигнал с настройками, выбранными пользователем."""
         self.apply_requested.emit(self._collect_settings())
 
     def _apply_and_close(self) -> None:
+        """Применяет выбранные настройки и закрывает диалог."""
         self._apply()
         self.accept()
 
@@ -187,6 +191,7 @@ class NewProjectDialog(QDialog):
     """Диалог параметров нового проекта."""
 
     def __init__(self, parent=None):
+        """Создаёт форму ввода параметров нового проекта."""
         super().__init__(parent)
         self.setWindowTitle("Новый проект")
         self.setModal(True)
@@ -243,6 +248,7 @@ class NewProjectDialog(QDialog):
             manager.set_language(manager.language)
 
     def get_values(self) -> tuple[str, int, int, bool, int]:
+        """Возвращает введённые пользователем параметры нового проекта."""
         return (
             self.name_edit.text().strip(),
             self.width_spin.value(),
@@ -256,6 +262,7 @@ class CanvasSizeDialog(QDialog):
     """Диалог изменения размеров документа."""
 
     def __init__(self, width: int, height: int, parent=None):
+        """Создаёт форму изменения размеров холста."""
         super().__init__(parent)
         self.setWindowTitle("Размер холста")
         self.setModal(True)
@@ -299,6 +306,7 @@ class CanvasSizeDialog(QDialog):
             manager.set_language(manager.language)
 
     def get_size(self) -> tuple[int, int]:
+        """Возвращает выбранные ширину и высоту холста."""
         return self.width_spin.value(), self.height_spin.value()
 
 
@@ -306,6 +314,7 @@ class DeleteLayerDialog(QDialog):
     """Диалог подтверждения удаления слоя."""
 
     def __init__(self, layer_name: str, parent=None):
+        """Создаёт диалог подтверждения удаления указанного слоя."""
         super().__init__(parent)
         self.setWindowTitle("Удаление слоя")
         self.setModal(True)
@@ -395,6 +404,7 @@ def ask_open_project_path(parent: QWidget | None = None) -> str:
 
 
 def ask_canvas_size(
+    """Запрашивает новые размеры холста и возвращает их после подтверждения."""
     parent: QWidget | None, width: int, height: int
 ) -> tuple[int, int] | None:
     """Возвращает новые размеры холста или None при отмене."""
@@ -413,6 +423,7 @@ def confirm_delete_layer(parent: QWidget | None, layer_name: str) -> bool:
 # --- Сообщения ---
 
 def show_file_exists(parent: QWidget | None = None) -> None:
+    """Показывает предупреждение о существующем файле проекта."""
     QMessageBox.warning(
         parent,
         _tr(parent, "Файл уже существует", "File already exists"),
@@ -421,6 +432,7 @@ def show_file_exists(parent: QWidget | None = None) -> None:
 
 
 def show_create_error(parent: QWidget | None, error: Exception) -> None:
+    """Показывает сообщение об ошибке создания проекта."""
     QMessageBox.critical(
         parent,
         _tr(parent, "Не удалось создать проект", "Could not create project"),
@@ -429,6 +441,7 @@ def show_create_error(parent: QWidget | None, error: Exception) -> None:
 
 
 def show_open_error(parent: QWidget | None, error: Exception) -> None:
+    """Показывает сообщение об ошибке открытия проекта."""
     QMessageBox.critical(
         parent,
         _tr(parent, "Не удалось открыть проект", "Could not open project"),
@@ -437,6 +450,7 @@ def show_open_error(parent: QWidget | None, error: Exception) -> None:
 
 
 def show_save_error(parent: QWidget | None, error: Exception) -> None:
+    """Показывает сообщение об ошибке сохранения проекта."""
     QMessageBox.critical(
         parent,
         _tr(parent, "Ошибка сохранения", "Save error"),
@@ -445,6 +459,7 @@ def show_save_error(parent: QWidget | None, error: Exception) -> None:
 
 
 def show_last_layer_info(parent: QWidget | None = None) -> None:
+    """Сообщает, что в проекте должен остаться хотя бы один слой."""
     QMessageBox.information(
         parent,
         _tr(parent, "Удаление слоя", "Delete layer"),
@@ -455,6 +470,7 @@ def show_last_layer_info(parent: QWidget | None = None) -> None:
 # --- Диалоги файловых операций ---
 
 def ask_save_as_path(parent: QWidget | None = None, name: str = "Проект") -> str:
+    """Открывает диалог выбора пути для сохранения копии проекта."""
     path, _ = QFileDialog.getSaveFileName(
         parent, _tr(parent, "Сохранить проект как", "Save project as"), f"{name}.sqlite",
         f"{_tr(parent, 'Проекты SQPaint (*.sqlite)', 'SQPaint projects (*.sqlite)')};;{_tr(parent, 'Все файлы (*)', 'All files (*)')}",
@@ -465,6 +481,7 @@ def ask_save_as_path(parent: QWidget | None = None, name: str = "Проект") 
 
 
 def ask_import_image_path(parent: QWidget | None = None) -> str:
+    """Открывает диалог выбора изображения для импорта."""
     path, _ = QFileDialog.getOpenFileName(
         parent, _tr(parent, "Импортировать изображение", "Import image"),
         "", f"{_tr(parent, 'Изображения', 'Images')} (*.png *.jpg *.jpeg *.bmp *.webp);;{_tr(parent, 'Все файлы (*)', 'All files (*)')}",
@@ -473,6 +490,7 @@ def ask_import_image_path(parent: QWidget | None = None) -> str:
 
 
 def ask_export_image_path(parent: QWidget | None, image_format: str) -> str:
+    """Открывает диалог выбора пути для экспорта изображения."""
     ext = image_format.lower()
     path, _ = QFileDialog.getSaveFileName(
         parent, _tr(parent, f"Экспортировать {ext.upper()}", f"Export {ext.upper()}"),
@@ -494,6 +512,7 @@ class FileInfoDialog(QDialog):
     )
 
     def __init__(self, database_path: str, parent=None):
+        """Открывает доступное только для чтения представление таблиц SQLite-проекта."""
         super().__init__(parent)
         import sqlite3
 
@@ -533,6 +552,7 @@ class FileInfoDialog(QDialog):
 
     @staticmethod
     def _load_table(connection, widget: QTableWidget, table_name: str) -> None:
+        """Загружает строки таблицы SQLite и отображает их в QTableWidget."""
         cursor = connection.execute(f'SELECT * FROM "{table_name}"')
         columns = [item[0] for item in cursor.description or ()]
         rows = cursor.fetchall()
@@ -559,6 +579,7 @@ class FileInfoDialog(QDialog):
 
 
 def show_file_info(parent: QWidget | None, database_path: str) -> None:
+    """Открывает окно с информацией о содержимом файла проекта."""
     dialog = FileInfoDialog(database_path, parent)
     dialog.exec()
 
@@ -717,6 +738,7 @@ class TutorialDialog(QDialog):
     )
 
     def __init__(self, parent=None):
+        """Создаёт окно справки с перечнем тем и областью отображения их содержимого."""
         super().__init__(parent)
         from PyQt6.QtWidgets import QHBoxLayout, QListWidget, QTextBrowser, QPushButton
 
@@ -760,6 +782,7 @@ class TutorialDialog(QDialog):
         self.topic_list.setCurrentRow(0)
 
     def set_language(self, language: str) -> None:
+        """Переключает язык заголовков, тем и навигационных кнопок справки."""
         self._language = language
         self.setWindowTitle("Обучение SQPaint" if language == "ru" else "SQPaint tutorial")
         current = max(0, self.topic_list.currentRow()) if hasattr(self, "topic_list") else 0
@@ -775,6 +798,7 @@ class TutorialDialog(QDialog):
             self._show_topic(self.topic_list.currentRow())
 
     def _show_topic(self, index: int) -> None:
+        """Отображает выбранную тему справки и обновляет доступность навигации."""
         if not 0 <= index < len(self.TOPICS):
             return
         self.content.setHtml(self.TOPICS[index]["html"][self._language])
@@ -782,9 +806,11 @@ class TutorialDialog(QDialog):
         self.next_button.setEnabled(index < len(self.TOPICS) - 1)
 
     def _previous_topic(self) -> None:
+        """Переключает справку на предыдущую тему."""
         self.topic_list.setCurrentRow(max(0, self.topic_list.currentRow() - 1))
 
     def _next_topic(self) -> None:
+        """Переключает справку на следующую тему."""
         self.topic_list.setCurrentRow(min(len(self.TOPICS) - 1, self.topic_list.currentRow() + 1))
 
 
@@ -797,6 +823,7 @@ class AboutDialog(QDialog):
     """Информационное окно о программе SQPaint."""
 
     def __init__(self, parent=None):
+        """Создаёт информационное окно с описанием SQPaint и ссылкой на исходный код."""
         super().__init__(parent)
         self.setWindowTitle("О программе SQPaint")
         self.setModal(True)
@@ -870,6 +897,7 @@ class OperationDialog(QDialog):
     """Короткое модальное окно, отображаемое во время файловой операции."""
 
     def __init__(self, parent, message_ru: str, message_en: str):
+        """Создаёт компактное модальное окно с сообщением о выполняемой операции."""
         super().__init__(parent)
         self.setWindowTitle(_tr(parent, "Выполняется операция", "Working"))
         self.setModal(True)
@@ -881,11 +909,13 @@ class OperationDialog(QDialog):
         layout.addWidget(label)
 
     def __enter__(self):
+        """Показывает диалог операции и обрабатывает события Qt."""
         self.show()
         QApplication.processEvents()
         return self
 
     def __exit__(self, exc_type, exc_value, traceback):
+        """Закрывает диалог операции после завершения блока with."""
         self.close()
         QApplication.processEvents()
         return False
