@@ -1,3 +1,4 @@
+"""Переиспользуемый виджет с цветным фоном, скруглением и сигналами мыши."""
 from PyQt6.QtCore import Qt, pyqtSignal
 from PyQt6.QtGui import QColor, QPainter
 from PyQt6.QtWidgets import QWidget
@@ -20,8 +21,8 @@ class RoundedWidget(QWidget):
         color: QColor | str = QColor("#2b2b2b"),
         radius: int = 8,
     ):
+        """Создаёт виджет с заданными цветом фона и радиусом скругления."""
         super().__init__(parent)
-
         self._color = QColor(color)
         self._radius = max(0, radius)
 
@@ -29,7 +30,7 @@ class RoundedWidget(QWidget):
         self.setCursor(Qt.CursorShape.PointingHandCursor)
 
     def set_color(self, color: QColor | str) -> None:
-        """Устанавливает цвет фона."""
+        """Устанавливает новый цвет фона, если он корректен."""
         new_color = QColor(color)
         if not new_color.isValid():
             return
@@ -38,7 +39,7 @@ class RoundedWidget(QWidget):
         self.update()
 
     def get_color(self) -> QColor:
-        """Возвращает текущий цвет фона."""
+        """Возвращает копию текущего цвета фона."""
         return QColor(self._color)
 
     def set_radius(self, radius: int) -> None:
@@ -47,9 +48,11 @@ class RoundedWidget(QWidget):
         self.update()
 
     def get_radius(self) -> int:
+        """Возвращает текущий радиус скругления углов."""
         return self._radius
 
     def paintEvent(self, event) -> None:
+        """Отрисовывает фон виджета с заданным цветом и скруглением."""
         painter = QPainter(self)
         painter.setRenderHint(QPainter.RenderHint.Antialiasing)
         painter.setPen(Qt.PenStyle.NoPen)
@@ -57,12 +60,17 @@ class RoundedWidget(QWidget):
         painter.drawRoundedRect(self.rect(), self._radius, self._radius)
 
     def mouseReleaseEvent(self, event) -> None:
-        if event.button() == Qt.MouseButton.LeftButton and self.rect().contains(event.position().toPoint()):
+        """Испускает clicked при отпускании левой кнопки внутри виджета."""
+        if (
+            event.button() == Qt.MouseButton.LeftButton
+            and self.rect().contains(event.position().toPoint())
+        ):
             self.clicked.emit()
 
         super().mouseReleaseEvent(event)
 
     def mouseDoubleClickEvent(self, event) -> None:
+        """Испускает double_clicked при двойном нажатии левой кнопкой мыши."""
         if event.button() == Qt.MouseButton.LeftButton:
             self.double_clicked.emit()
 
