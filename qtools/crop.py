@@ -44,7 +44,8 @@ class Crop:
         self.rect = None
 
     def key_press(self, key: int, width: int, height: int):
-        """Обрабатывает Enter для подтверждения и Escape для отмены выделения."""
+        """Обрабатывает Enter для подтверждения и Escape для отмены выделения.
+        """
         if self.rect is None:
             return None, False
 

@@ -13,7 +13,8 @@ class PreferencesController:
         self.window = window
 
     def save(self) -> None:
-        """Сохраняет текущие настройки и показывает предупреждение при ошибке."""
+        """Сохраняет текущие настройки и показывает предупреждение при ошибке.
+        """
         window = self.window
         window.settings_data["view"] = window.view_settings
 
@@ -38,7 +39,9 @@ class PreferencesController:
     def toolbar_visibility_changed(self, visible: bool) -> None:
         """Применяет и сохраняет изменение видимости панели инструментов."""
         self.window.view_manager.set_toolbar_visible(visible)
-        self.window.logger.log("Изменена видимость панели инструментов", str(visible))
+        self.window.logger.log(
+            "Изменена видимость панели инструментов", str(visible)
+        )
         self.save()
 
     def zoom_visibility_changed(self, visible: bool) -> None:
@@ -50,25 +53,31 @@ class PreferencesController:
     def welcome_preference_changed(self, visible: bool) -> None:
         """Применяет и сохраняет настройку отображения окна приветствия."""
         self.window.view_manager.set_welcome_visible(visible)
-        self.window.logger.log("Изменена настройка окна приветствия", str(visible))
+        self.window.logger.log(
+            "Изменена настройка окна приветствия", str(visible)
+        )
         self.save()
 
     def set_theme(self, theme: str, save: bool = True) -> None:
-        """Переключает тему интерфейса и при необходимости сохраняет настройку."""
+        """Переключает тему интерфейса и при необходимости сохраняет настройку.
+        """
         self.window.view_manager.set_theme(theme)
         self.window.logger.log("Изменена тема", theme)
         if save:
             self.save()
 
     def open_settings(self) -> None:
-        """Открывает диалог настроек и подключает обработчик применения параметров."""
+        """Открывает диалог настроек и подключает обработчик применения
+        параметров.
+        """
         self.window.logger.log("Открыты настройки")
         dialog = SettingsDialog(self.window.settings_data, self.window)
         dialog.apply_requested.connect(self.apply_settings)
         dialog.exec()
 
     def apply_settings(self, values: dict) -> None:
-        """Применяет настройки интерфейса, автосохранения и текущего проекта."""
+        """Применяет настройки интерфейса, автосохранения и текущего проекта.
+        """
         view = values.get("view", {})
         autosave = values.get("autosave", {})
 
@@ -112,7 +121,9 @@ class PreferencesController:
                 ),
             )
             self.window.history_controller.set_limit(project.max_undo_steps)
-            self.window.history_controller.commit(before, "ChangeProjectSettings")
+            self.window.history_controller.commit(
+                before, "ChangeProjectSettings"
+            )
 
             if self.window.canvas is not None:
                 self.window.canvas.supports_transparency = (

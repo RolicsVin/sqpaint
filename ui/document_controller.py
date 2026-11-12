@@ -35,7 +35,8 @@ class DocumentController:
 
     @property
     def w(self):
-        """Возвращает главное окно для сокращённого доступа внутри контроллера."""
+        """Возвращает главное окно для сокращённого доступа внутри контроллера.
+        """
         return self.window
 
     def _history_begin(self):
@@ -271,7 +272,11 @@ class DocumentController:
     def remove_layer(self, layer) -> None:
         """Проверяет возможность удаления слоя и удаляет его из проекта."""
         project, canvas = self.w.project, self.w.canvas
-        if project is None or canvas is None or layer not in project.get_layers():
+        if (
+            project is None
+            or canvas is None
+            or layer not in project.get_layers()
+        ):
             return
 
         if len(project.get_layers()) <= 1:
@@ -291,7 +296,8 @@ class DocumentController:
         self.w.logger.log("Удалён слой", layer.get_name())
 
     def move_layer(self, source, target, insert_before: bool) -> None:
-        """Перемещает слой относительно другого слоя и синхронизирует панели."""
+        """Перемещает слой относительно другого слоя и синхронизирует панели.
+        """
         project = self.w.project
         if project is None or self.w.canvas is None:
             return
@@ -437,7 +443,8 @@ class DocumentController:
         self.w.logger.log("Создан проект из изображения", image_path)
 
     def take_selfie(self) -> None:
-        """Открывает веб-камеру и добавляет полученный снимок отдельным слоем."""
+        """Открывает веб-камеру и добавляет полученный снимок отдельным слоем.
+        """
         project, canvas = self.w.project, self.w.canvas
         if project is None or canvas is None:
             return
@@ -449,9 +456,11 @@ class DocumentController:
                 self.w,
                 self.w._tr("Веб-камера", "Webcam"),
                 self.w._tr(
-                    "Не удалось запустить камеру. Проверьте подключение и разрешения.\n\n"
+                    "Не удалось запустить камеру. "
+                    "Проверьте подключение и разрешения.\n\n"
                     f"{error}",
-                    "Could not start the camera. Check the connection and permissions.\n\n"
+                    "Could not start the camera. "
+                    "Check the connection and permissions.\n\n"
                     f"{error}",
                 ),
             )

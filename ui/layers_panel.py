@@ -46,7 +46,9 @@ class LayerRow(RoundedWidget):
         super().mousePressEvent(event)
 
     def mouseMoveEvent(self, event) -> None:
-        """Начинает drag-and-drop, если курсор сместился дальше системного порога."""
+        """Начинает drag-and-drop, если курсор сместился дальше системного
+        порога.
+        """
         if self._drag_start is None or not (
             event.buttons() & Qt.MouseButton.LeftButton
         ):
@@ -85,7 +87,9 @@ class LayerRow(RoundedWidget):
             event.ignore()
 
     def dropEvent(self, event) -> None:
-        """Передаёт панели запрос на перемещение слоя относительно текущей строки."""
+        """Передаёт панели запрос на перемещение слоя относительно текущей
+        строки.
+        """
         try:
             source_id = int(event.mimeData().text())
         except ValueError:
@@ -173,11 +177,17 @@ class LayerPanel(QWidget):
             QWidget#layerPanel {{ background-color: {self.COLOR}; }}
             QWidget#layerPanel QPushButton {{
                 background-color: {button_bg}; color: {text};
-                border: 1px solid {border}; border-radius: 4px; padding: 4px 8px;
+                border: 1px solid {border}; border-radius: 4px;
+                padding: 4px 8px;
             }}
-            QWidget#layerPanel QPushButton:hover {{ background-color: {button_hover}; }}
-            QWidget#layerPanel QPushButton:pressed {{ background-color: {button_pressed}; }}
-            QWidget#layerPanel QCheckBox, QWidget#layerPanel QLabel {{ color: {text}; }}
+            QWidget#layerPanel QPushButton:hover {{
+                background-color: {button_hover};
+            }}
+            QWidget#layerPanel QPushButton:pressed {{
+                background-color: {button_pressed};
+            }}
+            QWidget#layerPanel QCheckBox,
+            QWidget#layerPanel QLabel {{ color: {text}; }}
             QWidget#layerPanel QLabel {{ background: transparent; }}
             QWidget#layerPanel QLineEdit {{
                 background-color: {edit_bg}; color: {text};
@@ -193,7 +203,9 @@ class LayerPanel(QWidget):
         self.layer_visibility_requested.emit(layer, visible)
 
     def update_layers(self) -> None:
-        """Перестраивает список виджетов в соответствии с текущей коллекцией слоёв."""
+        """Перестраивает список виджетов в соответствии с текущей коллекцией
+        слоёв.
+        """
         self.clear_layout(self.layers_layout)
         self.layer_rows.clear()
 
@@ -206,7 +218,8 @@ class LayerPanel(QWidget):
         self._update_selection_colors()
 
     def create_layer_row(self, layer: Layer, index: int) -> None:
-        """Создаёт строку слоя с переключателем видимости и кнопкой удаления."""
+        """Создаёт строку слоя с переключателем видимости и кнопкой удаления.
+        """
         row = LayerRow(self, layer, self)
         row.setObjectName("layerRow")
         row.setFixedHeight(38)
@@ -222,7 +235,9 @@ class LayerPanel(QWidget):
         box_visible.setChecked(layer.is_visible())
         box_visible.setToolTip("Видимость слоя")
         box_visible.toggled.connect(
-            lambda visible, item=layer: self.change_visible_layer(item, visible)
+            lambda visible, item=layer: self.change_visible_layer(
+                item, visible
+            )
         )
 
         name_label = QLabel(layer.get_name())
@@ -234,9 +249,10 @@ class LayerPanel(QWidget):
         name_edit = LayerNameEdit(layer.get_name())
         name_edit.setPlaceholderText("Название слоя")
         name_edit.hide()
-        commit_name = lambda item=layer, editor=name_edit, label=name_label: (
+
+        def commit_name(item=layer, editor=name_edit, label=name_label):
             self._commit_layer_name(item, editor, label)
-        )
+
         name_edit.focus_lost.connect(commit_name)
         name_edit.returnPressed.connect(commit_name)
 
@@ -245,7 +261,9 @@ class LayerPanel(QWidget):
         remove_button.setCursor(Qt.CursorShape.PointingHandCursor)
         remove_button.setToolTip("Удалить слой")
         remove_button.clicked.connect(
-            lambda checked=False, item=layer: self.remove_layer_requested.emit(item)
+            lambda checked=False, item=layer: (
+                self.remove_layer_requested.emit(item)
+            )
         )
 
         layout.addWidget(box_visible)
@@ -306,7 +324,9 @@ class LayerPanel(QWidget):
         editor: QLineEdit,
         label: QLabel,
     ) -> None:
-        """Отправляет новое название владельцу модели и возвращает обычную подпись."""
+        """Отправляет новое название владельцу модели и возвращает обычную
+        подпись.
+        """
         new_name = editor.text().strip() or layer.get_name()
         self.layer_rename_requested.emit(layer, new_name)
         editor.hide()

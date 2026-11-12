@@ -24,7 +24,8 @@ class ViewManager:
         light_theme_action,
         recent_window=None,
     ):
-        """Сохраняет ссылки на виджеты и действия, которыми управляет менеджер."""
+        """Сохраняет ссылки на виджеты и действия, которыми управляет менеджер.
+        """
         self.settings = settings
         self.layer_panel = layer_panel
         self.tool_bar = tool_bar
@@ -48,7 +49,8 @@ class ViewManager:
         """Применяет настройки видимости элементов и тему оформления.
 
         При apply_welcome=False обновляется состояние QAction, но видимость
-        стартового окна не меняется. Это позволяет отложить настройку до запуска.
+        стартового окна не меняется. Это позволяет отложить настройку до
+        запуска.
         """
         if values is not None:
             self.settings.update(values)
@@ -94,7 +96,8 @@ class ViewManager:
         self.layout_callback()
 
     def set_toolbar_visible(self, visible: bool) -> None:
-        """Изменяет видимость панели инструментов и перестраивает компоновку."""
+        """Изменяет видимость панели инструментов и перестраивает компоновку.
+        """
         self.settings["toolbar_visible"] = bool(visible)
         self.tool_bar.setVisible(bool(visible))
         self.layout_callback()
@@ -129,7 +132,9 @@ class ViewManager:
         self._set_theme(theme)
 
     def _set_theme(self, theme: str) -> None:
-        """Настраивает палитру приложения и обновляет состояние переключателей темы."""
+        """Настраивает палитру приложения и обновляет состояние переключателей
+        темы.
+        """
         if theme not in ("dark", "light"):
             theme = "dark"
 

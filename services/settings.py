@@ -4,7 +4,10 @@ import os
 import shutil
 from pathlib import Path
 
-from core.path_tool import ensure_app_dirs, get_settings_path as _get_settings_path
+from core.path_tool import (
+    ensure_app_dirs,
+    get_settings_path as _get_settings_path,
+)
 
 
 SETTINGS_FILE = "settings.json"
@@ -23,12 +26,16 @@ DEFAULT_SETTINGS = {
 
 
 def get_settings_path() -> str:
-    """Возвращает путь к настройкам и переносит старую конфигурацию при необходимости."""
+    """Возвращает путь к настройкам и переносит старую конфигурацию при
+    необходимости.
+    """
     ensure_app_dirs()
     path = _get_settings_path()
 
     if os.name == "nt":
-        base = os.getenv("LOCALAPPDATA") or str(Path.home() / "AppData" / "Local")
+        base = os.getenv("LOCALAPPDATA") or str(
+            Path.home() / "AppData" / "Local"
+        )
     else:
         base = os.getenv("XDG_CONFIG_HOME") or str(Path.home() / ".config")
 
@@ -48,7 +55,9 @@ def normalize(path: str) -> str:
 
 
 def load_data() -> dict:
-    """Загружает настройки, объединяет их со значениями по умолчанию и проверяет параметры."""
+    """Загружает настройки, объединяет их со значениями по умолчанию и
+    проверяет параметры.
+    """
     path = get_settings_path()
 
     try:

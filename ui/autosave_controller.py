@@ -7,7 +7,8 @@ from services import autosave
 
 
 class AutoSaveController(QObject):
-    """Управляет таймером резервного копирования и делегирует работу сервису."""
+    """Управляет таймером резервного копирования и делегирует работу сервису.
+    """
 
     DEFAULT_INTERVAL_MINUTES = 5
 
@@ -57,13 +58,16 @@ class AutoSaveController(QObject):
             return
 
         try:
-            # Сначала записываем актуальное состояние, затем копируем SQLite-файл.
+            # Сначала записываем актуальное состояние, затем копируем
+            # SQLite-файл.
             window.database.save(
                 project,
                 window.history_controller.export_for_save(),
             )
             autosave.create_backup(project.get_path())
-            window.logger.log("Создана резервная копия проекта", project.get_path())
+            window.logger.log(
+                "Создана резервная копия проекта", project.get_path()
+            )
             window.history_controller.mark_saved()
         except (OSError, sqlite3.Error, RuntimeError, ValueError, MemoryError):
             # Ошибка автосохранения не должна прерывать работу редактора.

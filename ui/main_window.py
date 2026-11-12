@@ -1,4 +1,5 @@
-"""Главное окно SQPaint и координация компонентов пользовательского интерфейса."""
+"""Главное окно SQPaint и координация компонентов пользовательского интерфейса.
+"""
 from PyQt6.QtWidgets import QApplication, QMainWindow
 
 from core.database import ProjectDatabase
@@ -22,7 +23,9 @@ from ui.view_manager import ViewManager
 
 
 class DomainWindow(QMainWindow):
-    """Собирает интерфейс редактора и делегирует операции специализированным контроллерам."""
+    """Собирает интерфейс редактора и делегирует операции специализированным
+    контроллерам.
+    """
 
     HEADERS_HEIGHT = 25
 
@@ -32,13 +35,17 @@ class DomainWindow(QMainWindow):
         database: ProjectDatabase,
         settings: dict,
     ):
-        """Создаёт главное окно, контроллеры, панели и стартовое окно приложения."""
+        """Создаёт главное окно, контроллеры, панели и стартовое окно
+        приложения.
+        """
         super().__init__()
         self.project = None
         self.database = database
         self.logger = AppLogger(database)
         self.settings_data = (
-            settings if isinstance(settings, dict) else settings_service.load_data()
+            settings
+            if isinstance(settings, dict)
+            else settings_service.load_data()
         )
         self.view_settings = self.settings_data.setdefault("view", {})
         self.canvas: Canvas | None = None
@@ -99,7 +106,9 @@ class DomainWindow(QMainWindow):
             self.localization,
             self,
         )
-        self.recent_projects_window.project_select.connect(self.open_project_path)
+        self.recent_projects_window.project_select.connect(
+            self.open_project_path
+        )
         self.recent_projects_window.create_project.connect(self.create_project)
         self.recent_projects_window.open_project.connect(self.open_project)
 
@@ -121,7 +130,8 @@ class DomainWindow(QMainWindow):
         self.preferences_controller = PreferencesController(self)
 
         # Повторно применяем язык после полной сборки интерфейса:
-        # QMenu отображается через menuAction(), поэтому синхронизируем и его текст.
+        # QMenu отображается через menuAction(), поэтому синхронизируем и его
+        # текст.
         self._set_language(self.localization.language)
         self.ru.setChecked(self.localization.language == "ru")
         self.en.setChecked(self.localization.language == "en")
@@ -137,13 +147,16 @@ class DomainWindow(QMainWindow):
         return self.localization_controller.translate(ru, en)
 
     def _set_language(self, language: str) -> None:
-        """Переключает язык зарегистрированных элементов и панели инструментов."""
+        """Переключает язык зарегистрированных элементов и панели инструментов.
+        """
         self.localization_controller.set_language(language)
         self.tool_bar.set_language(language)
 
     def _layout_child_widgets(self) -> None:
         """Рассчитывает геометрию холста и боковых панелей главного окна."""
-        panel_width = LayerPanel.WIDTH if not self.layer_panel.isHidden() else 0
+        panel_width = (
+            LayerPanel.WIDTH if not self.layer_panel.isHidden() else 0
+        )
         top = self.HEADERS_HEIGHT + (
             ToolBar.HEIGHT if not self.tool_bar.isHidden() else 0
         )
@@ -172,7 +185,9 @@ class DomainWindow(QMainWindow):
         self.layer_panel.raise_()
 
     def resizeEvent(self, event) -> None:
-        """Пересчитывает расположение дочерних виджетов при изменении размера окна."""
+        """Пересчитывает расположение дочерних виджетов при изменении размера
+        окна.
+        """
         super().resizeEvent(event)
         self._layout_child_widgets()
 
@@ -221,7 +236,9 @@ class DomainWindow(QMainWindow):
         self.document_controller.open_project_path(path)
 
     def set_project(self, project: Project) -> None:
-        """Подключает проект к интерфейсу и активирует инструменты редактирования."""
+        """Подключает проект к интерфейсу и активирует инструменты
+        редактирования.
+        """
         self.project = project
         self.autosave_controller.start()
         self.logger.log("Проект открыт", project.get_name())
@@ -282,7 +299,8 @@ class DomainWindow(QMainWindow):
         layer,
         visible: bool,
     ) -> None:
-        """Передаёт контроллеру документа запрос на изменение видимости слоя."""
+        """Передаёт контроллеру документа запрос на изменение видимости слоя.
+        """
         self.document_controller.set_layer_visibility(layer, visible)
 
     def _on_layer_rename_requested(self, layer, name: str) -> None:
@@ -290,7 +308,9 @@ class DomainWindow(QMainWindow):
         self.document_controller.rename_layer(layer, name)
 
     def _commit_pending_transform(self) -> None:
-        """Подтверждает незавершённое позиционирование импортированного изображения."""
+        """Подтверждает незавершённое позиционирование импортированного
+        изображения.
+        """
         if self.canvas is not None and self.canvas.transform_image is not None:
             self.canvas.commit_image_transform()
 
@@ -356,7 +376,8 @@ class DomainWindow(QMainWindow):
         self.document_controller.open_file_info()
 
     def closeEvent(self, event) -> None:
-        """Проверяет несохранённые изменения и корректно завершает работу окна."""
+        """Проверяет несохранённые изменения и корректно завершает работу окна.
+        """
         self._commit_pending_transform()
         self.history_controller.flush_pending()
         has_unsaved_changes = (

@@ -33,7 +33,8 @@ class AppLogger:
         details: str = "",
         level: int = logging.INFO,
     ) -> None:
-        """Записывает событие в консоль и, если проект открыт, в таблицу logs."""
+        """Записывает событие в консоль и, если проект открыт, в таблицу logs.
+        """
         message = f"{action}: {details}" if details else action
         self._logger.log(level, message)
 
@@ -42,4 +43,6 @@ class AppLogger:
                 self.database.add_log(message)
         except Exception:
             # Сбой журналирования не должен блокировать редактирование.
-            self._logger.exception("Не удалось записать событие в таблицу logs")
+            self._logger.exception(
+                "Не удалось записать событие в таблицу logs"
+            )

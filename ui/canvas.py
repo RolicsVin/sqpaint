@@ -11,7 +11,8 @@ from qtools.shapes import Shapes
 
 
 class Canvas(QWidget):
-    """Отображает изображение документа и обрабатывает действия пользователя."""
+    """Отображает изображение документа и обрабатывает действия пользователя.
+    """
 
     crop_requested = pyqtSignal(QRect)
     history_started = pyqtSignal(str)
@@ -34,7 +35,8 @@ class Canvas(QWidget):
         h,
         supports_transparency: bool = True,
     ):
-        """Инициализирует холст, инструменты и параметры отображения документа."""
+        """Инициализирует холст, инструменты и параметры отображения документа.
+        """
         super().__init__(parent=parent)
         self.document_width = int(w)
         self.document_height = int(h)
@@ -113,7 +115,8 @@ class Canvas(QWidget):
         self.update()
 
     def set_tool(self, tool_name: str) -> None:
-        """Переключает активный инструмент и завершает незаконченные действия."""
+        """Переключает активный инструмент и завершает незаконченные действия.
+        """
         if tool_name not in (
             self.BRUSH,
             self.ERASER,
@@ -123,7 +126,10 @@ class Canvas(QWidget):
         ):
             return
 
-        if self.last is not None and self.active_tool in (self.BRUSH, self.ERASER):
+        if self.last is not None and self.active_tool in (
+            self.BRUSH,
+            self.ERASER,
+        ):
             label = (
                 "PaintStroke"
                 if self.active_tool == self.BRUSH
@@ -164,7 +170,9 @@ class Canvas(QWidget):
         )
 
     def begin_image_transform(self, image: QImage) -> None:
-        """Включает режим позиционирования и масштабирования импортированного изображения."""
+        """Включает режим позиционирования и масштабирования импортированного
+        изображения.
+        """
         if image.isNull():
             return
 
@@ -189,7 +197,9 @@ class Canvas(QWidget):
         self.update()
 
     def commit_image_transform(self) -> None:
-        """Записывает текущее положение импортированного изображения в активный слой."""
+        """Записывает текущее положение импортированного изображения в активный
+        слой.
+        """
         if self.transform_image is None or self.transform_rect is None:
             return
 
@@ -218,7 +228,9 @@ class Canvas(QWidget):
         self.history_finished.emit("TransformImage")
 
     def _transform_handle(self, point: QPointF):
-        """Определяет маркер трансформации, расположенный рядом с указанной точкой."""
+        """Определяет маркер трансформации, расположенный рядом с указанной
+        точкой.
+        """
         if self.transform_rect is None:
             return None
 
@@ -245,7 +257,8 @@ class Canvas(QWidget):
         return None
 
     def _resize_transform(self, point: QPointF) -> None:
-        """Изменяет границы трансформируемого изображения по активному маркеру."""
+        """Изменяет границы трансформируемого изображения по активному маркеру.
+        """
         rect = QRectF(self.transform_start)
         handle = self.transform_drag
 
@@ -261,7 +274,8 @@ class Canvas(QWidget):
         self.transform_rect = rect.normalized()
 
     def keyPressEvent(self, event) -> None:
-        """Обрабатывает клавиши подтверждения и отмены операции кадрирования."""
+        """Обрабатывает клавиши подтверждения и отмены операции кадрирования.
+        """
         if self.transform_image is not None:
             if event.key() in (Qt.Key.Key_Return, Qt.Key.Key_Enter):
                 self.commit_image_transform()
@@ -284,7 +298,8 @@ class Canvas(QWidget):
         super().keyPressEvent(event)
 
     def get_image(self) -> QImage:
-        """Возвращает композицию видимых слоёв в исходном разрешении документа."""
+        """Возвращает композицию видимых слоёв в исходном разрешении документа.
+        """
         image = QImage(
             self.document_width,
             self.document_height,
@@ -303,7 +318,9 @@ class Canvas(QWidget):
         return image
 
     def paintEvent(self, event) -> None:
-        """Отрисовывает слои, текущую фигуру, выделение и маркеры трансформации."""
+        """Отрисовывает слои, текущую фигуру, выделение и маркеры
+        трансформации.
+        """
         painter = QPainter(self)
         painter.setRenderHint(
             QPainter.RenderHint.SmoothPixmapTransform,
@@ -346,7 +363,10 @@ class Canvas(QWidget):
                 self.document_height,
             )
 
-        if self.transform_image is not None and self.transform_rect is not None:
+        if (
+            self.transform_image is not None
+            and self.transform_rect is not None
+        ):
             painter.drawImage(self.transform_rect, self.transform_image)
             painter.setPen(
                 QPen(
@@ -382,11 +402,16 @@ class Canvas(QWidget):
                 )
 
     def mousePressEvent(self, event) -> None:
-        """Запускает рисование, заливку, кадрирование или трансформацию изображения."""
+        """Запускает рисование, заливку, кадрирование или трансформацию
+        изображения.
+        """
         if event.button() != Qt.MouseButton.LeftButton:
             return
 
-        if self.transform_image is not None and self.transform_rect is not None:
+        if (
+            self.transform_image is not None
+            and self.transform_rect is not None
+        ):
             point = QPointF(
                 event.position().x() / self.zoom,
                 event.position().y() / self.zoom,
@@ -471,8 +496,13 @@ class Canvas(QWidget):
         self.last = pos
 
     def mouseMoveEvent(self, event) -> None:
-        """Обрабатывает перемещение курсора при рисовании и трансформации изображения."""
-        if self.transform_image is not None and self.transform_drag is not None:
+        """Обрабатывает перемещение курсора при рисовании и трансформации
+        изображения.
+        """
+        if (
+            self.transform_image is not None
+            and self.transform_drag is not None
+        ):
             point = QPointF(
                 event.position().x() / self.zoom,
                 event.position().y() / self.zoom,
@@ -487,7 +517,10 @@ class Canvas(QWidget):
             self.update()
             return
 
-        if self.transform_image is not None and self.transform_rect is not None:
+        if (
+            self.transform_image is not None
+            and self.transform_rect is not None
+        ):
             point = QPointF(
                 event.position().x() / self.zoom,
                 event.position().y() / self.zoom,
@@ -553,7 +586,8 @@ class Canvas(QWidget):
         self.update()
 
     def mouseReleaseEvent(self, event) -> None:
-        """Завершает штрих, фигуру, кадрирование или трансформацию изображения."""
+        """Завершает штрих, фигуру, кадрирование или трансформацию изображения.
+        """
         if (
             event.button() == Qt.MouseButton.LeftButton
             and self.shape_start is not None

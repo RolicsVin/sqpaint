@@ -13,7 +13,9 @@ class MenuController:
         self.window = window
 
     def build(self) -> None:
-        """Создаёт меню приложения, регистрирует действия и подключает обработчики."""
+        """Создаёт меню приложения, регистрирует действия и подключает
+        обработчики.
+        """
         w = self.window
         w.menu_bar = w.menuBar()
         w.file_menu = w.menu_bar.addMenu("Файл")
@@ -28,7 +30,9 @@ class MenuController:
         w.save_action = QAction("Сохранить", w)
         w.save_action.setShortcut(QKeySequence(QKeySequence.StandardKey.Save))
         w.save_as_action = QAction("Сохранить как", w)
-        w.save_as_action.setShortcut(QKeySequence(QKeySequence.StandardKey.SaveAs))
+        w.save_as_action.setShortcut(
+            QKeySequence(QKeySequence.StandardKey.SaveAs)
+        )
         w.export_submenu = QMenu("Экспортировать", w)
         w.import_action = QAction("Импортировать", w)
         w.import_action.setShortcut("Ctrl+I")
@@ -74,7 +78,9 @@ class MenuController:
         w.selfie_action = QAction("Сделать селфи", w)
         w.settings_action = QAction("Настройки", w)
         w.undo_action = QAction("Отменить", w)
-        w.undo_action.setShortcuts([QKeySequence(QKeySequence.StandardKey.Undo)])
+        w.undo_action.setShortcuts(
+            [QKeySequence(QKeySequence.StandardKey.Undo)]
+        )
         w.redo_action = QAction("Повторить", w)
         w.redo_action.setShortcuts(
             [

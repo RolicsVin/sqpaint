@@ -88,9 +88,13 @@ class Project:
     def add_layer(self, layer: Layer) -> bool:
         """Добавляет слой и нормализует порядок слоёв."""
         if not isinstance(layer, Layer):
-            raise AddLayerError(f"Добавлять можно только объекты Layer: {layer!r}")
+            raise AddLayerError(
+                f"Добавлять можно только объекты Layer: {layer!r}"
+            )
 
-        if any(existing.get_name() == layer.get_name() for existing in self.layers):
+        if any(
+            existing.get_name() == layer.get_name() for existing in self.layers
+        ):
             return False
 
         self.layers.append(layer)
@@ -128,7 +132,9 @@ class Project:
         return layer
 
     def rename_layer(self, layer: Layer, name: str) -> bool:
-        """Переименовывает принадлежащий проекту слой с проверкой уникальности имени."""
+        """Переименовывает принадлежащий проекту слой с проверкой уникальности
+        имени.
+        """
         name = str(name).strip()
         if layer not in self.layers or not name:
             return False
@@ -165,7 +171,8 @@ class Project:
         target: Layer,
         insert_before: bool = True,
     ) -> bool:
-        """Перемещает исходный слой относительно целевого и обновляет z_order."""
+        """Перемещает исходный слой относительно целевого и обновляет z_order.
+        """
         if (
             source is target
             or source not in self.layers
@@ -183,7 +190,8 @@ class Project:
         return True
 
     def resize(self, width: int, height: int) -> None:
-        """Изменяет размер документа и всех слоёв, сохраняя левый верхний угол."""
+        """Изменяет размер документа и всех слоёв, сохраняя левый верхний угол.
+        """
         width, height = int(width), int(height)
         if width <= 0 or height <= 0:
             raise ValueError("Размеры холста должны быть положительными.")
@@ -218,9 +226,16 @@ class Project:
         """Обрезает документ и все слои по заданной прямоугольной области."""
         x, y, width, height = int(x), int(y), int(width), int(height)
         if width <= 0 or height <= 0:
-            raise ValueError("Размер области кадрирования должен быть положительным.")
+            raise ValueError(
+                "Размер области кадрирования должен быть положительным."
+            )
 
-        if x < 0 or y < 0 or x + width > self.width or y + height > self.height:
+        if (
+            x < 0
+            or y < 0
+            or x + width > self.width
+            or y + height > self.height
+        ):
             raise ValueError("Область кадрирования выходит за границы холста.")
 
         cropped_images = [
@@ -234,7 +249,9 @@ class Project:
         self.height = height
 
     def _normalize_layer_order(self) -> None:
-        """Назначает слоям последовательные значения z_order по их позиции в списке."""
+        """Назначает слоям последовательные значения z_order по их позиции в
+        списке.
+        """
         for z_order, layer in enumerate(self.layers):
             layer.set_z_order(z_order)
 

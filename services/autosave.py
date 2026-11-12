@@ -12,13 +12,16 @@ def create_backup(
     project_path: str,
     max_backups: int = MAX_BACKUPS,
 ) -> Path:
-    """Создаёт копию SQLite-файла и удаляет резервные копии сверх заданного лимита."""
+    """Создаёт копию SQLite-файла и удаляет резервные копии сверх заданного
+    лимита.
+    """
     source = Path(project_path)
     if not source.is_file():
         raise FileNotFoundError(f"Файл проекта не найден: {source}")
 
     backup = source.with_name(
-        f"{source.stem}{BACKUP_SUFFIX}_{datetime.now():%Y%m%d_%H%M%S_%f}{source.suffix}"
+        f"{source.stem}{BACKUP_SUFFIX}_"
+        f"{datetime.now():%Y%m%d_%H%M%S_%f}{source.suffix}"
     )
     shutil.copy2(source, backup)
 

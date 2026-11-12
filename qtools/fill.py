@@ -57,7 +57,8 @@ class Fill:
             for current_x in range(left, right + 1):
                 image.setPixelColor(current_x, seed_y, fill_color)
 
-            # Добавляем начала непрерывных целевых отрезков на соседних строках.
+            # Добавляем начала непрерывных целевых отрезков на соседних
+            # строках.
             for adjacent_y in (seed_y - 1, seed_y + 1):
                 if not 0 <= adjacent_y < height:
                     continue

@@ -50,7 +50,8 @@ class ProjectDatabase:
         supports_transparency: bool = True,
         max_undo_steps: int = 10,
     ) -> Project:
-        """Создаёт новый файл проекта, его схему и возвращает модель Project."""
+        """Создаёт новый файл проекта, его схему и возвращает модель Project.
+        """
         if os.path.exists(path):
             raise FileExistsError(f"Файл уже существует: {path}")
 
@@ -73,7 +74,8 @@ class ProjectDatabase:
             with conn:
                 conn.execute(
                     "INSERT INTO project "
-                    "(id, name, width, height, created_at, supports_transparency, max_undo_steps) "
+                    "(id, name, width, height, created_at, "
+                    "supports_transparency, max_undo_steps) "
                     "VALUES (1, ?, ?, ?, ?, ?, ?)",
                     (
                         project.name,
@@ -95,16 +97,20 @@ class ProjectDatabase:
         return project
 
     def load(self, path: str) -> Project:
-        """Загружает проект; текущее подключение заменяется только после успеха."""
+        """Загружает проект; текущее подключение заменяется только после
+        успеха.
+        """
         if not os.path.isfile(path):
             raise FileNotFoundError(f"Файл не найден: {path}")
 
         # Сначала проверяем и читаем новый файл. Если он не подходит,
-        # текущее соединение и открытый в интерфейсе проект остаются нетронутыми.
+        # текущее соединение и открытый в интерфейсе проект остаются
+        # нетронутыми.
         conn = sqlite3.connect(path)
         try:
             row = conn.execute(
-                "SELECT name, width, height, created_at FROM project WHERE id = 1"
+                "SELECT name, width, height, created_at "
+                "FROM project WHERE id = 1"
             ).fetchone()
             if row is None:
                 raise ValueError(
@@ -113,7 +119,9 @@ class ProjectDatabase:
 
             width, height = int(row[1]), int(row[2])
             if width <= 0 or height <= 0:
-                raise ValueError("У проекта указаны некорректные размеры холста.")
+                raise ValueError(
+                    "У проекта указаны некорректные размеры холста."
+                )
 
             layers = [
                 Layer(name, z_order, bool(visible), bytes_to_image(pixels))
@@ -230,8 +238,9 @@ class ProjectDatabase:
 
         with self.conn:
             self.conn.execute(
-                "UPDATE project SET name=?, width=?, height=?, history_cursor=?, "
-                "max_undo_steps=?, supports_transparency=? WHERE id=1",
+                "UPDATE project SET name=?, width=?, height=?, "
+                "history_cursor=?, max_undo_steps=?, "
+                "supports_transparency=? WHERE id=1",
                 (
                     project.name,
                     project.width,
@@ -306,7 +315,9 @@ class ProjectDatabase:
         project: Project,
         history_data: dict | None = None,
     ) -> Project:
-        """Создаёт копию проекта в новом файле и переключает подключение на неё."""
+        """Создаёт копию проекта в новом файле и переключает подключение на
+        неё.
+        """
         if os.path.exists(path):
             raise FileExistsError(f"Файл уже существует: {path}")
 
@@ -364,7 +375,8 @@ class ProjectDatabase:
         )
 
     def close(self) -> None:
-        """Закрывает соединение с файлом проекта и очищает текущее состояние."""
+        """Закрывает соединение с файлом проекта и очищает текущее состояние.
+        """
         if self.conn is not None:
             self.conn.close()
             self.conn = None

@@ -1,21 +1,28 @@
+import sqlite3
+from copy import deepcopy
 from pathlib import Path
 
 from PyQt6.QtCore import Qt, pyqtSignal
 from PyQt6.QtGui import QPixmap
 from PyQt6.QtWidgets import (
     QApplication,
+    QCheckBox,
     QDialog,
     QDialogButtonBox,
     QFileDialog,
     QFormLayout,
+    QHBoxLayout,
     QHeaderView,
     QLabel,
     QLineEdit,
+    QListWidget,
     QMessageBox,
+    QPushButton,
     QSpinBox,
     QTabWidget,
     QTableWidget,
     QTableWidgetItem,
+    QTextBrowser,
     QVBoxLayout,
     QWidget,
 )
@@ -30,22 +37,23 @@ def _tr(parent, ru: str, en: str) -> str:
 
 
 class SettingsDialog(QDialog):
-    """Окно настроек SQPaint. Новые разделы добавляются отдельными вкладками."""
+    """Окно настроек SQPaint. Новые разделы добавляются отдельными вкладками.
+    """
 
     apply_requested = pyqtSignal(dict)
 
     def __init__(self, settings: dict, parent=None):
-        """Создаёт диалог редактирования глобальных настроек и параметров проекта."""
+        """Создаёт диалог редактирования глобальных настроек и параметров
+        проекта.
+        """
         super().__init__(parent)
-        from copy import deepcopy
-        from PyQt6.QtWidgets import (
-            QCheckBox, QComboBox, QHBoxLayout, QPushButton, QTabWidget,
-        )
 
         self.setWindowTitle("Настройки")
         self.setModal(True)
         self.resize(460, 300)
-        self._settings = deepcopy(settings if isinstance(settings, dict) else {})
+        self._settings = deepcopy(
+            settings if isinstance(settings, dict) else {}
+        )
         view = self._settings.setdefault("view", {})
         project = getattr(parent, "project", None)
         self._project_available = project is not None
@@ -60,21 +68,33 @@ class SettingsDialog(QDialog):
         view_form = QFormLayout(view_page)
 
         self.theme_combo = LocalizedComboBox(view_page)
-        self.theme_combo.add_localized_item({"ru": "Тёмная", "en": "Dark"}, "dark")
-        self.theme_combo.add_localized_item({"ru": "Светлая", "en": "Light"}, "light")
+        self.theme_combo.add_localized_item(
+            {"ru": "Тёмная", "en": "Dark"}, "dark"
+        )
+        self.theme_combo.add_localized_item(
+            {"ru": "Светлая", "en": "Light"}, "light"
+        )
         theme_index = self.theme_combo.findData(view.get("theme", "dark"))
         self.theme_combo.setCurrentIndex(max(0, theme_index))
         view_form.addRow("Тема:", self.theme_combo)
 
-        self.layer_panel_check = QCheckBox("Показывать панель слоёв", view_page)
-        self.layer_panel_check.setChecked(view.get("layer_panel_visible", True))
+        self.layer_panel_check = QCheckBox(
+            "Показывать панель слоёв", view_page
+        )
+        self.layer_panel_check.setChecked(
+            view.get("layer_panel_visible", True)
+        )
         view_form.addRow(self.layer_panel_check)
 
-        self.toolbar_check = QCheckBox("Показывать панель инструментов", view_page)
+        self.toolbar_check = QCheckBox(
+            "Показывать панель инструментов", view_page
+        )
         self.toolbar_check.setChecked(view.get("toolbar_visible", True))
         view_form.addRow(self.toolbar_check)
 
-        self.zoom_check = QCheckBox("Показывать управление масштабом", view_page)
+        self.zoom_check = QCheckBox(
+            "Показывать управление масштабом", view_page
+        )
         self.zoom_check.setChecked(view.get("zoom_control_visible", True))
         view_form.addRow(self.zoom_check)
 
@@ -96,22 +116,36 @@ class SettingsDialog(QDialog):
         self.autosave_interval_spin.setValue(
             min(120, max(1, int(autosave.get("interval_minutes", 5))))
         )
-        autosave_form.addRow("Интервал автосохранения:", self.autosave_interval_spin)
+        autosave_form.addRow(
+            "Интервал автосохранения:", self.autosave_interval_spin
+        )
         self.tabs.addTab(autosave_page, "Автосохранение")
 
         # Вкладка параметров открытого проекта.
         project_page = QWidget(self)
         project_form = QFormLayout(project_page)
         self.project_transparency_combo = LocalizedComboBox(project_page)
-        self.project_transparency_combo.add_localized_item({"ru": "Да", "en": "Yes"}, True)
-        self.project_transparency_combo.add_localized_item({"ru": "Нет", "en": "No"}, False)
+        self.project_transparency_combo.add_localized_item(
+            {"ru": "Да", "en": "Yes"}, True
+        )
+        self.project_transparency_combo.add_localized_item(
+            {"ru": "Нет", "en": "No"}, False
+        )
         transparency = bool(getattr(project, "supports_transparency", True))
-        self.project_transparency_combo.setCurrentIndex(max(0, self.project_transparency_combo.findData(transparency)))
+        self.project_transparency_combo.setCurrentIndex(
+            max(0, self.project_transparency_combo.findData(transparency))
+        )
         self.project_history_spin = QSpinBox(project_page)
         self.project_history_spin.setRange(1, 1000)
-        self.project_history_spin.setValue(max(1, int(getattr(project, "max_undo_steps", 10))))
-        project_form.addRow("Поддержка прозрачности:", self.project_transparency_combo)
-        project_form.addRow("Размер истории действий:", self.project_history_spin)
+        self.project_history_spin.setValue(
+            max(1, int(getattr(project, "max_undo_steps", 10)))
+        )
+        project_form.addRow(
+            "Поддержка прозрачности:", self.project_transparency_combo
+        )
+        project_form.addRow(
+            "Размер истории действий:", self.project_history_spin
+        )
         if not self._project_available:
             self.project_transparency_combo.setEnabled(False)
             self.project_history_spin.setEnabled(False)
@@ -138,29 +172,66 @@ class SettingsDialog(QDialog):
                 view_form.itemAt(0, QFormLayout.ItemRole.LabelRole).widget(),
                 {"ru": "Тема:", "en": "Theme:"},
             )
-            self.tabs.setTabText(0, "View" if manager.language == "en" else "Вид")
-            self.tabs.setTabText(1, "Autosave" if manager.language == "en" else "Автосохранение")
-            self.tabs.setTabText(2, "Project" if manager.language == "en" else "Проект")
+            self.tabs.setTabText(
+                0, "View" if manager.language == "en" else "Вид"
+            )
+            self.tabs.setTabText(
+                1, "Autosave" if manager.language == "en" else "Автосохранение"
+            )
+            self.tabs.setTabText(
+                2, "Project" if manager.language == "en" else "Проект"
+            )
             manager.register(
-                autosave_form.itemAt(0, QFormLayout.ItemRole.LabelRole).widget(),
+                autosave_form.itemAt(
+                    0, QFormLayout.ItemRole.LabelRole
+                ).widget(),
                 {"ru": "Интервал автосохранения:", "en": "Autosave interval:"},
             )
             manager.register(
-                project_form.itemAt(0, QFormLayout.ItemRole.LabelRole).widget(),
-                {"ru": "Поддержка прозрачности:", "en": "Transparency support:"},
+                project_form.itemAt(
+                    0, QFormLayout.ItemRole.LabelRole
+                ).widget(),
+                {
+                    "ru": "Поддержка прозрачности:",
+                    "en": "Transparency support:",
+                },
             )
             manager.register(
-                project_form.itemAt(1, QFormLayout.ItemRole.LabelRole).widget(),
-                {"ru": "Размер истории действий:", "en": "Action history size:"},
+                project_form.itemAt(
+                    1, QFormLayout.ItemRole.LabelRole
+                ).widget(),
+                {
+                    "ru": "Размер истории действий:",
+                    "en": "Action history size:",
+                },
             )
             manager.register(self.project_transparency_combo, {})
             self.project_transparency_combo.set_language(manager.language)
-            manager.register(self.cancel_button, {"ru": "Отмена", "en": "Cancel"})
-            manager.register(self.apply_button, {"ru": "Применить", "en": "Apply"})
+            manager.register(
+                self.cancel_button, {"ru": "Отмена", "en": "Cancel"}
+            )
+            manager.register(
+                self.apply_button, {"ru": "Применить", "en": "Apply"}
+            )
             manager.register(self.exit_button, {"ru": "Выход", "en": "Close"})
-            manager.register(self.layer_panel_check, {"ru": "Показывать панель слоёв", "en": "Show layers panel"})
-            manager.register(self.toolbar_check, {"ru": "Показывать панель инструментов", "en": "Show tools panel"})
-            manager.register(self.zoom_check, {"ru": "Показывать управление масштабом", "en": "Show zoom control"})
+            manager.register(
+                self.layer_panel_check,
+                {"ru": "Показывать панель слоёв", "en": "Show layers panel"},
+            )
+            manager.register(
+                self.toolbar_check,
+                {
+                    "ru": "Показывать панель инструментов",
+                    "en": "Show tools panel",
+                },
+            )
+            manager.register(
+                self.zoom_check,
+                {
+                    "ru": "Показывать управление масштабом",
+                    "en": "Show zoom control",
+                },
+            )
             manager.register(
                 self.welcome_check,
                 {
@@ -170,9 +241,15 @@ class SettingsDialog(QDialog):
             )
             manager.register(self.theme_combo, {})
             self.theme_combo.set_language(manager.language)
-            self.tabs.setTabText(0, "View" if manager.language == "en" else "Вид")
-            self.tabs.setTabText(1, "Autosave" if manager.language == "en" else "Автосохранение")
-            self.tabs.setTabText(2, "Project" if manager.language == "en" else "Проект")
+            self.tabs.setTabText(
+                0, "View" if manager.language == "en" else "Вид"
+            )
+            self.tabs.setTabText(
+                1, "Autosave" if manager.language == "en" else "Автосохранение"
+            )
+            self.tabs.setTabText(
+                2, "Project" if manager.language == "en" else "Проект"
+            )
 
     def _collect_settings(self) -> dict:
         """Собирает значения всех вкладок в структуру настроек."""
@@ -189,7 +266,9 @@ class SettingsDialog(QDialog):
         )
         if self._project_available:
             self._settings["project"] = {
-                "supports_transparency": bool(self.project_transparency_combo.currentData()),
+                "supports_transparency": bool(
+                    self.project_transparency_combo.currentData()
+                ),
                 "max_undo_steps": self.project_history_spin.value(),
             }
         return self._settings
@@ -226,8 +305,12 @@ class NewProjectDialog(QDialog):
         self.height_spin.setSuffix(" px")
 
         self.transparency_combo = LocalizedComboBox(self)
-        self.transparency_combo.add_localized_item({"ru": "Да", "en": "Yes"}, True)
-        self.transparency_combo.add_localized_item({"ru": "Нет", "en": "No"}, False)
+        self.transparency_combo.add_localized_item(
+            {"ru": "Да", "en": "Yes"}, True
+        )
+        self.transparency_combo.add_localized_item(
+            {"ru": "Нет", "en": "No"}, False
+        )
         self.transparency_combo.setCurrentIndex(0)
         self.history_spin = QSpinBox(self)
         self.history_spin.setRange(1, 1000)
@@ -252,7 +335,9 @@ class NewProjectDialog(QDialog):
         manager = getattr(parent, "localization", None)
         if manager is not None:
             manager.register(self, {"ru": "Новый проект", "en": "New project"})
-            manager.register(self.name_edit, {"ru": "Новый проект", "en": "New project"})
+            manager.register(
+                self.name_edit, {"ru": "Новый проект", "en": "New project"}
+            )
             manager.register(
                 form.itemAt(0, QFormLayout.ItemRole.LabelRole).widget(),
                 {"ru": "Название:", "en": "Name:"},
@@ -267,16 +352,28 @@ class NewProjectDialog(QDialog):
             )
             manager.register(
                 form.itemAt(3, QFormLayout.ItemRole.LabelRole).widget(),
-                {"ru": "Поддержка прозрачности:", "en": "Transparency support:"},
+                {
+                    "ru": "Поддержка прозрачности:",
+                    "en": "Transparency support:",
+                },
             )
             manager.register(
                 form.itemAt(4, QFormLayout.ItemRole.LabelRole).widget(),
-                {"ru": "Размер истории действий:", "en": "Action history size:"},
+                {
+                    "ru": "Размер истории действий:",
+                    "en": "Action history size:",
+                },
             )
             manager.register(self.transparency_combo, {})
             self.transparency_combo.set_language(manager.language)
-            manager.register(buttons.button(QDialogButtonBox.StandardButton.Ok), {"ru": "ОК", "en": "OK"})
-            manager.register(buttons.button(QDialogButtonBox.StandardButton.Cancel), {"ru": "Отмена", "en": "Cancel"})
+            manager.register(
+                buttons.button(QDialogButtonBox.StandardButton.Ok),
+                {"ru": "ОК", "en": "OK"},
+            )
+            manager.register(
+                buttons.button(QDialogButtonBox.StandardButton.Cancel),
+                {"ru": "Отмена", "en": "Cancel"},
+            )
             manager.set_language(manager.language)
 
     def get_values(self) -> tuple[str, int, int, bool, int]:
@@ -329,7 +426,9 @@ class CanvasSizeDialog(QDialog):
 
         manager = getattr(parent, "localization", None)
         if manager is not None:
-            manager.register(self, {"ru": "Размер холста", "en": "Canvas size"})
+            manager.register(
+                self, {"ru": "Размер холста", "en": "Canvas size"}
+            )
             manager.register(
                 form.itemAt(0, QFormLayout.ItemRole.LabelRole).widget(),
                 {"ru": "Ширина:", "en": "Width:"},
@@ -338,12 +437,21 @@ class CanvasSizeDialog(QDialog):
                 form.itemAt(1, QFormLayout.ItemRole.LabelRole).widget(),
                 {"ru": "Высота:", "en": "Height:"},
             )
-            manager.register(buttons.button(QDialogButtonBox.StandardButton.Ok), {"ru": "Применить", "en": "Apply"})
-            manager.register(buttons.button(QDialogButtonBox.StandardButton.Cancel), {"ru": "Отмена", "en": "Cancel"})
+            manager.register(
+                buttons.button(QDialogButtonBox.StandardButton.Ok),
+                {"ru": "Применить", "en": "Apply"},
+            )
+            manager.register(
+                buttons.button(QDialogButtonBox.StandardButton.Cancel),
+                {"ru": "Отмена", "en": "Cancel"},
+            )
             manager.register(
                 form.itemAt(2, QFormLayout.ItemRole.SpanningRole).widget(),
                 {
-                    "ru": "При уменьшении холста содержимое за его границами будет обрезано.",
+                    "ru": (
+                        "При уменьшении холста содержимое за его "
+                        "границами будет обрезано."
+                    ),
                     "en": (
                         "Content outside the canvas will be cropped "
                         "when its size is reduced."
@@ -385,14 +493,32 @@ class DeleteLayerDialog(QDialog):
 
         manager = getattr(parent, "localization", None)
         if manager is not None:
-            manager.register(self, {"ru": "Удаление слоя", "en": "Delete layer"})
-            manager.register(layout.itemAt(0).widget(), {
-                "ru": f'Вы уверены, что хотите удалить этот слой «{layer_name}»?',
-                "en": f'Are you sure you want to delete this layer “{layer_name}”?'
-            })
-            manager.register(buttons.button(QDialogButtonBox.StandardButton.Yes), {"ru": "Удалить", "en": "Delete"})
-            manager.register(buttons.button(QDialogButtonBox.StandardButton.No), {"ru": "Отмена", "en": "Cancel"})
+            manager.register(
+                self, {"ru": "Удаление слоя", "en": "Delete layer"}
+            )
+            manager.register(
+                layout.itemAt(0).widget(),
+                {
+                    "ru": (
+                        "Вы уверены, что хотите удалить этот слой "
+                        f"«{layer_name}»?"
+                    ),
+                    "en": (
+                        "Are you sure you want to delete this layer "
+                        f"“{layer_name}”?"
+                    ),
+                },
+            )
+            manager.register(
+                buttons.button(QDialogButtonBox.StandardButton.Yes),
+                {"ru": "Удалить", "en": "Delete"},
+            )
+            manager.register(
+                buttons.button(QDialogButtonBox.StandardButton.No),
+                {"ru": "Отмена", "en": "Cancel"},
+            )
             manager.set_language(manager.language)
+
 
 # ---------------------------------------------------------------------------
 # Функции-обёртки: всё, что окно показывает пользователю, живёт здесь.
@@ -404,7 +530,9 @@ PROJECT_FILTER = "Проекты SQPaint (*.sqlite)"
 
 # --- Запросы данных у пользователя ---
 
-def ask_new_project(parent: QWidget | None = None) -> tuple[str, int, int, bool, int] | None:
+def ask_new_project(
+    parent: QWidget | None = None,
+) -> tuple[str, int, int, bool, int] | None:
     """Показывает диалог нового проекта.
 
     Возвращает параметры проекта или None, если пользователь
@@ -414,7 +542,13 @@ def ask_new_project(parent: QWidget | None = None) -> tuple[str, int, int, bool,
     if dialog.exec() != QDialog.DialogCode.Accepted:
         return None
 
-    name, width, height, supports_transparency, max_undo_steps = dialog.get_values()
+    (
+        name,
+        width,
+        height,
+        supports_transparency,
+        max_undo_steps,
+    ) = dialog.get_values()
     if not name:
         QMessageBox.warning(
             parent,
@@ -446,8 +580,13 @@ def ask_open_project_path(parent: QWidget | None = None) -> str:
         _tr(parent, "Открыть проект", "Open project"),
         "",
         (
-            f"{_tr(parent, 'Проекты SQPaint (*.sqlite)', 'SQPaint projects (*.sqlite)')};;"
-            f"{_tr(parent, 'Все файлы (*)', 'All files (*)')}"
+            _tr(
+                parent,
+                "Проекты SQPaint (*.sqlite)",
+                "SQPaint projects (*.sqlite)",
+            )
+            + ";;"
+            + _tr(parent, "Все файлы (*)", "All files (*)")
         ),
     )
     return path
@@ -480,8 +619,10 @@ def show_file_exists(parent: QWidget | None = None) -> None:
         _tr(parent, "Файл уже существует", "File already exists"),
         _tr(
             parent,
-            "Выберите другое имя или другое расположение файла. Существующие файлы не перезаписываются.",
-            "Choose another name or location. Existing files are not overwritten.",
+            "Выберите другое имя или другое расположение файла. "
+            "Существующие файлы не перезаписываются.",
+            "Choose another name or location. "
+            "Existing files are not overwritten.",
         ),
     )
 
@@ -491,7 +632,11 @@ def show_create_error(parent: QWidget | None, error: Exception) -> None:
     QMessageBox.critical(
         parent,
         _tr(parent, "Не удалось создать проект", "Could not create project"),
-        _tr(parent, f"Проект не удалось создать.\n\n{error}", f"Could not create the project.\n\n{error}"),
+        _tr(
+            parent,
+            f"Проект не удалось создать.\n\n{error}",
+            f"Could not create the project.\n\n{error}",
+        ),
     )
 
 
@@ -521,7 +666,11 @@ def show_save_error(parent: QWidget | None, error: Exception) -> None:
     QMessageBox.critical(
         parent,
         _tr(parent, "Ошибка сохранения", "Save error"),
-        _tr(parent, f"Не удалось сохранить проект.\n\n{error}", f"Could not save the project.\n\n{error}"),
+        _tr(
+            parent,
+            f"Не удалось сохранить проект.\n\n{error}",
+            f"Could not save the project.\n\n{error}",
+        ),
     )
 
 
@@ -530,19 +679,32 @@ def show_last_layer_info(parent: QWidget | None = None) -> None:
     QMessageBox.information(
         parent,
         _tr(parent, "Удаление слоя", "Delete layer"),
-        _tr(parent, "В проекте должен остаться хотя бы один слой.", "A project must contain at least one layer."),
+        _tr(
+            parent,
+            "В проекте должен остаться хотя бы один слой.",
+            "A project must contain at least one layer.",
+        ),
     )
 
 
 # --- Диалоги файловых операций ---
 
-def ask_save_as_path(parent: QWidget | None = None, name: str = "Проект") -> str:
+def ask_save_as_path(
+    parent: QWidget | None = None, name: str = "Проект"
+) -> str:
     """Открывает диалог выбора пути для сохранения копии проекта."""
     path, _ = QFileDialog.getSaveFileName(
-        parent, _tr(parent, "Сохранить проект как", "Save project as"), f"{name}.sqlite",
+        parent,
+        _tr(parent, "Сохранить проект как", "Save project as"),
+        f"{name}.sqlite",
         (
-            f"{_tr(parent, 'Проекты SQPaint (*.sqlite)', 'SQPaint projects (*.sqlite)')};;"
-            f"{_tr(parent, 'Все файлы (*)', 'All files (*)')}"
+            _tr(
+                parent,
+                "Проекты SQPaint (*.sqlite)",
+                "SQPaint projects (*.sqlite)",
+            )
+            + ";;"
+            + _tr(parent, "Все файлы (*)", "All files (*)")
         ),
     )
     if path and not path.lower().endswith(PROJECT_EXTENSION):
@@ -568,7 +730,12 @@ def ask_export_image_path(parent: QWidget | None, image_format: str) -> str:
     """Открывает диалог выбора пути для экспорта изображения."""
     ext = image_format.lower()
     path, _ = QFileDialog.getSaveFileName(
-        parent, _tr(parent, f"Экспортировать {ext.upper()}", f"Export {ext.upper()}"),
+        parent,
+        _tr(
+            parent,
+            f"Экспортировать {ext.upper()}",
+            f"Export {ext.upper()}",
+        ),
         f"Изображение.{ext}",
         f"{ext.upper()} (*.{ext})",
     )
@@ -587,9 +754,10 @@ class FileInfoDialog(QDialog):
     )
 
     def __init__(self, database_path: str, parent=None):
-        """Открывает доступное только для чтения представление таблиц SQLite-проекта."""
+        """Открывает доступное только для чтения представление таблиц
+        SQLite-проекта.
+        """
         super().__init__(parent)
-        import sqlite3
 
         self.setWindowTitle("О файле проекта")
         self.resize(900, 520)
@@ -599,7 +767,10 @@ class FileInfoDialog(QDialog):
         layout.addWidget(self.tabs)
         manager = getattr(parent, "localization", None)
         if manager is not None:
-            manager.register(self, {"ru": "О файле проекта", "en": "Project file information"})
+            manager.register(
+                self,
+                {"ru": "О файле проекта", "en": "Project file information"},
+            )
 
         try:
             connection = sqlite3.connect(
@@ -624,7 +795,8 @@ class FileInfoDialog(QDialog):
                 self, _tr(parent, "Ошибка чтения файла", "File read error"),
                 _tr(
                     parent,
-                    f"Не удалось прочитать содержимое SQLite-файла.\n\n{error}",
+                    "Не удалось прочитать содержимое SQLite-файла.\n\n"
+                    f"{error}",
                     f"Could not read the SQLite file contents.\n\n{error}",
                 ),
             )
@@ -671,18 +843,23 @@ class TutorialDialog(QDialog):
             "title": {"ru": "Начало работы", "en": "Getting started"},
             "html": {
                 "ru": """<h2>Начало работы</h2>
-<p>SQPaint — растровый редактор, в котором изображение создаётся на холсте и организуется с помощью слоёв.</p>
+<p>SQPaint — растровый редактор, в котором изображение создаётся на холсте и
+организуется с помощью слоёв.</p>
 <ol>
-<li>Создайте проект через <b>Файл → Создать</b> или откройте существующий через <b>Файл → Открыть</b>.</li>
+<li>Создайте проект через <b>Файл → Создать</b> или откройте существующий через
+<b>Файл → Открыть</b>.</li>
 <li>При создании укажите название, ширину и высоту холста.</li>
 <li>После открытия проекта выберите инструмент и рисуйте на холсте.</li>
 <li>Сохраняйте изменения через <b>Файл → Сохранить</b>.</li>
 </ol>
-<p>Если проект не открыт, сначала создайте его или загрузите существующий.</p>""",
+<p>Если проект не открыт, сначала создайте его или загрузите
+существующий.</p>""",
                 "en": """<h2>Getting started</h2>
-<p>SQPaint is a raster editor. You draw on a canvas and organize artwork using layers.</p>
+<p>SQPaint is a raster editor. You draw on a canvas and organize artwork using
+layers.</p>
 <ol>
-<li>Create a project with <b>File → New</b> or open one with <b>File → Open</b>.</li>
+<li>Create a project with <b>File → New</b> or open one with <b>File →
+Open</b>.</li>
 <li>When creating a project, specify its name and canvas dimensions.</li>
 <li>After opening the project, choose a tool and draw on the canvas.</li>
 <li>Save your changes with <b>File → Save</b>.</li>
@@ -721,7 +898,8 @@ class TutorialDialog(QDialog):
 <li><b>Ластик</b> — удаляет содержимое активного слоя.</li>
 <li><b>Заливка</b> — заполняет область цветом.</li>
 </ul>
-<p>Размер кисти задаётся параметром ширины на панели инструментов. Перед рисованием убедитесь, что выбран нужный
+<p>Размер кисти задаётся параметром ширины на панели инструментов. Перед
+рисованием убедитесь, что выбран нужный
 слой.</p>""",
                 "en": """<h2>Drawing tools</h2>
 <p>Choose a tool from the tools panel:</p>
@@ -730,38 +908,46 @@ class TutorialDialog(QDialog):
 <li><b>Eraser</b> — removes content from the active layer.</li>
 <li><b>Fill</b> — fills an area with color.</li>
 </ul>
-<p>Set brush width on the tools panel. Make sure the intended layer is active before drawing.</p>"""
+<p>Set brush width on the tools panel. Make sure the intended layer is active
+before drawing.</p>"""
             },
         },
         {
             "title": {"ru": "Фигуры", "en": "Shapes"},
             "html": {
                 "ru": """<h2>Фигуры</h2>
-<p>Инструмент фигур позволяет создавать геометрические формы. После его выбора на панели инструментов появляется
+<p>Инструмент фигур позволяет создавать геометрические формы. После его выбора
+на панели инструментов появляется
 список типа фигуры.</p>
 <ul>
 <li><b>Прямоугольник</b></li>
-<li><b>Круг / эллипс</b> — форма определяется движением мыши, поэтому можно получить не только круг, но и эллипс.</li>
+<li><b>Круг / эллипс</b> — форма определяется движением мыши, поэтому можно
+получить не только круг, но и эллипс.</li>
 <li><b>Звезда</b></li>
 </ul>
-<p>Зажмите левую кнопку мыши на холсте и переместите указатель, чтобы задать размер фигуры.</p>""",
+<p>Зажмите левую кнопку мыши на холсте и переместите указатель, чтобы задать
+размер фигуры.</p>""",
                 "en": """<h2>Shapes</h2>
-<p>The Shapes tool creates geometric forms. After selecting it, choose a shape type from the additional
+<p>The Shapes tool creates geometric forms. After selecting it, choose a shape
+type from the additional
 tools-panel list.</p>
 <ul>
 <li><b>Rectangle</b></li>
-<li><b>Circle / ellipse</b> — the shape follows the mouse drag, so it can be an ellipse as well as a perfect
+<li><b>Circle / ellipse</b> — the shape follows the mouse drag, so it can be an
+ellipse as well as a perfect
 circle.</li>
 <li><b>Star</b></li>
 </ul>
-<p>Hold the left mouse button on the canvas and drag to set the shape's dimensions.</p>"""
+<p>Hold the left mouse button on the canvas and drag to set the shape's
+dimensions.</p>"""
             },
         },
         {
             "title": {"ru": "Цвет и слои", "en": "Color and layers"},
             "html": {
                 "ru": """<h2>Цвет и слои</h2>
-<p>Текущий цвет выбирается кнопкой цвета на панели инструментов. Он используется инструментами рисования и
+<p>Текущий цвет выбирается кнопкой цвета на панели инструментов. Он
+используется инструментами рисования и
 фигурами.</p>
 <p>Панель слоёв позволяет:</p>
 <ul>
@@ -771,10 +957,12 @@ circle.</li>
 <li>переключать видимость с помощью флажка;</li>
 <li>менять порядок слоёв перетаскиванием.</li>
 </ul>
-<p>Рисование выполняется на активном слое. Слои помогают редактировать части изображения независимо друг от
+<p>Рисование выполняется на активном слое. Слои помогают редактировать части
+изображения независимо друг от
 друга.</p>""",
                 "en": """<h2>Color and layers</h2>
-<p>Choose the current color with the color button on the tools panel. Drawing tools and shapes use this color.</p>
+<p>Choose the current color with the color button on the tools panel. Drawing
+tools and shapes use this color.</p>
 <p>The layers panel lets you:</p>
 <ul>
 <li>add a layer with <b>+</b> and delete it with the trash button;</li>
@@ -783,7 +971,8 @@ circle.</li>
 <li>toggle visibility with its checkbox;</li>
 <li>reorder layers by dragging them.</li>
 </ul>
-<p>Drawing is performed on the active layer. Layers let you edit different parts of an image independently.</p>"""
+<p>Drawing is performed on the active layer. Layers let you edit different
+parts of an image independently.</p>"""
             },
         },
         {
@@ -791,49 +980,67 @@ circle.</li>
             "html": {
                 "ru": """<h2>Сохранение и экспорт</h2>
 <ul>
-<li><b>Файл → Сохранить</b> записывает проект в SQLite-файл с расширением <code>.sqlite</code>. В нём хранятся
+<li><b>Файл → Сохранить</b> записывает проект в SQLite-файл с расширением
+<code>.sqlite</code>. В нём хранятся
 слои и данные проекта.</li>
-<li><b>Файл → Сохранить как</b> позволяет сохранить копию проекта в другом файле.</li>
-<li><b>Файл → Экспортировать → PNG / JPG</b> создаёт итоговое изображение для использования вне SQPaint.</li>
-<li><b>Правка → Вставить как слой</b> импортирует изображение в проект отдельным слоем.</li>
+<li><b>Файл → Сохранить как</b> позволяет сохранить копию проекта в другом
+файле.</li>
+<li><b>Файл → Экспортировать → PNG / JPG</b> создаёт итоговое изображение для
+использования вне SQPaint.</li>
+<li><b>Правка → Вставить как слой</b> импортирует изображение в проект
+отдельным слоем.</li>
 </ul>
-<p>Файл проекта и экспортированное изображение — разные форматы: для продолжения редактирования сохраняйте
+<p>Файл проекта и экспортированное изображение — разные форматы: для
+продолжения редактирования сохраняйте
 именно проект.</p>""",
                 "en": """<h2>Saving and export</h2>
 <ul>
-<li><b>File → Save</b> stores the project in an SQLite file with the <code>.sqlite</code> extension, including
+<li><b>File → Save</b> stores the project in an SQLite file with the
+<code>.sqlite</code> extension, including
 its layers and project data.</li>
 <li><b>File → Save as</b> saves a copy of the project to another file.</li>
-<li><b>File → Export → PNG / JPG</b> creates a flattened image for use outside SQPaint.</li>
-<li><b>Edit → Paste as layer</b> imports an image into the project as a separate layer.</li>
+<li><b>File → Export → PNG / JPG</b> creates a flattened image for use outside
+SQPaint.</li>
+<li><b>Edit → Paste as layer</b> imports an image into the project as a
+separate layer.</li>
 </ul>
-<p>A project file and an exported image are different formats. To continue editing later, save the project file.</p>"""
+<p>A project file and an exported image are different formats. To continue
+editing later, save the project file.</p>"""
             },
         },
         {
             "title": {"ru": "Отмена действий", "en": "Undo and redo"},
             "html": {
                 "ru": """<h2>Отмена действий</h2>
-<p>Используйте команды <b>Правка → Отменить</b> и <b>Правка → Повторить</b>, чтобы перемещаться по истории
+<p>Используйте команды <b>Правка → Отменить</b> и <b>Правка → Повторить</b>,
+чтобы перемещаться по истории
 изменений.</p>
-<p>Команды также поддерживают стандартные сочетания клавиш операционной системы для отмены и повтора.</p>
-<p>Не забывайте сохранять проект: история действий не заменяет сохранение файла.</p>""",
+<p>Команды также поддерживают стандартные сочетания клавиш операционной системы
+для отмены и повтора.</p>
+<p>Не забывайте сохранять проект: история действий не заменяет сохранение
+файла.</p>""",
                 "en": """<h2>Undo and redo</h2>
-<p>Use <b>Edit → Undo</b> and <b>Edit → Redo</b> to move backward and forward through the edit history.</p>
-<p>The commands also use the operating system's standard keyboard shortcuts for undo and redo.</p>
-<p>Remember to save your project: the edit history is not a substitute for saving the file.</p>"""
+<p>Use <b>Edit → Undo</b> and <b>Edit → Redo</b> to move backward and forward
+through the edit history.</p>
+<p>The commands also use the operating system's standard keyboard shortcuts for
+undo and redo.</p>
+<p>Remember to save your project: the edit history is not a substitute for
+saving the file.</p>"""
             },
         },
     )
 
     def __init__(self, parent=None):
-        """Создаёт окно справки с перечнем тем и областью отображения их содержимого."""
+        """Создаёт окно справки с перечнем тем и областью отображения их
+        содержимого.
+        """
         super().__init__(parent)
-        from PyQt6.QtWidgets import QHBoxLayout, QListWidget, QTextBrowser, QPushButton
 
         self.setModal(True)
         self.resize(780, 500)
-        self._language = getattr(getattr(parent, "localization", None), "language", "ru")
+        self._language = getattr(
+            getattr(parent, "localization", None), "language", "ru"
+        )
 
         root = QVBoxLayout(self)
         body = QHBoxLayout()
@@ -873,21 +1080,32 @@ its layers and project data.</li>
     def set_language(self, language: str) -> None:
         """Переключает язык заголовков, тем и навигационных кнопок справки."""
         self._language = language
-        self.setWindowTitle("Обучение SQPaint" if language == "ru" else "SQPaint tutorial")
-        current = max(0, self.topic_list.currentRow()) if hasattr(self, "topic_list") else 0
+        self.setWindowTitle(
+            "Обучение SQPaint" if language == "ru" else "SQPaint tutorial"
+        )
+        current = (
+            max(0, self.topic_list.currentRow())
+            if hasattr(self, "topic_list")
+            else 0
+        )
         if hasattr(self, "topic_list"):
             self.topic_list.clear()
             for topic in self.TOPICS:
                 self.topic_list.addItem(topic["title"][language])
             self.topic_list.setCurrentRow(min(current, len(self.TOPICS) - 1))
         if hasattr(self, "previous_button"):
-            self.previous_button.setText("Назад" if language == "ru" else "Previous")
+            self.previous_button.setText(
+                "Назад" if language == "ru" else "Previous"
+            )
             self.next_button.setText("Далее" if language == "ru" else "Next")
-            self.close_button.setText("Закрыть" if language == "ru" else "Close")
+            self.close_button.setText(
+                "Закрыть" if language == "ru" else "Close"
+            )
             self._show_topic(self.topic_list.currentRow())
 
     def _show_topic(self, index: int) -> None:
-        """Отображает выбранную тему справки и обновляет доступность навигации."""
+        """Отображает выбранную тему справки и обновляет доступность навигации.
+        """
         if not 0 <= index < len(self.TOPICS):
             return
         self.content.setHtml(self.TOPICS[index]["html"][self._language])
@@ -900,7 +1118,9 @@ its layers and project data.</li>
 
     def _next_topic(self) -> None:
         """Переключает справку на следующую тему."""
-        self.topic_list.setCurrentRow(min(len(self.TOPICS) - 1, self.topic_list.currentRow() + 1))
+        self.topic_list.setCurrentRow(
+            min(len(self.TOPICS) - 1, self.topic_list.currentRow() + 1)
+        )
 
 
 def show_tutorial(parent: QWidget | None = None) -> None:
@@ -912,7 +1132,9 @@ class AboutDialog(QDialog):
     """Информационное окно о программе SQPaint."""
 
     def __init__(self, parent=None):
-        """Создаёт информационное окно с описанием SQPaint и ссылкой на исходный код."""
+        """Создаёт информационное окно с описанием SQPaint и ссылкой на
+        исходный код.
+        """
         super().__init__(parent)
         self.setWindowTitle("О программе SQPaint")
         self.setModal(True)
@@ -971,7 +1193,9 @@ class AboutDialog(QDialog):
 
         manager = getattr(parent, "localization", None)
         if manager is not None:
-            manager.register(self, {"ru": "О программе SQPaint", "en": "About SQPaint"})
+            manager.register(
+                self, {"ru": "О программе SQPaint", "en": "About SQPaint"}
+            )
             manager.register(
                 description,
                 {
@@ -985,20 +1209,38 @@ class AboutDialog(QDialog):
                     ),
                 },
             )
-            manager.register(technology, {"ru": "Создано на Python и PyQt6", "en": "Created with Python and PyQt6"})
-            manager.register(project_link, {"ru": "Исходный код на GitHub", "en": "Source code on GitHub"})
-            manager.register(buttons.button(QDialogButtonBox.StandardButton.Ok), {"ru": "Закрыть", "en": "Close"})
+            manager.register(
+                technology,
+                {
+                    "ru": "Создано на Python и PyQt6",
+                    "en": "Created with Python and PyQt6",
+                },
+            )
+            manager.register(
+                project_link,
+                {
+                    "ru": "Исходный код на GitHub",
+                    "en": "Source code on GitHub",
+                },
+            )
+            manager.register(
+                buttons.button(QDialogButtonBox.StandardButton.Ok),
+                {"ru": "Закрыть", "en": "Close"},
+            )
 
 
 def show_about(parent: QWidget | None = None) -> None:
     """Показывает окно «О программе»."""
     AboutDialog(parent).exec()
 
+
 class OperationDialog(QDialog):
     """Короткое модальное окно, отображаемое во время файловой операции."""
 
     def __init__(self, parent, message_ru: str, message_en: str):
-        """Создаёт компактное модальное окно с сообщением о выполняемой операции."""
+        """Создаёт компактное модальное окно с сообщением о выполняемой
+        операции.
+        """
         super().__init__(parent)
         self.setWindowTitle(_tr(parent, "Выполняется операция", "Working"))
         self.setModal(True)
@@ -1046,4 +1288,3 @@ def confirm_exit(parent, has_unsaved_changes: bool) -> bool:
         QMessageBox.StandardButton.No,
     )
     return result == QMessageBox.StandardButton.Yes
-

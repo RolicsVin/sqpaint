@@ -1,14 +1,15 @@
 """Управление историей изменений документа в оперативной памяти.
 
-Снимки используют QImage.copy(): Qt применяет implicit sharing, поэтому копирование
-изображения не сериализует пиксели и не обращается к диску. Сериализация выполняется
-только при явном сохранении проекта.
+Снимки используют QImage.copy(): Qt применяет implicit sharing, поэтому
+копирование изображения не сериализует пиксели и не обращается к диску.
+Сериализация выполняется только при явном сохранении проекта.
 """
 import base64
 import json
 import zlib
 from datetime import datetime
 
+from PyQt6.QtCore import QBuffer, QByteArray, QIODevice
 from PyQt6.QtGui import QImage
 
 from core.models import Layer
@@ -19,7 +20,8 @@ class HistoryManager:
 
     def __init__(self, database=None, limit: int = 10):
         """Инициализирует историю, её лимит и ссылку на текущий проект."""
-        self.database = database  # Оставлено для совместимости конструктора контроллера.
+        # Оставлено для совместимости конструктора контроллера.
+        self.database = database
         self.project = None
         self.limit = max(1, int(limit))
         self._states: list[dict] = []
@@ -28,7 +30,9 @@ class HistoryManager:
         self._saved_state = None
 
     def set_project(self, project, saved_history=None) -> None:
-        """Подключает проект и восстанавливает сохранённую историю, если она есть."""
+        """Подключает проект и восстанавливает сохранённую историю, если она
+        есть.
+        """
         self.project = project
         self.limit = max(1, int(getattr(project, "max_undo_steps", 10)))
         self._states = []
@@ -70,7 +74,9 @@ class HistoryManager:
         self.mark_saved()
 
     def set_limit(self, limit: int) -> None:
-        """Изменяет лимит истории и удаляет самые старые действия при необходимости."""
+        """Изменяет лимит истории и удаляет самые старые действия при
+        необходимости.
+        """
         self.limit = max(1, int(limit))
         overflow = max(0, len(self._labels) - self.limit)
         if overflow:
@@ -104,7 +110,9 @@ class HistoryManager:
 
     @staticmethod
     def _same_state(left: dict, right: dict) -> bool:
-        """Сравнивает два снимка и определяет, отличаются ли состояния документа."""
+        """Сравнивает два снимка и определяет, отличаются ли состояния
+        документа.
+        """
         if (
             left["name"] != right["name"]
             or left["width"] != right["width"]
@@ -112,7 +120,8 @@ class HistoryManager:
             or left["created_at"] != right["created_at"]
             or left.get("supports_transparency", True)
             != right.get("supports_transparency", True)
-            or left.get("max_undo_steps", 10) != right.get("max_undo_steps", 10)
+            or left.get("max_undo_steps", 10)
+            != right.get("max_undo_steps", 10)
             or len(left["layers"]) != len(right["layers"])
         ):
             return False
@@ -202,7 +211,9 @@ class HistoryManager:
             "width": state["width"],
             "height": state["height"],
             "created_at": state["created_at"].isoformat(),
-            "supports_transparency": bool(state.get("supports_transparency", True)),
+            "supports_transparency": bool(
+                state.get("supports_transparency", True)
+            ),
             "max_undo_steps": int(state.get("max_undo_steps", 10)),
             "layers": [],
         }
@@ -210,8 +221,6 @@ class HistoryManager:
         for layer in state["layers"]:
             image = layer["image"]
             # PNG-кодирование выполняется только при явном сохранении.
-            from PyQt6.QtCore import QBuffer, QIODevice
-
             buffer = QBuffer()
             buffer.open(QIODevice.OpenModeFlag.WriteOnly)
             image.save(buffer, "PNG")
@@ -220,7 +229,9 @@ class HistoryManager:
                     "name": layer["name"],
                     "z_order": layer["z_order"],
                     "visible": layer["visible"],
-                    "pixels": base64.b64encode(bytes(buffer.data())).decode("ascii"),
+                    "pixels": base64.b64encode(
+                        bytes(buffer.data())
+                    ).decode("ascii"),
                 }
             )
             buffer.close()
@@ -238,9 +249,9 @@ class HistoryManager:
         fallback_transparency: bool = True,
         fallback_limit: int = 10,
     ) -> dict:
-        """Восстанавливает снимок из сжатого JSON и декодирует изображения слоёв."""
-        from PyQt6.QtCore import QByteArray
-
+        """Восстанавливает снимок из сжатого JSON и декодирует изображения
+        слоёв.
+        """
         state = json.loads(zlib.decompress(payload).decode("utf-8"))
         layers = []
 
@@ -250,7 +261,9 @@ class HistoryManager:
                 "PNG",
             )
             if image.isNull():
-                raise ValueError("Не удалось восстановить изображение из истории проекта.")
+                raise ValueError(
+                    "Не удалось восстановить изображение из истории проекта."
+                )
 
             layers.append(
                 {
@@ -278,7 +291,9 @@ class HistoryManager:
         }
 
     def export_for_save(self) -> dict:
-        """Сериализует историю для записи в SQLite при явном сохранении проекта."""
+        """Сериализует историю для записи в SQLite при явном сохранении
+        проекта.
+        """
         if not self._states:
             return {"records": [], "cursor": 0, "limit": self.limit}
 
@@ -312,7 +327,9 @@ class HistoryManager:
         )
 
     def is_dirty(self) -> bool:
-        """Проверяет, находится ли документ в состоянии, отличном от сохранённого."""
+        """Проверяет, находится ли документ в состоянии, отличном от
+        сохранённого.
+        """
         if self.project is None or self._saved_state is None:
             return False
 

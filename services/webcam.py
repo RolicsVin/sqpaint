@@ -12,11 +12,13 @@ class Webcam:
         if not self._capture.isOpened():
             self._capture.release()
             raise RuntimeError(
-                "Не удалось открыть веб-камеру. Проверьте подключение и разрешения."
+                "Не удалось открыть веб-камеру. "
+                "Проверьте подключение и разрешения."
             )
 
     def read(self) -> QImage | None:
-        """Считывает кадр и возвращает независимое изображение в формате RGB."""
+        """Считывает кадр и возвращает независимое изображение в формате RGB.
+        """
         success, frame = self._capture.read()
         if not success or frame is None:
             return None

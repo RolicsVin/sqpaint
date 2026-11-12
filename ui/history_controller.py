@@ -64,7 +64,9 @@ class HistoryController:
         self.window.setWindowTitle(f"SQPaint — {project.get_name()}{suffix}")
 
     def commit(self, before, label: str) -> bool:
-        """Фиксирует действие в истории и обновляет связанные элементы интерфейса."""
+        """Фиксирует действие в истории и обновляет связанные элементы
+        интерфейса.
+        """
         if before is None:
             return False
 
@@ -80,7 +82,8 @@ class HistoryController:
         return changed
 
     def _begin_canvas_action(self, label: str) -> None:
-        """Сохраняет снимок до начала рисования или другого действия на холсте."""
+        """Сохраняет снимок до начала рисования или другого действия на холсте.
+        """
         if self._pending is None:
             self._pending = (label, self.begin())
 
@@ -104,7 +107,8 @@ class HistoryController:
             canvas = self.window.canvas
             layer_name = (
                 canvas.layers[canvas.active].get_name()
-                if canvas is not None and 0 <= canvas.active < len(canvas.layers)
+                if canvas is not None
+                and 0 <= canvas.active < len(canvas.layers)
                 else "неизвестный слой"
             )
             self.window.logger.log(
@@ -121,7 +125,9 @@ class HistoryController:
         """Обновляет доступность команд отмены и повтора."""
         try:
             can_undo, can_redo = (
-                self.history.status() if self.history.project else (False, False)
+                self.history.status()
+                if self.history.project
+                else (False, False)
             )
         except (RuntimeError, ValueError):
             can_undo, can_redo = False, False
@@ -148,7 +154,9 @@ class HistoryController:
             window.layer_panel.select_layer(active)
 
         window.canvas_view.viewport().update()
-        window.canvas_view.zoom_changed.emit(round(window.canvas_view.zoom * 100))
+        window.canvas_view.zoom_changed.emit(
+            round(window.canvas_view.zoom * 100)
+        )
         self._refresh_title()
         self._refresh_actions()
 

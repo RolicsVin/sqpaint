@@ -14,7 +14,9 @@ RECENT_PROJECTS = "recent_projects.csv"
 
 
 def _get_csv_path() -> str:
-    """Возвращает путь к CSV и переносит файл из старого расположения при необходимости."""
+    """Возвращает путь к CSV и переносит файл из старого расположения при
+    необходимости.
+    """
     ensure_app_dirs()
     path = get_recent_projects_path()
 
@@ -39,7 +41,9 @@ def _normalize(path: str) -> str:
 
 
 def _read_entries() -> list[tuple[str, str, datetime]]:
-    """Читает записи CSV, удаляет дубликаты и возвращает проекты от новых к старым."""
+    """Читает записи CSV, удаляет дубликаты и возвращает проекты от новых к
+    старым.
+    """
     unique = {}
 
     with open(_get_csv_path(), "r", encoding="utf-8", newline="") as file:

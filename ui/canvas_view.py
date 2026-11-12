@@ -52,7 +52,9 @@ class CanvasView(QScrollArea):
             canvas.show()
 
     def set_zoom(self, percent: int, anchor=None) -> None:
-        """Меняет масштаб, по возможности сохраняя точку документа под курсором."""
+        """Меняет масштаб, по возможности сохраняя точку документа под
+        курсором.
+        """
         if self.canvas is None:
             return
 
@@ -129,7 +131,8 @@ class CanvasView(QScrollArea):
         return super().eventFilter(watched, event)
 
     def wheelEvent(self, event) -> None:
-        """Обрабатывает Ctrl+колесо для масштаба и Shift+колесо для прокрутки."""
+        """Обрабатывает Ctrl+колесо для масштаба и Shift+колесо для прокрутки.
+        """
         delta = event.angleDelta().y()
 
         if event.modifiers() & Qt.KeyboardModifier.ControlModifier:

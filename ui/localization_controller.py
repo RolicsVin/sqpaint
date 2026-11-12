@@ -22,7 +22,10 @@ class WindowLocalizationController:
             (w.help_menu, {"ru": "Справка", "en": "Help"}),
             (w.help_menu.menuAction(), {"ru": "Справка", "en": "Help"}),
             (w.export_submenu, {"ru": "Экспортировать", "en": "Export"}),
-            (w.export_submenu.menuAction(), {"ru": "Экспортировать", "en": "Export"}),
+            (
+                w.export_submenu.menuAction(),
+                {"ru": "Экспортировать", "en": "Export"},
+            ),
             (w.sub_windows, {"ru": "Окна", "en": "Panels"}),
             (w.sub_windows.menuAction(), {"ru": "Окна", "en": "Panels"}),
             (w.theme, {"ru": "Тема", "en": "Theme"}),
@@ -40,12 +43,24 @@ class WindowLocalizationController:
             (w.redo_action, {"ru": "Повторить", "en": "Redo"}),
             (w.add_layer_action, {"ru": "Новый слой", "en": "New layer"}),
             (w.canvas_size, {"ru": "Размер холста", "en": "Canvas size"}),
-            (w.paste_as_layer_action, {"ru": "Вставить как слой", "en": "Paste as layer"}),
+            (
+                w.paste_as_layer_action,
+                {"ru": "Вставить как слой", "en": "Paste as layer"},
+            ),
             (w.selfie_action, {"ru": "Сделать селфи", "en": "Take a selfie"}),
             (w.settings_action, {"ru": "Настройки", "en": "Settings"}),
-            (w.layers_panel_viewer, {"ru": "Панель слоёв", "en": "Layers panel"}),
-            (w.tool_bar_viewer, {"ru": "Панель инструментов", "en": "Tools panel"}),
-            (w.scroller_viewer, {"ru": "Ползунок масштаба", "en": "Zoom control"}),
+            (
+                w.layers_panel_viewer,
+                {"ru": "Панель слоёв", "en": "Layers panel"},
+            ),
+            (
+                w.tool_bar_viewer,
+                {"ru": "Панель инструментов", "en": "Tools panel"},
+            ),
+            (
+                w.scroller_viewer,
+                {"ru": "Ползунок масштаба", "en": "Zoom control"},
+            ),
             (w.dark_theme, {"ru": "Тёмная тема", "en": "Dark theme"}),
             (w.white_theme, {"ru": "Светлая тема", "en": "Light theme"}),
             (
@@ -71,7 +86,8 @@ class WindowLocalizationController:
         return en if self.window.localization.language == "en" else ru
 
     def set_language(self, language: str) -> None:
-        """Применяет язык интерфейса, сохраняет настройку и записывает событие."""
+        """Применяет язык интерфейса, сохраняет настройку и записывает событие.
+        """
         w = self.window
         w.localization.set_language(language)
         w.ru.setChecked(language == "ru")

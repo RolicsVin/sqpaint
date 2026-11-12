@@ -8,7 +8,11 @@ from PyQt6.QtWidgets import (
     QWidget,
 )
 
-from core.localization import LocalizedButton, LocalizedComboBox, LocalizedLabel
+from core.localization import (
+    LocalizedButton,
+    LocalizedComboBox,
+    LocalizedLabel,
+)
 from ui.zoom_control import ZoomControl
 
 
@@ -122,7 +126,9 @@ class ToolBar(QWidget):
         )
 
     def on_tool_changed(self, index: int) -> None:
-        """Отправляет выбранный инструмент и управляет списком геометрических фигур."""
+        """Отправляет выбранный инструмент и управляет списком геометрических
+        фигур.
+        """
         tool = self.tools_combo.itemData(index)
         self.shapes_combo.setVisible(tool == "shapes")
         self.tool_selected.emit(tool)

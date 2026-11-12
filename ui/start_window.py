@@ -118,7 +118,8 @@ QToolTip {
 
 
 class ElidedLabel(QLabel):
-    """QLabel, который сокращает длинный текст многоточием вместо растягивания окна.
+    """QLabel, который сокращает длинный текст многоточием вместо
+    растягивания окна.
 
     Полный текст доступен через full_text() и во всплывающей подсказке.
     """
@@ -145,7 +146,8 @@ class ElidedLabel(QLabel):
         return self._full_text
 
     def resizeEvent(self, event) -> None:
-        """Пересчитывает сокращённую подпись после изменения размера виджета."""
+        """Пересчитывает сокращённую подпись после изменения размера виджета.
+        """
         super().resizeEvent(event)
         self._update_text()
 
@@ -172,7 +174,9 @@ class ProjectRow(RoundedWidget):
         date_text: str,
         parent=None,
     ):
-        """Создаёт строку с названием, путём и датой последнего открытия проекта."""
+        """Создаёт строку с названием, путём и датой последнего открытия
+        проекта.
+        """
         super().__init__(parent, color=self.COLOR_NORMAL, radius=10)
         self.project_path = path
         self.color_normal = self.COLOR_NORMAL
@@ -224,7 +228,8 @@ class RecentProjectWindow(QWidget):
 
     def __init__(self, localization=None, parent=None):
         """Создаёт отдельное стартовое окно и заполняет список проектов."""
-        # Отдельное окно, принадлежащее главному окну: закрывается вместе с ним.
+        # Отдельное окно, принадлежащее главному окну: закрывается вместе с
+        # ним.
         super().__init__(parent)
         self.setWindowFlag(Qt.WindowType.Window, True)
         self.localization = localization
@@ -389,7 +394,8 @@ class RecentProjectWindow(QWidget):
         self.hide()
 
     def _fill_projects(self) -> None:
-        """Заполняет список недавних проектов или показывает пустое состояние."""
+        """Заполняет список недавних проектов или показывает пустое состояние.
+        """
         projects = recent_projects.get_recent_projects()
 
         if not projects:

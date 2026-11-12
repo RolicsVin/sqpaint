@@ -16,7 +16,8 @@ class LocalizedLabel(QLabel):
     """QLabel, текст которого можно переключать между языками."""
 
     def __init__(self, text: str = "", parent=None, language: str = "ru"):
-        """Создаёт подпись и регистрирует исходный текст для выбранного языка."""
+        """Создаёт подпись и регистрирует исходный текст для выбранного языка.
+        """
         super().__init__(text, parent)
         self._language = language
         self._translations = {"ru": text}
@@ -28,7 +29,9 @@ class LocalizedLabel(QLabel):
             super().setText(text)
 
     def set_language(self, language: str) -> None:
-        """Переключает текст подписи на указанный язык, если перевод существует."""
+        """Переключает текст подписи на указанный язык, если перевод
+        существует.
+        """
         self._language = language
         if language in self._translations:
             super().setText(self._translations[language])
@@ -70,7 +73,9 @@ class LocalizedComboBox(QComboBox):
         translations: dict[str, str],
         user_data=None,
     ) -> None:
-        """Добавляет элемент с переводами и необязательными пользовательскими данными."""
+        """Добавляет элемент с переводами и необязательными пользовательскими
+        данными.
+        """
         translations = dict(translations)
         text = translations.get(self._language) or next(
             iter(translations.values()),
@@ -115,7 +120,8 @@ class LocalizationManager:
         self._widgets: list[tuple[object, dict[str, str]]] = []
 
     def register(self, widget, translations: dict[str, str]):
-        """Регистрирует Qt-элемент и применяет к нему перевод текущего языка."""
+        """Регистрирует Qt-элемент и применяет к нему перевод текущего языка.
+        """
         translations = dict(translations)
 
         if isinstance(widget, (LocalizedLabel, LocalizedButton)):
@@ -157,7 +163,8 @@ class LocalizationManager:
         elif isinstance(widget, QGroupBox):
             widget.setTitle(text)
         elif hasattr(widget, "setText"):
-            # QLabel, QPushButton, QCheckBox, QLineEdit, QAction и другие элементы.
+            # QLabel, QPushButton, QCheckBox, QLineEdit, QAction и другие
+            # элементы.
             widget.setText(text)
         elif hasattr(widget, "setWindowTitle"):
             # Остальные окна верхнего уровня.
