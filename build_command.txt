@@ -1,1 +1,1 @@
-pyinstaller --noconfirm --clean --windowed --onefile --icon=icon.ico --onedir --name SQPaint --exclude-module PyQt6.QtWebEngine --exclude-module PyQt6.QtMultimedia --exclude-module PyQt6.QtBluetooth main.py
+pyinstaller --noconfirm --clean --windowed --onefile --icon=icon.ico --add-data "icon.ico;." --name SQPaint --exclude-module PyQt6.QtWebEngine --exclude-module PyQt6.QtMultimedia --exclude-module PyQt6.QtBluetooth main.py
