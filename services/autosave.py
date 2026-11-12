@@ -1,15 +1,18 @@
 """Создание и ротация резервных копий файлов проектов SQPaint."""
+import shutil
 from datetime import datetime
 from pathlib import Path
-import shutil
 
 
 MAX_BACKUPS = 5
 BACKUP_SUFFIX = ".autosave"
 
 
-def create_backup(project_path: str, max_backups: int = MAX_BACKUPS) -> Path:
-    """Создаёт копию SQLite-файла рядом с проектом и оставляет последние N копий."""
+def create_backup(
+    project_path: str,
+    max_backups: int = MAX_BACKUPS,
+) -> Path:
+    """Создаёт копию SQLite-файла и удаляет резервные копии сверх заданного лимита."""
     source = Path(project_path)
     if not source.is_file():
         raise FileNotFoundError(f"Файл проекта не найден: {source}")
