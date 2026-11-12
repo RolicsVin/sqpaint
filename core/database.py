@@ -1,4 +1,4 @@
-"""В этом модуле хранятся классы для работы с SQLite."""
+"""Хранение проектов SQPaint и истории действий в базе данных SQLite."""
 import os
 import sqlite3
 from datetime import datetime
@@ -9,7 +9,7 @@ from core.time_utils import datetime_to_str, str_to_datetime
 
 
 class ProjectDatabase:
-    """Класс для загрузки, сохранения и создания проекта в .sqlite файл."""
+    """Создаёт, загружает и сохраняет проекты в файлах SQLite."""
 
     SCHEMA = """
     CREATE TABLE project (
@@ -36,16 +36,34 @@ class ProjectDatabase:
     """
 
     def __init__(self):
+        """Инициализирует состояние подключения без открытия файла проекта."""
         self.path: str | None = None
         self.conn: sqlite3.Connection | None = None
         self._loaded_history: dict | None = None
 
-    def create(self, path: str, name: str, width: int, height: int, supports_transparency: bool = True, max_undo_steps: int = 10) -> Project:
-        """Создаёт новый файл проекта и возвращает Project."""
+    def create(
+        self,
+        path: str,
+        name: str,
+        width: int,
+        height: int,
+        supports_transparency: bool = True,
+        max_undo_steps: int = 10,
+    ) -> Project:
+        """Создаёт новый файл проекта, его схему и возвращает модель Project."""
         if os.path.exists(path):
             raise FileExistsError(f"Файл уже существует: {path}")
 
-        project = Project(name, width, height, datetime.now(), path, [], bool(supports_transparency), max(1, int(max_undo_steps)))
+        project = Project(
+            name,
+            width,
+            height,
+            datetime.now(),
+            path,
+            [],
+            bool(supports_transparency),
+            max(1, int(max_undo_steps)),
+        )
 
         self.close()
         conn = sqlite3.connect(path)
@@ -58,9 +76,12 @@ class ProjectDatabase:
                     "(id, name, width, height, created_at, supports_transparency, max_undo_steps) "
                     "VALUES (1, ?, ?, ?, ?, ?, ?)",
                     (
-                        project.name, project.width, project.height,
+                        project.name,
+                        project.width,
+                        project.height,
                         datetime_to_str(project.created_at),
-                        int(project.supports_transparency), project.max_undo_steps,
+                        int(project.supports_transparency),
+                        project.max_undo_steps,
                     ),
                 )
                 self._write_layers(project, conn)
@@ -74,7 +95,7 @@ class ProjectDatabase:
         return project
 
     def load(self, path: str) -> Project:
-        """Загружает проект. Текущее соединение заменяется только после успеха."""
+        """Загружает проект; текущее подключение заменяется только после успеха."""
         if not os.path.isfile(path):
             raise FileNotFoundError(f"Файл не найден: {path}")
 
@@ -86,7 +107,9 @@ class ProjectDatabase:
                 "SELECT name, width, height, created_at FROM project WHERE id = 1"
             ).fetchone()
             if row is None:
-                raise ValueError("В выбранном файле отсутствуют данные проекта SQPaint.")
+                raise ValueError(
+                    "В выбранном файле отсутствуют данные проекта SQPaint."
+                )
 
             width, height = int(row[1]), int(row[2])
             if width <= 0 or height <= 0:
@@ -100,22 +123,52 @@ class ProjectDatabase:
                 )
             ]
 
-            project_columns = {item[1] for item in conn.execute("PRAGMA table_info(project)")}
-            supports_transparency = bool(conn.execute("SELECT supports_transparency FROM project WHERE id=1").fetchone()[0]) if "supports_transparency" in project_columns else True
-            project_history_limit = int(conn.execute("SELECT max_undo_steps FROM project WHERE id=1").fetchone()[0]) if "max_undo_steps" in project_columns else 10
+            project_columns = {
+                item[1]
+                for item in conn.execute("PRAGMA table_info(project)")
+            }
+            supports_transparency = (
+                bool(
+                    conn.execute(
+                        "SELECT supports_transparency FROM project WHERE id=1"
+                    ).fetchone()[0]
+                )
+                if "supports_transparency" in project_columns
+                else True
+            )
+            project_history_limit = (
+                int(
+                    conn.execute(
+                        "SELECT max_undo_steps FROM project WHERE id=1"
+                    ).fetchone()[0]
+                )
+                if "max_undo_steps" in project_columns
+                else 10
+            )
             project = Project(
-                row[0], width, height, str_to_datetime(row[3]), path, layers,
-                supports_transparency, max(1, project_history_limit),
+                row[0],
+                width,
+                height,
+                str_to_datetime(row[3]),
+                path,
+                layers,
+                supports_transparency,
+                max(1, project_history_limit),
             )
 
             # Читаем историю без изменения файла при открытии проекта.
             loaded_history = None
             tables = {
-                item[0] for item in conn.execute(
+                item[0]
+                for item in conn.execute(
                     "SELECT name FROM sqlite_master WHERE type='table'"
                 )
             }
-            columns = {item[1] for item in conn.execute("PRAGMA table_info(project)")}
+            columns = {
+                item[1]
+                for item in conn.execute("PRAGMA table_info(project)")
+            }
+
             if "action_history" in tables and "history_cursor" in columns:
                 history_rows = conn.execute(
                     "SELECT command_type, before_state, after_state "
@@ -125,11 +178,17 @@ class ProjectDatabase:
                     "SELECT history_cursor FROM project WHERE id=1"
                 ).fetchone()[0]
                 max_steps = (
-                    conn.execute("SELECT max_undo_steps FROM project WHERE id=1").fetchone()[0]
-                    if "max_undo_steps" in columns else 10
+                    conn.execute(
+                        "SELECT max_undo_steps FROM project WHERE id=1"
+                    ).fetchone()[0]
+                    if "max_undo_steps" in columns
+                    else 10
                 )
                 cursor_index = sum(
-                    1 for item in conn.execute("SELECT id FROM action_history ORDER BY id")
+                    1
+                    for item in conn.execute(
+                        "SELECT id FROM action_history ORDER BY id"
+                    )
                     if item[0] <= int(cursor_value)
                 )
                 loaded_history = {
@@ -155,28 +214,53 @@ class ProjectDatabase:
         self._ensure_logs_schema(conn)
         return project
 
-    def save(self, project: Project, history_data: dict | None = None) -> None:
-        """Сохраняет документ и историю только по явной команде пользователя."""
+    def save(
+        self,
+        project: Project,
+        history_data: dict | None = None,
+    ) -> None:
+        """Сохраняет документ, слои и историю по явной команде пользователя."""
         self._require_conn()
         self._ensure_history_schema(self.conn)
-        history_data = history_data or {"records": [], "cursor": 0, "limit": getattr(project, "max_undo_steps", 10)}
+        history_data = history_data or {
+            "records": [],
+            "cursor": 0,
+            "limit": getattr(project, "max_undo_steps", 10),
+        }
 
         with self.conn:
             self.conn.execute(
-                "UPDATE project SET name=?, width=?, height=?, history_cursor=?, max_undo_steps=?, supports_transparency=? WHERE id=1",
+                "UPDATE project SET name=?, width=?, height=?, history_cursor=?, "
+                "max_undo_steps=?, supports_transparency=? WHERE id=1",
                 (
-                    project.name, project.width, project.height,
+                    project.name,
+                    project.width,
+                    project.height,
                     int(history_data.get("cursor", 0)),
-                    max(1, int(history_data.get("limit", getattr(project, "max_undo_steps", 10)))),
+                    max(
+                        1,
+                        int(
+                            history_data.get(
+                                "limit",
+                                getattr(project, "max_undo_steps", 10),
+                            )
+                        ),
+                    ),
                     int(bool(project.supports_transparency)),
                 ),
             )
             self.conn.execute("DELETE FROM layers")
             self._write_layers(project, self.conn)
             self.conn.execute("DELETE FROM action_history")
-            for index, record in enumerate(history_data.get("records", []), start=1):
+
+            for index, record in enumerate(
+                history_data.get("records", []),
+                start=1,
+            ):
                 self.conn.execute(
-                    "INSERT INTO action_history(id,command_type,before_state,after_state) VALUES(?,?,?,?)",
+                    "INSERT INTO action_history"
+                    "(id, command_type, before_state, after_state) "
+                    "VALUES (?, ?, ?, ?)",
                     (
                         index,
                         record["command_type"],
@@ -184,24 +268,28 @@ class ProjectDatabase:
                         sqlite3.Binary(record["after_state"]),
                     ),
                 )
+
         self._loaded_history = history_data
 
     @staticmethod
     def _ensure_logs_schema(conn: sqlite3.Connection) -> None:
         """Создаёт таблицу журналирования в старых проектах."""
-        conn.execute("""
+        conn.execute(
+            """
             CREATE TABLE IF NOT EXISTS logs (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 log TEXT NOT NULL,
                 created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
             )
-        """)
+            """
+        )
         conn.commit()
 
     def add_log(self, message: str) -> None:
         """Добавляет запись в журнал открытого проекта."""
         self._require_conn()
         self._ensure_logs_schema(self.conn)
+
         with self.conn:
             self.conn.execute(
                 "INSERT INTO logs (log) VALUES (?)",
@@ -212,8 +300,13 @@ class ProjectDatabase:
         """Возвращает историю, прочитанную при открытии текущего проекта."""
         return self._loaded_history
 
-    def save_as(self, path: str, project: Project, history_data: dict | None = None) -> Project:
-        """Сохраняет проект в новый SQLite-файл и переключает БД на него."""
+    def save_as(
+        self,
+        path: str,
+        project: Project,
+        history_data: dict | None = None,
+    ) -> Project:
+        """Создаёт копию проекта в новом файле и переключает подключение на неё."""
         if os.path.exists(path):
             raise FileExistsError(f"Файл уже существует: {path}")
 
@@ -234,24 +327,32 @@ class ProjectDatabase:
 
         return self.load(path)
 
-
     @staticmethod
     def _ensure_history_schema(conn: sqlite3.Connection) -> None:
-        """Добавляет таблицы истории в новые и уже существующие проекты."""
-        columns = {row[1] for row in conn.execute("PRAGMA table_info(project)")}
+        """Добавляет таблицы и поля истории в новые и существующие проекты."""
+        columns = {
+            row[1]
+            for row in conn.execute("PRAGMA table_info(project)")
+        }
+
         if "max_undo_steps" not in columns:
             conn.execute(
-                "ALTER TABLE project ADD COLUMN max_undo_steps INTEGER NOT NULL DEFAULT 10"
+                "ALTER TABLE project ADD COLUMN "
+                "max_undo_steps INTEGER NOT NULL DEFAULT 10"
             )
         if "supports_transparency" not in columns:
             conn.execute(
-                "ALTER TABLE project ADD COLUMN supports_transparency INTEGER NOT NULL DEFAULT 1"
+                "ALTER TABLE project ADD COLUMN "
+                "supports_transparency INTEGER NOT NULL DEFAULT 1"
             )
         if "history_cursor" not in columns:
             conn.execute(
-                "ALTER TABLE project ADD COLUMN history_cursor INTEGER NOT NULL DEFAULT 0"
+                "ALTER TABLE project ADD COLUMN "
+                "history_cursor INTEGER NOT NULL DEFAULT 0"
             )
-        conn.execute("""
+
+        conn.execute(
+            """
             CREATE TABLE IF NOT EXISTS action_history (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 command_type TEXT NOT NULL,
@@ -259,23 +360,28 @@ class ProjectDatabase:
                 after_state BLOB NOT NULL,
                 created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
             )
-        """)
+            """
+        )
 
     def close(self) -> None:
-        """Закрывает соединение с файлом проекта."""
+        """Закрывает соединение с файлом проекта и очищает текущее состояние."""
         if self.conn is not None:
             self.conn.close()
             self.conn = None
+
         self.path = None
         self._loaded_history = None
 
     def _require_conn(self) -> None:
+        """Проверяет, что база данных проекта открыта."""
         if self.conn is None:
-            raise RuntimeError("Файл проекта не открыт: сначала create() или load()")
+            raise RuntimeError(
+                "Файл проекта не открыт: сначала create() или load()"
+            )
 
     @staticmethod
     def _write_layers(project: Project, conn: sqlite3.Connection) -> None:
-        """Записывает слои проекта в SQLite."""
+        """Записывает все слои проекта в SQLite в порядке наложения."""
         for layer in project.layers:
             conn.execute(
                 "INSERT INTO layers (name, z_order, visible, pixels) "
