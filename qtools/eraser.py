@@ -1,17 +1,26 @@
-from qtools.base import Tool
+"""Инструмент удаления пикселей с активного слоя."""
 from PyQt6.QtCore import Qt
 from PyQt6.QtGui import QColor, QPainter, QPen
 
+from qtools.base import Tool
+
 
 class Eraser(Tool):
-    """Ластик"""
-    def move(self, image, pos, last_pos, color, size):
-        p = QPainter(image)
+    """Стирает пиксели, заменяя их прозрачностью."""
 
-        p.setCompositionMode(QPainter.CompositionMode.CompositionMode_Clear)
-
-        p.setPen(QPen(QColor(0, 0, 0, 0), size, Qt.PenStyle.SolidLine,
-                      Qt.PenCapStyle.RoundCap))
-        
-        p.drawLine(last_pos, pos)
-        p.end()
+    def move(self, image, pos, last_pos, color, size) -> None:
+        """Стирает линию между предыдущей и текущей позициями курсора."""
+        painter = QPainter(image)
+        painter.setCompositionMode(
+            QPainter.CompositionMode.CompositionMode_Clear
+        )
+        painter.setPen(
+            QPen(
+                QColor(0, 0, 0, 0),
+                size,
+                Qt.PenStyle.SolidLine,
+                Qt.PenCapStyle.RoundCap,
+            )
+        )
+        painter.drawLine(last_pos, pos)
+        painter.end()
