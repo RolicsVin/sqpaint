@@ -1,35 +1,45 @@
-from PyQt6.QtGui import QIcon
+"""Главное окно SQPaint и координация компонентов пользовательского интерфейса."""
 from PyQt6.QtWidgets import QApplication, QMainWindow
 
 from core.database import ProjectDatabase
-from services.logger import AppLogger
-from core.models import Project
 from core.localization import LocalizationManager
+from core.models import Project
 from services import recent_projects, settings as settings_service
-from ui.start_window import RecentProjectWindow
+from services.logger import AppLogger
+from ui.autosave_controller import AutoSaveController
 from ui.canvas import Canvas
 from ui.canvas_view import CanvasView
-from ui.tool_bar import ToolBar
-from ui.layers_panel import LayerPanel
-from ui.view_manager import ViewManager
-from ui.document_controller import DocumentController
-from ui.localization_controller import WindowLocalizationController
-from ui.preferences_controller import PreferencesController
-from ui.menu_controller import MenuController
-from ui.history_controller import HistoryController
-from ui.autosave_controller import AutoSaveController
 from ui.dialogs import confirm_exit
+from ui.document_controller import DocumentController
+from ui.history_controller import HistoryController
+from ui.layers_panel import LayerPanel
+from ui.localization_controller import WindowLocalizationController
+from ui.menu_controller import MenuController
+from ui.preferences_controller import PreferencesController
+from ui.start_window import RecentProjectWindow
+from ui.tool_bar import ToolBar
+from ui.view_manager import ViewManager
 
 
 class DomainWindow(QMainWindow):
+    """Собирает интерфейс редактора и делегирует операции специализированным контроллерам."""
+
     HEADERS_HEIGHT = 25
 
-    def __init__(self, project: Project | None, database: ProjectDatabase, settings: dict):
+    def __init__(
+        self,
+        project: Project | None,
+        database: ProjectDatabase,
+        settings: dict,
+    ):
+        """Создаёт главное окно, контроллеры, панели и стартовое окно приложения."""
         super().__init__()
         self.project = None
         self.database = database
         self.logger = AppLogger(database)
-        self.settings_data = settings if isinstance(settings, dict) else settings_service.load_data()
+        self.settings_data = (
+            settings if isinstance(settings, dict) else settings_service.load_data()
+        )
         self.view_settings = self.settings_data.setdefault("view", {})
         self.canvas: Canvas | None = None
         self.canvas_view: CanvasView | None = None
@@ -46,13 +56,16 @@ class DomainWindow(QMainWindow):
         self.tool_bar = ToolBar(self)
         saved_language = self.settings_data.get("language", "ru")
         self.localization = LocalizationManager(
-            saved_language if saved_language in LocalizationManager.SUPPORTED_LANGUAGES else "ru"
+            saved_language
+            if saved_language in LocalizationManager.SUPPORTED_LANGUAGES
+            else "ru"
         )
         self.localization_controller = WindowLocalizationController(self)
         self.localization_controller.register_widgets()
         self.tool_bar.set_language(self.localization.language)
         self.ru.setChecked(self.localization.language == "ru")
         self.en.setChecked(self.localization.language == "en")
+
         self.tool_bar.move(0, self.HEADERS_HEIGHT)
         self.tool_bar.resize(self.width(), ToolBar.HEIGHT)
         self.tool_bar.color_selected.connect(self.set_canvas_color)
@@ -67,7 +80,9 @@ class DomainWindow(QMainWindow):
         self.layer_panel.add_layer_requested.connect(self.add_layer)
         self.layer_panel.remove_layer_requested.connect(self.remove_layer)
         self.layer_panel.layer_selected.connect(self.select_layer)
-        self.layer_panel.layer_move_requested.connect(self._on_layer_move_requested)
+        self.layer_panel.layer_move_requested.connect(
+            self._on_layer_move_requested
+        )
         self.layer_panel.layer_visibility_requested.connect(
             self._on_layer_visibility_requested
         )
@@ -80,10 +95,14 @@ class DomainWindow(QMainWindow):
             self.set_project(project)
 
         self.setWindowTitle("SQPaint")
-        self.recent_projects_window = RecentProjectWindow(self.localization, self)
+        self.recent_projects_window = RecentProjectWindow(
+            self.localization,
+            self,
+        )
         self.recent_projects_window.project_select.connect(self.open_project_path)
         self.recent_projects_window.create_project.connect(self.create_project)
         self.recent_projects_window.open_project.connect(self.open_project)
+
         self.view_manager = ViewManager(
             self.view_settings,
             self.layer_panel,
@@ -107,82 +126,111 @@ class DomainWindow(QMainWindow):
         self.ru.setChecked(self.localization.language == "ru")
         self.en.setChecked(self.localization.language == "en")
         self.showMaximized()
+
         # Стартовое окно должно оставаться поверх главного при запуске.
         if self.recent_projects_window.isVisible():
             self.recent_projects_window.raise_()
             self.recent_projects_window.activateWindow()
 
-
     def _tr(self, ru: str, en: str) -> str:
+        """Возвращает перевод для текущего языка интерфейса."""
         return self.localization_controller.translate(ru, en)
 
     def _set_language(self, language: str) -> None:
+        """Переключает язык зарегистрированных элементов и панели инструментов."""
         self.localization_controller.set_language(language)
         self.tool_bar.set_language(language)
 
     def _layout_child_widgets(self) -> None:
+        """Рассчитывает геометрию холста и боковых панелей главного окна."""
         panel_width = LayerPanel.WIDTH if not self.layer_panel.isHidden() else 0
-        top = self.HEADERS_HEIGHT + (ToolBar.HEIGHT if not self.tool_bar.isHidden() else 0)
-        self.tool_bar.setGeometry(0, self.HEADERS_HEIGHT, self.width(), ToolBar.HEIGHT)
+        top = self.HEADERS_HEIGHT + (
+            ToolBar.HEIGHT if not self.tool_bar.isHidden() else 0
+        )
+        self.tool_bar.setGeometry(
+            0,
+            self.HEADERS_HEIGHT,
+            self.width(),
+            ToolBar.HEIGHT,
+        )
         self.canvas_view.setGeometry(
-            0, top, max(0, self.width() - panel_width),
-            max(0, self.height() - top)
+            0,
+            top,
+            max(0, self.width() - panel_width),
+            max(0, self.height() - top),
         )
         self.layer_panel.setGeometry(
-            self.width() - panel_width, 0, panel_width, self.height()
+            self.width() - panel_width,
+            0,
+            panel_width,
+            self.height(),
         )
 
-        # Явно задаём порядок слоёв дочерних виджетов:
-        # область холста находится снизу, панели инструментов и слоёв — сверху.
+        # Холст находится снизу, панели инструментов и слоёв — сверху.
         self.canvas_view.lower()
         self.tool_bar.raise_()
         self.layer_panel.raise_()
 
     def resizeEvent(self, event) -> None:
+        """Пересчитывает расположение дочерних виджетов при изменении размера окна."""
         super().resizeEvent(event)
         self._layout_child_widgets()
 
-
     def _save_view_settings(self) -> None:
+        """Передаёт сохранение настроек отображения контроллеру параметров."""
         self.preferences_controller.save()
 
     def _on_layer_panel_visibility_changed(self, visible: bool) -> None:
+        """Обрабатывает изменение видимости панели слоёв."""
         self.preferences_controller.layer_panel_visibility_changed(visible)
 
     def _on_toolbar_visibility_changed(self, visible: bool) -> None:
+        """Обрабатывает изменение видимости панели инструментов."""
         self.preferences_controller.toolbar_visibility_changed(visible)
 
     def _on_zoom_visibility_changed(self, visible: bool) -> None:
+        """Обрабатывает изменение видимости элементов управления масштабом."""
         self.preferences_controller.zoom_visibility_changed(visible)
 
     def _on_welcome_preference_changed(self, visible: bool) -> None:
+        """Обрабатывает изменение настройки окна приветствия."""
         self.preferences_controller.welcome_preference_changed(visible)
 
     def _set_theme(self, theme: str, save: bool = True) -> None:
+        """Передаёт переключение темы контроллеру настроек."""
         self.preferences_controller.set_theme(theme, save)
 
     def open_settings(self) -> None:
+        """Открывает диалог пользовательских настроек."""
         self.preferences_controller.open_settings()
 
     def _apply_settings(self, values: dict) -> None:
+        """Передаёт контроллеру настроек параметры, выбранные пользователем."""
         self.preferences_controller.apply_settings(values)
 
     def create_project(self) -> None:
+        """Запускает сценарий создания нового проекта."""
         self.document_controller.create_project()
 
     def open_project(self) -> None:
+        """Запускает диалог выбора существующего проекта."""
         self.document_controller.open_project()
 
     def open_project_path(self, path: str) -> None:
+        """Открывает проект по указанному пути."""
         self.document_controller.open_project_path(path)
 
     def set_project(self, project: Project) -> None:
+        """Подключает проект к интерфейсу и активирует инструменты редактирования."""
         self.project = project
         self.autosave_controller.start()
         self.logger.log("Проект открыт", project.get_name())
+
         self.canvas = Canvas(
-            self.canvas_view, project.get_layers(),
-            project.get_width(), project.get_height(),
+            self.canvas_view,
+            project.get_layers(),
+            project.get_width(),
+            project.get_height(),
             project.supports_transparency,
         )
         self.canvas.set_tool(Canvas.BRUSH)
@@ -192,6 +240,7 @@ class DomainWindow(QMainWindow):
         self.layer_panel.set_layers(project.get_layers())
         self.canvas_view.set_zoom(100)
         self.history_controller.set_project(project)
+
         self.save_action.setEnabled(True)
         self.save_as_action.setEnabled(True)
         self.export_submenu.setEnabled(True)
@@ -202,85 +251,118 @@ class DomainWindow(QMainWindow):
         self.setWindowTitle(f"SQPaint — {project.get_name()}")
         recent_projects.add_recent_project(project)
 
-    # Document and layer workflows are delegated to DocumentController.
+    # Операции с документом и слоями делегируются DocumentController.
     def crop_document(self, rect) -> None:
+        """Передаёт контроллеру документа запрос на кадрирование."""
         self.document_controller.crop_document(rect)
 
     def change_canvas_size(self) -> None:
+        """Запускает изменение размера холста."""
         self.document_controller.change_canvas_size()
 
     def add_layer(self) -> None:
+        """Создаёт новый слой текущего проекта."""
         self.document_controller.add_layer()
 
     def remove_layer(self, layer) -> None:
+        """Удаляет указанный слой из текущего проекта."""
         self.document_controller.remove_layer(layer)
 
-    def _on_layer_move_requested(self, source, target, insert_before: bool) -> None:
+    def _on_layer_move_requested(
+        self,
+        source,
+        target,
+        insert_before: bool,
+    ) -> None:
+        """Передаёт контроллеру документа запрос на изменение порядка слоёв."""
         self.document_controller.move_layer(source, target, insert_before)
 
-    def _on_layer_visibility_requested(self, layer, visible: bool) -> None:
+    def _on_layer_visibility_requested(
+        self,
+        layer,
+        visible: bool,
+    ) -> None:
+        """Передаёт контроллеру документа запрос на изменение видимости слоя."""
         self.document_controller.set_layer_visibility(layer, visible)
 
     def _on_layer_rename_requested(self, layer, name: str) -> None:
+        """Передаёт контроллеру документа новое название слоя."""
         self.document_controller.rename_layer(layer, name)
 
     def _commit_pending_transform(self) -> None:
+        """Подтверждает незавершённое позиционирование импортированного изображения."""
         if self.canvas is not None and self.canvas.transform_image is not None:
             self.canvas.commit_image_transform()
 
     def select_layer(self, index: int) -> None:
+        """Выбирает активный слой документа."""
         self.document_controller.select_layer(index)
 
     def save(self) -> None:
+        """Сохраняет текущий проект."""
         self.document_controller.save()
 
     def set_canvas_color(self, color) -> None:
+        """Устанавливает цвет рисования и записывает выбор в журнал."""
         if self.canvas is not None:
             self.canvas.color = color
             self.logger.log("Выбран цвет", color.name())
 
     def set_canvas_tool(self, tool_name: str) -> None:
+        """Переключает инструмент холста и записывает выбор в журнал."""
         if self.canvas is not None:
             self._commit_pending_transform()
             self.canvas.set_tool(tool_name)
             self.logger.log("Выбран инструмент", tool_name)
 
     def set_canvas_shape(self, shape_name: str) -> None:
+        """Устанавливает тип геометрической фигуры для инструмента Shapes."""
         if self.canvas is not None:
             self.canvas.set_shape(shape_name)
             self.logger.log("Выбрана фигура", shape_name)
 
     def set_canvas_width(self, width: int) -> None:
+        """Устанавливает толщину линии активного инструмента."""
         if self.canvas is not None:
             self.canvas.width_px = width
 
     def set_canvas_zoom(self, percent: int) -> None:
+        """Устанавливает масштаб отображения холста в процентах."""
         if self.canvas_view is not None:
             self.canvas_view.set_zoom(percent)
 
     def save_as(self) -> None:
+        """Сохраняет текущий проект в новый файл."""
         self.document_controller.save_as()
 
     def import_image(self) -> None:
+        """Импортирует изображение в текущий проект как отдельный слой."""
         self.document_controller.import_image()
 
     def create_project_from_image(self) -> None:
+        """Создаёт новый проект на основе выбранного изображения."""
         self.document_controller.create_project_from_image()
 
     def take_selfie(self) -> None:
+        """Открывает камеру и добавляет полученный снимок в проект."""
         self.document_controller.take_selfie()
 
     def export_image(self, image_format: str) -> None:
+        """Экспортирует композицию документа в указанный формат."""
         self.document_controller.export_image(image_format)
 
     def open_file_info(self) -> None:
+        """Открывает информацию о файле текущего проекта."""
         self.document_controller.open_file_info()
 
     def closeEvent(self, event) -> None:
+        """Проверяет несохранённые изменения и корректно завершает работу окна."""
         self._commit_pending_transform()
         self.history_controller.flush_pending()
         has_unsaved_changes = (
-            self.history_controller.is_dirty() if self.project is not None else False
+            self.history_controller.is_dirty()
+            if self.project is not None
+            else False
         )
         if not confirm_exit(self, has_unsaved_changes):
             event.ignore()
@@ -289,6 +371,7 @@ class DomainWindow(QMainWindow):
         self.autosave_controller.stop()
         if self.project is not None:
             self.logger.log("Проект закрывается", self.project.get_name())
+
         self._save_view_settings()
         # Явно закрываем отдельное стартовое окно при закрытии главного.
         self.recent_projects_window.close()
