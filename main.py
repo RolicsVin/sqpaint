@@ -26,7 +26,6 @@ def main() -> int:
 
     database = ProjectDatabase()
     window = DomainWindow(None, database, settings.load_data())
-    window.show()
 
     try:
         return app.exec()
