@@ -2,7 +2,12 @@
 services/__pycache__
 qtools/__pycache__
 /ui/__pycache__
+
+# Сборка
 venv/
+build/
+dist/
+SQPaint.spec
 
 # Локальные данные пользователя
 recent_projects.csv
